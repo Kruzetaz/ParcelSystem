@@ -1,7 +1,9 @@
 // procurement_order.dart
-// แทนที่ ProcurementForm เดิม — ตรงกับตาราง procurement_orders (schema v2)
+// แทนที่ ProcurementForm เดิม — ตรงกับตาราง procurement_orders (schema v3)
 // PK เปลี่ยนจาก procurement_number (TEXT) เป็น id (INTEGER AUTOINCREMENT)
 // เพราะ 1 budget ต้องผูกได้กับหลาย order และ id ใช้เป็น FK ให้ procurement_items
+//
+// [อัปเดตล่าสุด 2026]: เพิ่มฟิลด์เอกสารสำหรับตรวจรับ deliveryDocType และ deliveryDocNumber
 
 class ProcurementOrder {
   final int? id;
@@ -48,6 +50,10 @@ class ProcurementOrder {
   final String? vendorPhone;
   final String? vendorTaxId;
   final String? marketPriceCheck; // {{market_price_check}}
+
+  // ข้อมูลเอกสารหลักฐานที่ใช้ส่งมอบเพื่อการตรวจรับ (เพิ่มใหม่ปี 2026)
+  final String? deliveryDocType;    // {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
+  final String? deliveryDocNumber;  // {{delivery_doc_number}} เลขที่ใบส่งของ/หลักฐาน
 
   final double? currentOrderPrice;
   final String? totalPriceTh;
@@ -118,6 +124,8 @@ class ProcurementOrder {
     this.vendorPhone,
     this.vendorTaxId,
     this.marketPriceCheck,
+    this.deliveryDocType,
+    this.deliveryDocNumber,
     this.currentOrderPrice,
     this.totalPriceTh,
     this.subtotalBeforeVat,
@@ -184,6 +192,8 @@ class ProcurementOrder {
         'vendor_phone': vendorPhone,
         'vendor_tax_id': vendorTaxId,
         'market_price_check': marketPriceCheck,
+        'delivery_doc_type': deliveryDocType,
+        'delivery_doc_number': deliveryDocNumber,
         'current_order_price': currentOrderPrice,
         'total_price_th': totalPriceTh,
         'subtotal_before_vat': subtotalBeforeVat,
@@ -250,6 +260,8 @@ class ProcurementOrder {
         vendorPhone: m['vendor_phone'] as String?,
         vendorTaxId: m['vendor_tax_id'] as String?,
         marketPriceCheck: m['market_price_check'] as String?,
+        deliveryDocType: m['delivery_doc_type'] as String?,
+        deliveryDocNumber: m['delivery_doc_number'] as String?,
         currentOrderPrice: (m['current_order_price'] as num?)?.toDouble(),
         totalPriceTh: m['total_price_th'] as String?,
         subtotalBeforeVat: (m['subtotal_before_vat'] as num?)?.toDouble(),
@@ -316,6 +328,8 @@ class ProcurementOrder {
     String? vendorPhone,
     String? vendorTaxId,
     String? marketPriceCheck,
+    String? deliveryDocType,
+    String? deliveryDocNumber,
     double? currentOrderPrice,
     String? totalPriceTh,
     double? subtotalBeforeVat,
@@ -381,6 +395,8 @@ class ProcurementOrder {
       vendorPhone: vendorPhone ?? this.vendorPhone,
       vendorTaxId: vendorTaxId ?? this.vendorTaxId,
       marketPriceCheck: marketPriceCheck ?? this.marketPriceCheck,
+      deliveryDocType: deliveryDocType ?? this.deliveryDocType,
+      deliveryDocNumber: deliveryDocNumber ?? this.deliveryDocNumber,
       currentOrderPrice: currentOrderPrice ?? this.currentOrderPrice,
       totalPriceTh: totalPriceTh ?? this.totalPriceTh,
       subtotalBeforeVat: subtotalBeforeVat ?? this.subtotalBeforeVat,

@@ -1,10 +1,12 @@
 // database.dart
-// SQLite schema v2 — budgets + procurement_orders + procurement_items
+// SQLite schema v3 — budgets + procurement_orders + procurement_items
 //
 // เปลี่ยนจาก schema เดิม (procurement_forms แบบ PK = procurement_number TEXT)
 // มาเป็นโครงสร้างใหม่ตาม spec: แยกตาราง budgets (แผนงบประมาณ) ออกจาก
 // procurement_orders (เอกสารจัดซื้อจัดจ้างแต่ละใบ) แบบ 1-to-many
 // และแก้บั๊ก quantity เดิม โดยแยก quantity (REAL) ออกจาก unit (TEXT)
+//
+// [อัปเดตล่าสุด 2026]: เพิ่มฟิลด์เอกสารสำหรับตรวจรับ delivery_doc_type และ delivery_doc_number
 
 import 'dart:io';
 import 'package:path/path.dart';
@@ -117,6 +119,10 @@ class AppDatabase {
         vendor_phone TEXT,
         vendor_tax_id TEXT,
         market_price_check TEXT,
+
+        -- ข้อมูลเอกสารหลักฐานที่ใช้ส่งมอบเพื่อการตรวจรับ (เพิ่มใหม่ปี 2026)
+        delivery_doc_type TEXT,    -- {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
+        delivery_doc_number TEXT,  -- {{delivery_doc_number}} เลขที่ใบส่งของ/หลักฐาน
 
         current_order_price REAL,
         total_price_th TEXT,

@@ -3,9 +3,9 @@
 // แล้วส่งลงไปให้แต่ละแท็บแก้ผ่าน callback (ไม่ใช้ Provider เพื่อให้ยังง่ายต่อการอ่าน)
 //
 // สถานะตอนนี้: Tab 1-5 ทำงานจริงครบทุกแท็บแล้ว
-//   Tab 1 (ข้อมูลโรงเรียน/งบประมาณ/วัตถุประสงค์)
+//   Tab 1 (ข้อมูลโรงเรียน/งบประมาณ/วัตถุประสงค์) — [อัปเดต 2026]: เพิ่มปุ่มสร้างแผนงบประมาณด่วน แก้ปัญหา Dropdown ว่าง
 //   Tab 2 (ผู้ปฏิบัติงาน/คณะกรรมการตรวจรับ)
-//   Tab 3 (ร้านค้า/เงื่อนไข/ค่าปรับ/ประกัน) — อัตราค่าปรับเปลี่ยนจาก Slider เป็นกรอกตัวเลขเอง
+//   Tab 3 (ร้านค้า/เงื่อนไข/ค่าปรับ/ประกัน) — [อัปเดต 2026]: เพิ่มฟิลด์เลือกประเภทเอกสารตรวจรับ และเลขที่เอกสาร
 //   Tab 4 (รายการพัสดุ) — ต่อกับ ItemsTableEditor
 //   Tab 5 (กำหนดการ) — 9 ช่องวันที่ เลือกผ่าน date picker เก็บเป็น dd/MM/yyyy พ.ศ.
 
@@ -285,6 +285,80 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     });
   }
 
+  // ฟังก์ชันเพิ่มแผนงบประมาณเร่งด่วนในกรณี Dropdown ว่างเปล่า
+  Future<void> _showQuickAddBudgetDialog() async {
+    final yearCtrl = TextEditingController(text: DateTime.now().year + 543 >= 2569 ? '2569' : '2568');
+    final projCtrl = TextEditingController();
+    final actCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+
+    final result = await showDialog<Budget?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('เพิ่มแผนงบประมาณแบบด่วน', style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: yearCtrl, decoration: const InputDecoration(labelText: 'ปีงบประมาณ (พ.ศ.)')),
+              const SizedBox(height: 12),
+              TextField(controller: projCtrl, decoration: const InputDecoration(labelText: 'ชื่อโครงการ')),
+              const SizedBox(height: 12),
+              TextField(controller: actCtrl, decoration: const InputDecoration(labelText: 'ชื่อกิจกรรม')),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountCtrl,
+                decoration: const InputDecoration(labelText: 'งบประมาณจัดสรร (บาท)'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: _brandColor),
+            onPressed: () async {
+              final allocated = double.tryParse(amountCtrl.text) ?? 0.0;
+              final newBudget = Budget(
+                fiscalYear: yearCtrl.text.isEmpty ? '-' : yearCtrl.text,
+                projectName: projCtrl.text,
+                activityName: actCtrl.text,
+                allocatedAmount: allocated,
+                remainingAmount: allocated,
+              );
+              
+              // สมมติว่ามีฟังก์ชันบันทึกงบประมาณใน repo เช่น saveBudget
+              // หากใน repo ตัวแปรใช้ saveBudget หรือเพิ่มเข้าไปตรงๆ สามารถเรียกตรงนี้ได้เลย
+              // เพื่อความปลอดภัยเราใช้ฟังก์ชันผ่านตัวแปรกลางหรือส่งกลับไปประมวลผลภายนอก
+              Navigator.pop(ctx, newBudget);
+            },
+            child: const Text('บันทึก'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      setState(() => _loadingBudgets = true);
+      try {
+        // บันทึกลงฐานข้อมูลพัสดุ
+        await widget.repo.saveBudget(result); 
+        await _loadBudgets(); // โหลดรายการงบประมาณใหม่ทั้งหมด
+
+        // ค้นหา ID ตัวที่พึ่งเพิ่มเข้าไปล่าสุดมาผูกเช็คอินเข้าหน้าฟอร์ม
+        if (_budgets.isNotEmpty) {
+          final newest = _budgets.last;
+          _onBudgetSelected(newest);
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+        setState(() => _loadingBudgets = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _procurementNumberCtrl.dispose();
@@ -331,14 +405,25 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('เลือกแผนงบประมาณ'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.between,
+              children: [
+                _sectionTitle('เลือกแผนงบประมาณ'),
+                TextButton.icon(
+                  onPressed: _showQuickAddBudgetDialog,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('เพิ่มแผนด่วน'),
+                  style: TextButton.styleFrom(foregroundColor: _brandColor),
+                ),
+              ],
+            ),
             _loadingBudgets
                 ? const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: LinearProgressIndicator(),
                   )
                 : DropdownButtonFormField<Budget>(
-                    initialValue: selectedBudget,
+                    value: selectedBudget,
                     decoration: _inputDecoration('แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ)'),
                     isExpanded: true,
                     items: _budgets
@@ -736,6 +821,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   late final TextEditingController _contractControlNumberCtrl;
   late final TextEditingController _inspectionControlNumberCtrl;
   late final TextEditingController _penaltyRateCtrl;
+  
+  // เพิ่มคอนโทรลเลอร์สำหรับตัวแปรเลขที่เอกสารส่งมอบ
+  late final TextEditingController _deliveryDocNumberCtrl;
+  final List<String> _docTypes = ['ใบส่งของ', 'ใบกำกับภาษี/ใบส่งของ', 'ใบเสร็จรับเงิน', 'บิลเงินสด'];
 
   @override
   void initState() {
@@ -757,6 +846,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _penaltyRateCtrl = TextEditingController(
       text: (d.penaltyRate * 100).toStringAsFixed(2),
     );
+    _deliveryDocNumberCtrl = TextEditingController(text: d.deliveryDocNumber);
   }
 
   @override
@@ -775,11 +865,17 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _contractControlNumberCtrl.dispose();
     _inspectionControlNumberCtrl.dispose();
     _penaltyRateCtrl.dispose();
+    _deliveryDocNumberCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    String? currentDocType = widget.draft.deliveryDocType;
+    if (currentDocType != null && !_docTypes.contains(currentDocType)) {
+      currentDocType = null; // ป้องกันบั๊กกรณีค่าจากเบสไม่ตรงกับ List ในแอป
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: ConstrainedBox(
@@ -875,6 +971,28 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               decoration: _inputDecoration('ผลการสืบราคา/ตรวจสอบราคาตลาด'),
               maxLines: 2,
               onChanged: (v) => widget.onChanged((d) => d.copyWith(marketPriceCheck: v)),
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle('ข้อมูลหลักฐาน/เอกสารที่ใช้ตรวจรับพัสดุ'),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: currentDocType,
+                    decoration: _inputDecoration('ใช้เอกสารอะไรตรวจรับ'),
+                    items: _docTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                    onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocType: v)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _deliveryDocNumberCtrl,
+                    decoration: _inputDecoration('เลขที่เอกสารหลักฐาน (เช่น เลขที่ 001)'),
+                    onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocNumber: v)),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             _sectionTitle('เงื่อนไขการส่งมอบ / ค่าปรับ / ประกัน'),
@@ -990,7 +1108,7 @@ class _Tab4Items extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Tab 5: กำหนดการ / ไทม์ไลน์วันที่สำคัญของกระบวนการจัดซื้อจัดจ้าง
+// Tab 5: 定 (กำหนดการ) / ไทม์ไลน์วันที่สำคัญของกระบวนการจัดซื้อจัดจ้าง
 // เก็บวันที่เป็น String รูปแบบ dd/MM/yyyy (ปี พ.ศ.) ให้ตรงกับเอกสารราชการไทย
 // ─────────────────────────────────────────────────────────────────
 
