@@ -16,9 +16,7 @@ class AppDatabase {
   }
 
   Future<Database> _initDB() async {
-    // ✅ macOS → ~/Library/Application Support/procurement.db
-    // ✅ Windows → %APPDATA%/procurement.db
-    final Directory appDir = await getApplicationSupportDirectory();
+    final Directory appDir = await getApplicationSSupportDirectory();
     final String dbPath = p.join(appDir.path, 'procurement.db');
 
     return await databaseFactoryFfi.openDatabase(
@@ -26,7 +24,6 @@ class AppDatabase {
       options: OpenDatabaseOptions(
         version: 1,
         onCreate: _createDB,
-        // เพิ่ม foreign key support
         onOpen: (db) async {
           await db.execute('PRAGMA foreign_keys = ON');
         },
@@ -35,7 +32,6 @@ class AppDatabase {
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // เปิด foreign key ทันทีที่สร้าง DB
     await db.execute('PRAGMA foreign_keys = ON');
 
     await db.execute('''
