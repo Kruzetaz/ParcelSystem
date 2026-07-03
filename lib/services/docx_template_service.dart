@@ -21,6 +21,26 @@ import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import '../models/procurement_item.dart';
 
+enum _TokenType { text, tab, lineBreak, pageBreak }
+
+/// หน่วยย่อยของเนื้อหาในย่อหน้า docx (ข้อความ / tab / ตัดบรรทัด / ตัดหน้า)
+/// ใช้ตอนรื้อ-ประกอบ <w:r> กลับ เพื่อไม่ให้ tab/br/page-break หายไปตอน merge
+class _RunToken {
+  final _TokenType type;
+  final String? text;
+
+  _RunToken.text(this.text) : type = _TokenType.text;
+  _RunToken.tab()
+      : type = _TokenType.tab,
+        text = null;
+  _RunToken.lineBreak()
+      : type = _TokenType.lineBreak,
+        text = null;
+  _RunToken.pageBreak()
+      : type = _TokenType.pageBreak,
+        text = null;
+}
+
 /// แทน 1 แถวสินค้าที่จะ clone ลงตาราง
 class ProcurementItemData {
   final int idx;
@@ -178,76 +198,167 @@ class DocxTemplateService {
   /// ให้ merge ทุก run ในย่อหน้าเป็น run เดียว (ใช้ rPr ของ run แรก)
   /// เพื่อความปลอดภัยสูงสุดของการจับ placeholder แม้จะเสียฟอร์แมตย่อยๆ
   /// ของ run กลาง (ปกติ placeholder ไม่ควรมีฟอร์แมตต่างกันอยู่แล้ว)
+ 
+/// รวม <w:r>...<w:t>...</w:t>...</w:r> ที่ต่อเนื่องกันภายในย่อหน้าเดียวกัน
+  /// ให้กลายเป็น run เดียว เมื่อพบว่าข้อความรวมกันมี {{...}} ที่ถูกตัดขาด
+  ///
+  /// เวอร์ชันนี้เดินไล่เนื้อหาของย่อหน้าตามลำดับจริง แทนที่จะดึงเฉพาะ
+  /// <w:t> แล้วทิ้ง <w:r> เดิมทั้งหมดแบบเดิม — เพราะ <w:tab/>, <w:br/>
+  /// (ตัดบรรทัด) และ <w:br w:type="page"/> (ตัดหน้า) ก็อยู่ใน <w:r>
+  /// เหมือนกัน ถ้าทิ้งแบบเดิมพวกนี้จะหายไปเงียบๆ ทำให้เอกสารที่ควรขึ้น
+  /// หน้าใหม่ไหลไปต่อท้ายเอกสารก่อนหน้าแทน (ดูเหมือนการจัดหน้าเพี้ยน
+  /// ทั้งที่ margin จริงไม่ได้เปลี่ยน)
+ 
+ /// รวม <w:r>...<w:t>...</w:t>...</w:r> ที่ต่อเนื่องกันภายในย่อหน้าเดียวกัน
+  /// ให้กลายเป็น run เดียว เมื่อพบว่าข้อความรวมกันมี {{...}} ที่ถูกตัดขาด
+  ///
+  /// เวอร์ชันนี้เดินไล่เนื้อหาของย่อหน้าตามลำดับจริง แทนที่จะดึงเฉพาะ
+  /// <w:t> แล้วทิ้ง <w:r> เดิมทั้งหมดแบบเดิม — เพราะ <w:tab/>, <w:br/>
+  /// (ตัดบรรทัด) และ <w:br w:type="page"/> (ตัดหน้า) ก็อยู่ใน <w:r>
+  /// เหมือนกัน ถ้าทิ้งแบบเดิมพวกนี้จะหายไปเงียบๆ ทำให้เอกสารที่ควรขึ้น
+  /// หน้าใหม่ไหลไปต่อท้ายเอกสารก่อนหน้าแทน (ดูเหมือนการจัดหน้าเพี้ยน
+  /// ทั้งที่ margin จริงไม่ได้เปลี่ยน)
   static String _mergeSplitPlaceholderRuns(String xml) {
     final paragraphPattern = RegExp(r'<w:p\b[^>]*>.*?</w:p>', dotAll: true);
 
     return xml.replaceAllMapped(paragraphPattern, (match) {
       final paragraph = match.group(0)!;
 
-      // เฉพาะย่อหน้าที่มี {{ อยู่จริง และมีโอกาสถูกตัดขาด
       if (!paragraph.contains('{{')) return paragraph;
 
-      // ดึงข้อความล้วนจากทุก <w:t> ในย่อหน้า
-      // หมายเหตุสำคัญ: Word บางครั้งเขียน run ว่างเป็น self-closing <w:t/>
-      // (ไม่มี </w:t> แยก) ถ้าใช้ regex แบบเดิม <w:t[^>]*>(.*?)</w:t> เจอ
-      // <w:t/> จะงงแล้วกวาดหา </w:t> ตัวถัดไปที่อยู่ไกลออกไป ทำให้ดูด XML
-      // tag ดิบของ run อื่นเข้ามาเป็น "ข้อความ" ไปด้วย (บั๊กที่ทำให้เอกสาร
-      // เพี้ยน มี <w:r> โผล่เป็นตัวหนังสือ) — แก้โดยรองรับ self-closing แยก
-      // ออกจากกรณีปกติด้วย alternation แล้วถือว่า self-closing = ข้อความว่าง
-      final tPattern = RegExp(
-        r'<w:t\b[^>]*?(?:/>|>(.*?)</w:t>)',
-        dotAll: true,
-      );
-      final texts = tPattern
-          .allMatches(paragraph)
-          .map((m) => m.group(1) ?? '')
-          .toList();
+      final runPattern = RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true);
+      final runMatches = runPattern.allMatches(paragraph).toList();
+      if (runMatches.isEmpty) return paragraph;
+
+      // แตกเนื้อหาทุก run ในย่อหน้าออกเป็น token ตามลำดับจริง
+      final tokens = <_RunToken>[];
+      for (final rm in runMatches) {
+        tokens.addAll(_tokenizeRun(rm.group(0)!));
+      }
+
+      // เซฟตี้เน็ต: ถ้า parse เจอ tag แปลกที่ไม่รู้จักหลุดมาเป็นข้อความดิบ
+      // ให้ยกเลิกการ merge ย่อหน้านี้ ปล่อยของเดิมไว้ดีกว่าเสี่ยงเอกสารเพี้ยน
+      for (final t in tokens) {
+        if (t.type == _TokenType.text &&
+            (t.text!.contains('<w:') || t.text!.contains('</w:'))) {
+          return paragraph;
+        }
+      }
+
+      // texts = เฉพาะ token ข้อความ ตามลำดับ ใช้เช็คว่า placeholder ถูกตัดขาดไหม
+      final texts =
+          tokens.where((t) => t.type == _TokenType.text).map((t) => t.text!).toList();
       final combinedText = texts.join();
 
-      // เซฟตี้เน็ต: ถ้า combinedText ยังมีร่องรอย XML tag ดิบหลุดมา
-      // (เช่น เจอ edge case อื่นที่ไม่คาดคิด) ให้ยกเลิกการ merge ย่อหน้านี้
-      // ปล่อยของเดิมไว้ดีกว่าเสี่ยงสร้างเอกสารเพี้ยน
-      if (combinedText.contains('<w:') || combinedText.contains('</w:')) {
-        return paragraph;
-      }
-
-      // ถ้ารวมข้อความแล้วไม่มี {{...}} ที่สมบูรณ์กว่าตอนแยก ไม่ต้องทำอะไร
-      final hasCompletePlaceholder = RegExp(r'\{\{[^{}]+\}\}').hasMatch(combinedText);
+      final hasCompletePlaceholder =
+          RegExp(r'\{\{[^{}]+\}\}').hasMatch(combinedText);
       if (!hasCompletePlaceholder) return paragraph;
 
-      // ถ้าทุก <w:t> เดิมมี placeholder ครบในตัวเองอยู่แล้ว (ไม่ได้ถูกตัด) ก็ไม่ต้อง merge
-      final alreadyIntact = texts.every((t) =>
-          !t.contains('{{') && !t.contains('}}') ||
-          RegExp(r'\{\{[^{}]*\}\}').hasMatch(t) == RegExp(r'\{\{|\}\}').hasMatch(t));
-      if (texts.length <= 1 || alreadyIntact && !_looksSplit(texts)) {
-        // เดิมไม่ได้ถูกตัดขาดจริง ปล่อยผ่าน
-        if (!_looksSplit(texts)) return paragraph;
-      }
+      // ไม่ได้ถูกตัดขาดจริง ไม่ต้อง merge — ปล่อย <w:r> เดิมไว้เฉยๆ
+      if (!_looksSplit(texts)) return paragraph;
 
       // หา run แรกเพื่อใช้เป็นแม่แบบ rPr (รักษาฟอนต์/ขนาดของ placeholder)
-      final firstRunMatch = RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true).firstMatch(paragraph);
       String rPr = '';
-      if (firstRunMatch != null) {
-        final rPrMatch = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true).firstMatch(firstRunMatch.group(0)!);
-        if (rPrMatch != null) rPr = rPrMatch.group(0)!;
+      final rPrMatch = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true)
+          .firstMatch(runMatches.first.group(0)!);
+      if (rPrMatch != null) rPr = rPrMatch.group(0)!;
+
+      // ประกอบ token กลับเป็น run ใหม่ทีละตัว: รวม token ข้อความที่ติดกัน
+      // เป็น <w:t> เดียว และคาย tab/br/page-break เป็น run แยกในตำแหน่งเดิม
+      final buffer = StringBuffer();
+      final textBuffer = StringBuffer();
+
+      void flushText() {
+        if (textBuffer.isEmpty) return;
+        final escaped = textBuffer
+            .toString()
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;');
+        buffer.write('<w:r>$rPr<w:t xml:space="preserve">$escaped</w:t></w:r>');
+        textBuffer.clear();
       }
 
-      // สร้าง run ใหม่ตัวเดียวที่รวมข้อความทั้งหมด แทนที่ทุก <w:r> เดิม
-      final escapedText = combinedText
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;');
-      final mergedRun =
-          '<w:r>$rPr<w:t xml:space="preserve">$escapedText</w:t></w:r>';
+      for (final t in tokens) {
+        switch (t.type) {
+          case _TokenType.text:
+            textBuffer.write(t.text);
+            break;
+          case _TokenType.tab:
+            flushText();
+            buffer.write('<w:r>$rPr<w:tab/></w:r>');
+            break;
+          case _TokenType.lineBreak:
+            flushText();
+            buffer.write('<w:r>$rPr<w:br/></w:r>');
+            break;
+          case _TokenType.pageBreak:
+            flushText();
+            buffer.write('<w:r>$rPr<w:br w:type="page"/></w:r>');
+            break;
+        }
+      }
+      flushText();
 
-      // แทนที่ทุก <w:r>...</w:r> ในย่อหน้าด้วย run เดียวนี้
-      final withoutRuns = paragraph.replaceAll(
-        RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true),
-        '',
-      );
-      // แทรก mergedRun กลับก่อน </w:p>
-      return withoutRuns.replaceFirst('</w:p>', '$mergedRun</w:p>');
+      final withoutRuns = paragraph.replaceAll(runPattern, '');
+      return withoutRuns.replaceFirst('</w:p>', '${buffer.toString()}</w:p>');
     });
+  }
+
+  /// แตก <w:r>...</w:r> หนึ่งตัว ออกเป็นลำดับ token (ข้อความ / tab /
+  /// ตัดบรรทัด / ตัดหน้า) ตามลำดับจริงที่ปรากฏใน XML ของ run นั้น
+  static List<_RunToken> _tokenizeRun(String runXml) {
+    final childPattern = RegExp(
+      r'<w:t\b[^>]*?(?:/>|>(.*?)</w:t>)'
+      r'|<w:tab\b[^>]*/>'
+      r'|<w:br\b[^>]*/>'
+      r'|<w:cr\b[^>]*/>',
+      dotAll: true,
+    );
+
+    final tokens = <_RunToken>[];
+    for (final m in childPattern.allMatches(runXml)) {
+      final raw = m.group(0)!;
+      if (raw.startsWith('<w:t')) {
+        tokens.add(_RunToken.text(m.group(1) ?? ''));
+      } else if (raw.startsWith('<w:tab')) {
+        tokens.add(_RunToken.tab());
+      } else if (raw.startsWith('<w:br')) {
+        final isPageBreak = raw.contains('w:type="page"');
+        tokens.add(isPageBreak ? _RunToken.pageBreak() : _RunToken.lineBreak());
+      } else if (raw.startsWith('<w:cr')) {
+        tokens.add(_RunToken.lineBreak());
+      }
+    }
+    return tokens;
+  }
+
+  /// แตก <w:r>...</w:r> หนึ่งตัว ออกเป็นลำดับ token (ข้อความ / tab /
+  /// ตัดบรรทัด / ตัดหน้า) ตามลำดับจริงที่ปรากฏใน XML ของ run นั้น
+  static List<_RunToken> _tokenizeRun(String runXml) {
+    final childPattern = RegExp(
+      r'<w:t\b[^>]*?(?:/>|>(.*?)</w:t>)'
+      r'|<w:tab\b[^>]*/>'
+      r'|<w:br\b[^>]*/>'
+      r'|<w:cr\b[^>]*/>',
+      dotAll: true,
+    );
+
+    final tokens = <_RunToken>[];
+    for (final m in childPattern.allMatches(runXml)) {
+      final raw = m.group(0)!;
+      if (raw.startsWith('<w:t')) {
+        tokens.add(_RunToken.text(m.group(1) ?? ''));
+      } else if (raw.startsWith('<w:tab')) {
+        tokens.add(_RunToken.tab());
+      } else if (raw.startsWith('<w:br')) {
+        final isPageBreak = raw.contains('w:type="page"');
+        tokens.add(isPageBreak ? _RunToken.pageBreak() : _RunToken.lineBreak());
+      } else if (raw.startsWith('<w:cr')) {
+        tokens.add(_RunToken.lineBreak());
+      }
+    }
+    return tokens;
   }
 
   /// heuristic: {{ หรือ }} ปรากฏคนละ <w:t> กัน แปลว่าน่าจะถูกตัดขาด
