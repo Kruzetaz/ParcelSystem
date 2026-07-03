@@ -14,6 +14,8 @@ import '../data/procurement_repository.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
+import '../models/school_settings.dart';
+import '../services/document_generator.dart';
 import '../utils/calc_engine.dart';
 import '../widgets/items_table_editor.dart';
 
@@ -39,6 +41,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
   double _itemsSubtotal = 0;
 
   bool _saving = false;
+  bool _generatingDoc = false;
 
   @override
   void initState() {
@@ -69,23 +72,32 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     setState(() => _draft = update(_draft));
   }
 
+  /// คำนวณยอดสุดท้ายจาก items แล้วบันทึกลง DB — ใช้ร่วมกันทั้งปุ่ม
+  /// "บันทึก" และปุ่ม "สร้างเอกสาร Word" (ต้องบันทึกก่อนสร้างเอกสารเสมอ)
+  /// คืนค่า ProcurementOrder ที่บันทึกแล้ว (พร้อมยอดคำนวณล่าสุด)
+  Future<ProcurementOrder> _calcAndSaveOrder() async {
+    // คำนวณยอดสุดท้ายจาก items ก่อนบันทึก ป้องกันกรณี user แก้ Tab4 แล้วไม่ได้กลับมาดู
+    final calc = CalcEngine.calcAll(_itemsSubtotal);
+    final bahtText = CalcEngine.bahtText(calc['current_order_price']!);
+
+    final orderToSave = _draft.copyWith(
+      currentOrderPrice: calc['current_order_price'],
+      totalPriceTh: bahtText,
+      subtotalBeforeVat: calc['subtotal_before_vat'],
+      vatAmount: calc['vat_amount'],
+      taxWithholdingAmount: calc['tax_withholding_amount'],
+      netPayableAmount: calc['net_payable_amount'],
+    );
+
+    await _repo.saveOrderWithItems(orderToSave, _items);
+    setState(() => _draft = orderToSave);
+    return orderToSave;
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      // คำนวณยอดสุดท้ายจาก items ก่อนบันทึก ป้องกันกรณี user แก้ Tab4 แล้วไม่ได้กลับมาดู
-      final calc = CalcEngine.calcAll(_itemsSubtotal);
-      final bahtText = CalcEngine.bahtText(calc['current_order_price']!);
-
-      final orderToSave = _draft.copyWith(
-        currentOrderPrice: calc['current_order_price'],
-        totalPriceTh: bahtText,
-        subtotalBeforeVat: calc['subtotal_before_vat'],
-        vatAmount: calc['vat_amount'],
-        taxWithholdingAmount: calc['tax_withholding_amount'],
-        netPayableAmount: calc['net_payable_amount'],
-      );
-
-      await _repo.saveOrderWithItems(orderToSave, _items);
+      await _calcAndSaveOrder();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,6 +111,36 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       );
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// ปุ่ม "สร้างเอกสาร Word": บันทึกลง DB ก่อนเสมอ แล้วค่อยสร้าง .docx
+  /// จาก master template + เปิดด้วย Word อัตโนมัติ ไม่ปิดหน้าจอ wizard
+  /// เผื่อผู้ใช้ต้องการแก้ไขต่อหรือสร้างเอกสารซ้ำ
+  Future<void> _saveAndGenerateDocument() async {
+    setState(() => _generatingDoc = true);
+    try {
+      final orderToSave = await _calcAndSaveOrder();
+
+      final schoolSettings = await _repo.getSchoolSettings();
+
+      await DocumentGenerator.generateAndOpen(
+        order: orderToSave,
+        school: schoolSettings ?? const SchoolSettings(),
+        items: _items,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('สร้างเอกสาร Word สำเร็จ กำลังเปิดไฟล์...')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('สร้างเอกสารไม่สำเร็จ: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _generatingDoc = false);
     }
   }
 
@@ -146,20 +188,45 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.save),
-            label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึกเอกสาร'),
-            style: FilledButton.styleFrom(
-              backgroundColor: _brandColor,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: (_saving || _generatingDoc) ? null : _save,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึก'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _brandColor,
+                    side: const BorderSide(color: _brandColor),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: (_saving || _generatingDoc) ? null : _saveAndGenerateDocument,
+                  icon: _generatingDoc
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.description),
+                  label: Text(_generatingDoc ? 'กำลังสร้าง...' : 'สร้างเอกสาร Word'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _brandColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

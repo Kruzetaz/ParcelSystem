@@ -188,9 +188,28 @@ class DocxTemplateService {
       if (!paragraph.contains('{{')) return paragraph;
 
       // ดึงข้อความล้วนจากทุก <w:t> ในย่อหน้า
-      final tPattern = RegExp(r'<w:t[^>]*>(.*?)</w:t>', dotAll: true);
-      final texts = tPattern.allMatches(paragraph).map((m) => m.group(1)!).toList();
+      // หมายเหตุสำคัญ: Word บางครั้งเขียน run ว่างเป็น self-closing <w:t/>
+      // (ไม่มี </w:t> แยก) ถ้าใช้ regex แบบเดิม <w:t[^>]*>(.*?)</w:t> เจอ
+      // <w:t/> จะงงแล้วกวาดหา </w:t> ตัวถัดไปที่อยู่ไกลออกไป ทำให้ดูด XML
+      // tag ดิบของ run อื่นเข้ามาเป็น "ข้อความ" ไปด้วย (บั๊กที่ทำให้เอกสาร
+      // เพี้ยน มี <w:r> โผล่เป็นตัวหนังสือ) — แก้โดยรองรับ self-closing แยก
+      // ออกจากกรณีปกติด้วย alternation แล้วถือว่า self-closing = ข้อความว่าง
+      final tPattern = RegExp(
+        r'<w:t\b[^>]*?(?:/>|>(.*?)</w:t>)',
+        dotAll: true,
+      );
+      final texts = tPattern
+          .allMatches(paragraph)
+          .map((m) => m.group(1) ?? '')
+          .toList();
       final combinedText = texts.join();
+
+      // เซฟตี้เน็ต: ถ้า combinedText ยังมีร่องรอย XML tag ดิบหลุดมา
+      // (เช่น เจอ edge case อื่นที่ไม่คาดคิด) ให้ยกเลิกการ merge ย่อหน้านี้
+      // ปล่อยของเดิมไว้ดีกว่าเสี่ยงสร้างเอกสารเพี้ยน
+      if (combinedText.contains('<w:') || combinedText.contains('</w:')) {
+        return paragraph;
+      }
 
       // ถ้ารวมข้อความแล้วไม่มี {{...}} ที่สมบูรณ์กว่าตอนแยก ไม่ต้องทำอะไร
       final hasCompletePlaceholder = RegExp(r'\{\{[^{}]+\}\}').hasMatch(combinedText);
