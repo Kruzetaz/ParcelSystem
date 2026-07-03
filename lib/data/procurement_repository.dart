@@ -2,6 +2,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
+import '../models/school_settings.dart';
 import 'database.dart';
 
 class ProcurementRepository {
@@ -190,5 +191,27 @@ class ProcurementRepository {
 
       return orderId;
     });
+  }
+
+  // ─────────────────────────────────────────
+  // SCHOOL SETTINGS (ข้อมูลโรงเรียน — มีแถวเดียวเสมอ)
+  // ─────────────────────────────────────────
+
+  /// ดึงข้อมูลโรงเรียน คืนค่า null ถ้ายังไม่เคยกรอก (ยังไม่มีแถวในตาราง)
+  Future<SchoolSettings?> getSchoolSettings() async {
+    final db = await _db.database;
+    final rows = await db.query('school_settings', where: 'id = 1', limit: 1);
+    if (rows.isEmpty) return null;
+    return SchoolSettings.fromMap(rows.first);
+  }
+
+  /// บันทึกข้อมูลโรงเรียน — insert ถ้ายังไม่มีแถว, update ถ้ามีอยู่แล้ว (upsert)
+  Future<void> saveSchoolSettings(SchoolSettings settings) async {
+    final db = await _db.database;
+    await db.insert(
+      'school_settings',
+      settings.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

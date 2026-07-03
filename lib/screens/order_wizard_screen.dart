@@ -2,10 +2,12 @@
 // Wizard เต็มรูปแบบ — TabBar 5 แท็บ, ใช้ draft state เดียวใน State ของ wizard เอง
 // แล้วส่งลงไปให้แต่ละแท็บแก้ผ่าน callback (ไม่ใช้ Provider เพื่อให้ยังง่ายต่อการอ่าน)
 //
-// สถานะตอนนี้:
-//   Tab 1 (ข้อมูลโรงเรียน/งบประมาณ/วัตถุประสงค์) — ทำงานจริงแล้ว
-//   Tab 4 (รายการพัสดุ) — ต่อกับ ItemsTableEditor ที่มีอยู่แล้วจริง
-//   Tab 2, 3, 5 — placeholder ที่ compile ผ่านและเก็บ layout ไว้ รอเติมเนื้อหาจริงรอบหน้า
+// สถานะตอนนี้: Tab 1-5 ทำงานจริงครบทุกแท็บแล้ว
+//   Tab 1 (ข้อมูลโรงเรียน/งบประมาณ/วัตถุประสงค์)
+//   Tab 2 (ผู้ปฏิบัติงาน/คณะกรรมการตรวจรับ)
+//   Tab 3 (ร้านค้า/เงื่อนไข/ค่าปรับ/ประกัน) — อัตราค่าปรับเปลี่ยนจาก Slider เป็นกรอกตัวเลขเอง
+//   Tab 4 (รายการพัสดุ) — ต่อกับ ItemsTableEditor
+//   Tab 5 (กำหนดการ) — 9 ช่องวันที่ เลือกผ่าน date picker เก็บเป็น dd/MM/yyyy พ.ศ.
 
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
@@ -138,9 +140,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
               });
             },
           ),
-          const _PlaceholderTab(
-            label: 'กำหนดการ (Tab 5)\nไทม์ไลน์วันที่สำคัญของกระบวนการจัดซื้อจัดจ้าง',
-          ),
+          _Tab5Timeline(draft: _draft, onChanged: _updateDraft),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -668,8 +668,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   late final TextEditingController _warrantyPeriodCtrl;
   late final TextEditingController _contractControlNumberCtrl;
   late final TextEditingController _inspectionControlNumberCtrl;
-
-  late double _penaltyRate;
+  late final TextEditingController _penaltyRateCtrl;
 
   @override
   void initState() {
@@ -688,7 +687,9 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _warrantyPeriodCtrl = TextEditingController(text: d.warrantyPeriod);
     _contractControlNumberCtrl = TextEditingController(text: d.contractControlNumber);
     _inspectionControlNumberCtrl = TextEditingController(text: d.inspectionControlNumber);
-    _penaltyRate = d.penaltyRate;
+    _penaltyRateCtrl = TextEditingController(
+      text: (d.penaltyRate * 100).toStringAsFixed(2),
+    );
   }
 
   @override
@@ -706,6 +707,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _warrantyPeriodCtrl.dispose();
     _contractControlNumberCtrl.dispose();
     _inspectionControlNumberCtrl.dispose();
+    _penaltyRateCtrl.dispose();
     super.dispose();
   }
 
@@ -832,24 +834,18 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               ],
             ),
             const SizedBox(height: 16),
-            Text('อัตราค่าปรับ (% ต่อวัน)', style: TextStyle(color: Colors.grey.shade700)),
-            Slider(
-              value: _penaltyRate,
-              min: 0,
-              max: 1.0,
-              divisions: 100,
-              label: '${(_penaltyRate * 100).toStringAsFixed(2)}%',
-              onChanged: (v) {
-                setState(() => _penaltyRate = v);
-                widget.onChanged((d) => d.copyWith(penaltyRate: v));
-              },
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                '${(_penaltyRate * 100).toStringAsFixed(2)}% ต่อวัน',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: _brandColor),
+            TextFormField(
+              controller: _penaltyRateCtrl,
+              decoration: _inputDecoration('อัตราค่าปรับ (% ต่อวัน)').copyWith(
+                suffixText: '% ต่อวัน',
               ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (v) {
+                final pct = double.tryParse(v);
+                if (pct != null) {
+                  widget.onChanged((d) => d.copyWith(penaltyRate: pct / 100));
+                }
+              },
             ),
             const SizedBox(height: 24),
             _sectionTitle('เลขที่ควบคุมเอกสาร'),
@@ -927,28 +923,172 @@ class _Tab4Items extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Placeholder ใช้ชั่วคราวสำหรับ Tab 2 / 3 / 5
+// Tab 5: กำหนดการ / ไทม์ไลน์วันที่สำคัญของกระบวนการจัดซื้อจัดจ้าง
+// เก็บวันที่เป็น String รูปแบบ dd/MM/yyyy (ปี พ.ศ.) ให้ตรงกับเอกสารราชการไทย
 // ─────────────────────────────────────────────────────────────────
 
-class _PlaceholderTab extends StatelessWidget {
+class _DateFieldSpec {
   final String label;
-  const _PlaceholderTab({required this.label});
+  final String Function(ProcurementOrder) getValue;
+  final ProcurementOrder Function(ProcurementOrder, String?) setValue;
+  const _DateFieldSpec({
+    required this.label,
+    required this.getValue,
+    required this.setValue,
+  });
+}
+
+class _Tab5Timeline extends StatefulWidget {
+  final ProcurementOrder draft;
+  final void Function(ProcurementOrder Function(ProcurementOrder)) onChanged;
+
+  const _Tab5Timeline({required this.draft, required this.onChanged});
+
+  @override
+  State<_Tab5Timeline> createState() => _Tab5TimelineState();
+}
+
+class _Tab5TimelineState extends State<_Tab5Timeline> {
+  static final List<_DateFieldSpec> _fields = [
+    _DateFieldSpec(
+      label: 'วันที่บันทึกขออนุมัติใช้เงิน',
+      getValue: (d) => d.dateMemoUsed ?? '',
+      setValue: (d, v) => d.copyWith(dateMemoUsed: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่จัดทำใบสั่งซื้อ/สั่งจ้าง',
+      getValue: (d) => d.dateOrderCreated ?? '',
+      setValue: (d, v) => d.copyWith(dateOrderCreated: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่ประกาศ',
+      getValue: (d) => d.dateAnnouncement ?? '',
+      setValue: (d, v) => d.copyWith(dateAnnouncement: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่เสนอราคา',
+      getValue: (d) => d.dateQuotation ?? '',
+      setValue: (d, v) => d.copyWith(dateQuotation: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่ลงนามสัญญา/ใบสั่งซื้อ',
+      getValue: (d) => d.dateContractSigned ?? '',
+      setValue: (d, v) => d.copyWith(dateContractSigned: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันครบกำหนดส่งมอบ',
+      getValue: (d) => d.dateDeadline ?? '',
+      setValue: (d, v) => d.copyWith(dateDeadline: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่ส่งมอบจริง',
+      getValue: (d) => d.dateShipping ?? '',
+      setValue: (d, v) => d.copyWith(dateShipping: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่ตรวจรับ',
+      getValue: (d) => d.dateInspection ?? '',
+      setValue: (d, v) => d.copyWith(dateInspection: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่เบิกจ่ายเงิน',
+      getValue: (d) => d.dateDisbursement ?? '',
+      setValue: (d, v) => d.copyWith(dateDisbursement: v),
+    ),
+  ];
+
+  late final List<TextEditingController> _controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = _fields
+        .map((f) => TextEditingController(text: f.getValue(widget.draft)))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  // แปลง String วันที่เดิม (dd/MM/yyyy พ.ศ.) กลับเป็น DateTime (ค.ศ.)
+  // เพื่อใช้เป็นค่าเริ่มต้นตอนเปิดปฏิทิน
+  DateTime? _parseThaiDate(String text) {
+    final parts = text.split('/');
+    if (parts.length != 3) return null;
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final buddhistYear = int.tryParse(parts[2]);
+    if (day == null || month == null || buddhistYear == null) return null;
+    return DateTime(buddhistYear - 543, month, day);
+  }
+
+  String _formatThaiDate(DateTime date) {
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final y = date.year + 543;
+    return '$d/$m/$y';
+  }
+
+  Future<void> _pickDate(int index) async {
+    final initial = _parseThaiDate(_controllers[index].text) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(initial.year - 10),
+      lastDate: DateTime(initial.year + 10),
+      helpText: _fields[index].label,
+    );
+    if (picked == null) return;
+    final formatted = _formatThaiDate(picked);
+    setState(() => _controllers[index].text = formatted);
+    widget.onChanged((d) => _fields[index].setValue(d, formatted));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.construction, size: 40, color: Colors.grey.shade400),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle('ไทม์ไลน์วันที่สำคัญ (พ.ศ.)'),
+            for (int i = 0; i < _fields.length; i++) ...[
+              TextFormField(
+                controller: _controllers[i],
+                readOnly: true,
+                decoration: _inputDecoration(_fields[i].label).copyWith(
+                  suffixIcon: const Icon(Icons.calendar_today, size: 20),
+                ),
+                onTap: () => _pickDate(i),
+              ),
+              const SizedBox(height: 16),
+            ],
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _sectionTitle(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(
+          text,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _brandColor),
+        ),
+      );
+
+  InputDecoration _inputDecoration(String label) => InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      );
 }

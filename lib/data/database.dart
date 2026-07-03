@@ -14,7 +14,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 2;
+  static const int _version = 3;
 
   Database? _db;
 
@@ -42,11 +42,12 @@ class AppDatabase {
       onUpgrade: (db, oldVersion, newVersion) async {
         // ยังไม่มี production data จริง — migration รอบแรกใช้วิธี drop & recreate
         // เมื่อระบบเข้าสู่ production แล้วต้องเขียน ALTER TABLE ทีละ step แทน
-        if (oldVersion < 2) {
+        if (oldVersion < 3) {
           await db.execute('DROP TABLE IF EXISTS procurement_items');
           await db.execute('DROP TABLE IF EXISTS procurement_forms');
           await db.execute('DROP TABLE IF EXISTS procurement_orders');
           await db.execute('DROP TABLE IF EXISTS budgets');
+          await db.execute('DROP TABLE IF EXISTS school_settings');
           await _createSchema(db);
         }
       },
@@ -162,6 +163,19 @@ class AppDatabase {
         unit_price REAL NOT NULL,
         total_price REAL NOT NULL,
         FOREIGN KEY (order_id) REFERENCES procurement_orders(id) ON DELETE CASCADE
+      )
+    ''');
+
+    // ── ตารางข้อมูลโรงเรียน (มีแถวเดียวเสมอ id คงที่ = 1) ─────────────
+    // เก็บข้อมูลที่ไม่เปลี่ยนบ่อย กรอกครั้งเดียวใช้ซ้ำได้ทุกเอกสาร
+    await db.execute('''
+      CREATE TABLE school_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        school_name TEXT,
+        school_address_no TEXT,
+        school_subdistrict TEXT,
+        school_amphoe TEXT,
+        school_changwat TEXT
       )
     ''');
 

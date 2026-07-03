@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/procurement_order.dart';
 import 'order_wizard_screen.dart';
+import 'settings_screen.dart';
 
 const _brandColor = Color(0xFF1A3A5C);
 
@@ -87,6 +88,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('ระบบจัดซื้อจัดจ้าง'),
         backgroundColor: _brandColor,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'ข้อมูลโรงเรียน',
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openWizard(),
