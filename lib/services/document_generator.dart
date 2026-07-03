@@ -140,8 +140,13 @@ class DocumentGenerator {
     return {
       // ข้อมูลโรงเรียน (school_settings)
       'school_name': _str(s.schoolName),
+      'school_address_no': _str(s.schoolAddressNo),
+      'school_subdistrict': _str(s.schoolSubdistrict),
       'school_amphoe': _str(s.schoolAmphoe),
       'school_changwat': _str(s.schoolChangwat),
+
+      // ปีงบประมาณ
+      'fiscal_year': _str(o.fiscalYear),
 
       // ข้อมูลโครงการ/กิจกรรม
       'project_name': _str(o.projectName),
