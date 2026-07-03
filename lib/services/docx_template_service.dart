@@ -19,6 +19,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
+import '../models/procurement_item.dart';
 
 /// แทน 1 แถวสินค้าที่จะ clone ลงตาราง
 class ProcurementItemData {
@@ -35,6 +36,28 @@ class ProcurementItemData {
     required this.unitPrice,
     required this.totalPrice,
   });
+
+  /// สร้างจาก ProcurementItem model โดยตรง (schema v2: quantity เป็น double
+  /// แยกจาก unit) — [idx] คือลำดับแถวที่คำนวณจากตำแหน่งในลิสต์ตอน render
+  /// เอกสาร ไม่ได้เก็บ idx ไว้ใน DB
+  factory ProcurementItemData.fromItem(ProcurementItem item, int idx) {
+    return ProcurementItemData(
+      idx: idx,
+      itemName: item.itemName,
+      quantity: item.quantityDisplay,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice ?? item.computedTotal,
+    );
+  }
+
+  /// สร้างลิสต์ทั้งชุดจาก List<ProcurementItem> พร้อมคำนวณ idx ให้อัตโนมัติ
+  /// (idx = ตำแหน่งในลิสต์ + 1) — ใช้ตัวนี้แทนการวนลูปเองใน UI/service เรียกใช้
+  static List<ProcurementItemData> fromItems(List<ProcurementItem> items) {
+    return [
+      for (var i = 0; i < items.length; i++)
+        ProcurementItemData.fromItem(items[i], i + 1),
+    ];
+  }
 
   /// key ต้องตรงกับ {{key}} ในเทมเพลต (ไม่รวมปีกกา)
   Map<String, String> toPlaceholderMap({String Function(double)? money}) {
@@ -241,41 +264,51 @@ class DocxTemplateService {
   /// แล้ว clone แถวนั้นตามจำนวน [items] โดยแทน placeholder เฉพาะแถว
   /// ({{idx}}, {{item_name}}, {{quantity}}, {{unit_price}}, {{total_price}})
   /// ในแต่ละสำเนา จากนั้นลบ seed row ต้นฉบับออก แล้วแทรกแถวที่ clone แล้วแทน
+  ///
+  /// เอกสารจริงมักมีตารางรายการซ้ำหลายจุดในไฟล์เดียว (เช่น ภาคผนวก,
+  /// ใบเสนอราคา, ใบขอซื้อ) — ต้องวนทำ "ทุก" seed row ที่พบ ไม่ใช่แค่ตัวแรก
+  /// มิฉะนั้นตารางที่เหลือจะยังมี {{...}} ค้างอยู่
   static String _cloneItemRows(String xml, List<ProcurementItemData> items) {
     final rowPattern = RegExp(r'<w:tr\b[^>]*>.*?</w:tr>', dotAll: true);
-    final rows = rowPattern.allMatches(xml).toList();
 
-    String? seedRow;
-    for (final m in rows) {
-      if (m.group(0)!.contains('{{item_name}}')) {
-        seedRow = m.group(0);
-        break;
+    final buffer = StringBuffer();
+    var lastEnd = 0;
+    var foundAnySeed = false;
+
+    for (final m in rowPattern.allMatches(xml)) {
+      final rowXml = m.group(0)!;
+      if (!rowXml.contains('{{item_name}}')) continue;
+
+      foundAnySeed = true;
+      // เก็บส่วนของ xml ก่อนหน้าแถวนี้ไว้ก่อน
+      buffer.write(xml.substring(lastEnd, m.start));
+
+      if (items.isEmpty) {
+        // ไม่มีรายการสินค้า — ลบ seed row ทิ้งไปเลย ป้องกันเหลือ {{...}} ค้าง
+      } else {
+        for (final item in items) {
+          var clonedRow = rowXml;
+          final rowValues = item.toPlaceholderMap();
+          for (final entry in rowValues.entries) {
+            clonedRow = clonedRow.replaceAll(
+              '{{${entry.key}}}',
+              _escapeXmlText(entry.value),
+            );
+          }
+          buffer.write(clonedRow);
+        }
       }
+
+      lastEnd = m.end;
     }
 
-    if (seedRow == null) {
-      // ไม่มี seed row ในเอกสารนี้ (เช่นเอกสารที่ไม่มีตารางรายการ) — ข้ามได้
+    if (!foundAnySeed) {
+      // ไม่มี seed row เลยในเอกสารนี้ — ข้ามได้
       return xml;
     }
 
-    if (items.isEmpty) {
-      // ไม่มีรายการสินค้า — ลบ seed row ทิ้งไปเลย ป้องกันเหลือ {{...}} ค้าง
-      return xml.replaceFirst(seedRow, '');
-    }
-
-    final buffer = StringBuffer();
-    for (final item in items) {
-      var rowXml = seedRow;
-      final rowValues = item.toPlaceholderMap();
-      for (final entry in rowValues.entries) {
-        rowXml = rowXml.replaceAll(
-          '{{${entry.key}}}',
-          _escapeXmlText(entry.value),
-        );
-      }
-      buffer.write(rowXml);
-    }
-
-    return xml.replaceFirst(seedRow, buffer.toString());
+    buffer.write(xml.substring(lastEnd));
+    return buffer.toString();
   }
+
 }
