@@ -80,6 +80,13 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     final calc = CalcEngine.calcAll(_itemsSubtotal);
     final bahtText = CalcEngine.bahtText(calc['current_order_price']!);
 
+    // คำนวณ allocatedAmountTh ถ้ายังไม่มี (กรณีโหลดของเก่าจาก DB)
+    final allocatedTh = _draft.allocatedAmountTh?.isNotEmpty == true
+        ? _draft.allocatedAmountTh
+        : (_draft.allocatedAmount != null
+            ? CalcEngine.bahtText(_draft.allocatedAmount!)
+            : null);
+
     final orderToSave = _draft.copyWith(
       currentOrderPrice: calc['current_order_price'],
       totalPriceTh: bahtText,
@@ -87,6 +94,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       vatAmount: calc['vat_amount'],
       taxWithholdingAmount: calc['tax_withholding_amount'],
       netPayableAmount: calc['net_payable_amount'],
+      allocatedAmountTh: allocatedTh,
     );
 
     await _repo.saveOrderWithItems(orderToSave, _items);
@@ -343,7 +351,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       setState(() => _loadingBudgets = true);
       try {
         // บันทึกลงฐานข้อมูลพัสดุ
-        await widget.repo.saveBudget(result); 
+        await widget.repo.insertBudget(result); 
         await _loadBudgets(); // โหลดรายการงบประมาณใหม่ทั้งหมด
 
         // ค้นหา ID ตัวที่พึ่งเพิ่มเข้าไปล่าสุดมาผูกเช็คอินเข้าหน้าฟอร์ม
@@ -373,10 +381,14 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   // เลือกแผนงบ -> auto-fill project/activity/allocated/remaining/egp มาให้ทันที
   void _onBudgetSelected(Budget? budget) {
     if (budget == null) return;
+    final allocatedTh = budget.allocatedAmount != null
+        ? CalcEngine.bahtText(budget.allocatedAmount!)
+        : null;
     widget.onChanged((d) => d.copyWith(
           budgetId: budget.id,
           fiscalYear: budget.fiscalYear,
           allocatedAmount: budget.allocatedAmount,
+          allocatedAmountTh: allocatedTh,
           remainingAmount: budget.remainingAmount,
           egpProjectId: budget.egpNumber,
           projectName: budget.projectName,
@@ -406,7 +418,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _sectionTitle('เลือกแผนงบประมาณ'),
                 TextButton.icon(

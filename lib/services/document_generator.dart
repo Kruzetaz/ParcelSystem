@@ -210,6 +210,13 @@ class DocumentGenerator {
       'shipping_days': _intStr(o.shippingDays),
       'penalty_rate': _percent(o.penaltyRate),
       'warranty_period': _str(o.warrantyPeriod),
+      'market_price_check': _str(o.marketPriceCheck),
+      'market_price_check': _str(o.marketPriceCheck),
+      'delivery_doc_type': _str(o.deliveryDocType),
+      'delivery_doc_number': _str(o.deliveryDocNumber),
+      'market_price_check': _str(o.marketPriceCheck),
+      'delivery_doc_type': _str(o.deliveryDocType),
+      'delivery_doc_number': _str(o.deliveryDocNumber),
 
       // วันที่ (เก็บเป็น string dd/MM/yyyy พ.ศ. อยู่แล้วจาก date picker)
       'date_memo_used': _str(o.dateMemoUsed),

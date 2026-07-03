@@ -125,7 +125,12 @@ class DocxTemplateService {
 
     String xml = utf8.decode(docFile.content as List<int>);
 
-    // STEP 1: Word มักตัด {{placeholder}} กระจายไป หลาย <w:r> เนื่องจาก
+    // STEP 1a: Strip Word MERGEFIELD blocks ออกก่อน
+    // (template ที่สร้างจาก Mail Merge จะมี <w:fldChar>/<w:instrText> ครอบ
+    // {{placeholder}} ไว้ — ถ้าไม่ strip Word จะแสดง field เก่าทับค่าที่ replace)
+    xml = _stripMergeFields(xml);
+
+    // STEP 1b: Word มักตัด {{placeholder}} กระจายไป หลาย <w:r> เนื่องจาก
     // spellcheck/autocorrect (เช่น {{ite</w:t></w:r><w:r><w:t>m_name}})
     // ต้อง merge run ที่แตกกันก่อน ไม่งั้น regex หา placeholder ไม่เจอ
     xml = _mergeSplitPlaceholderRuns(xml);
@@ -198,6 +203,39 @@ class DocxTemplateService {
   /// <w:br w:type="page"/> (ตัดหน้า) ก็อยู่ใน <w:r> เหมือนกัน ถ้าทิ้งแบบเดิม
   /// พวกนี้จะหายไปเงียบๆ ทำให้เอกสารที่ควรขึ้นหน้าใหม่ไหลไปต่อท้ายเอกสาร
   /// ก่อนหน้าแทน (ดูเหมือนการจัดหน้าเพี้ยนทั้งที่ margin จริงไม่ได้เปลี่ยน)
+  /// Strip Word MERGEFIELD blocks ออกจาก XML
+  /// โครงสร้างที่ต้องแก้:
+  /// <w:r>...<w:instrText>MERGEFIELD ...</w:instrText></w:r>
+  /// <w:r>...<w:fldChar w:fldCharType="separate"/></w:r>
+  /// <w:r>...<w:t>{{placeholder}}</w:t></w:r>   ← เก็บตัวนี้ไว้
+  /// <w:r>...<w:fldChar w:fldCharType="end"/></w:r>
+  /// → เหลือแค่ <w:r>...<w:t>{{placeholder}}</w:t></w:r>
+  static String _stripMergeFields(String xml) {
+    // ลบ run ที่มี instrText (MERGEFIELD declaration)
+    xml = xml.replaceAll(
+      RegExp(r'<w:r\b[^>]*>(?:<w:rPr>.*?</w:rPr>)?<w:instrText[^>]*>.*?</w:instrText>(?:<w:fldChar[^/]*/?>)?</w:r>', dotAll: true),
+      '',
+    );
+
+    // ลบ run ที่มี fldChar begin/separate/end เท่านั้น (ไม่มี w:t)
+    xml = xml.replaceAll(
+      RegExp(r'<w:r\b[^>]*>(?:<w:rPr>.*?</w:rPr>)?<w:fldChar\b[^/]*/?>(?:<w:ffData>.*?</w:ffData>)?</w:r>', dotAll: true),
+      '',
+    );
+
+    // ลบ fldChar ที่หลุดอยู่โดดๆ ใน run ที่มี w:t ด้วย (กรณี Word ซ้อน)
+    xml = xml.replaceAll(
+      RegExp(r'<w:fldChar\b[^/]*/>'),
+      '',
+    );
+    xml = xml.replaceAll(
+      RegExp(r'<w:instrText[^>]*>.*?</w:instrText>', dotAll: true),
+      '',
+    );
+
+    return xml;
+  }
+
   static String _mergeSplitPlaceholderRuns(String xml) {
     final paragraphPattern = RegExp(r'<w:p\b[^>]*>.*?</w:p>', dotAll: true);
 
@@ -237,21 +275,56 @@ class DocxTemplateService {
       // ไม่ได้ถูกตัดขาดจริง ไม่ต้อง merge — ปล่อย <w:r> เดิมไว้เฉยๆ
       if (!_looksSplit(texts)) return paragraph;
 
-      // หา run แรกเพื่อใช้เป็นแม่แบบ rPr (รักษาฟอนต์/ขนาดของ placeholder)
-      String rPr = '';
-      final rPrMatch = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true)
-          .firstMatch(runMatches.first.group(0)!);
-      if (rPrMatch != null) rPr = rPrMatch.group(0)!;
+      // สร้าง map จาก run index → rPr เพื่อให้แต่ละ token ใช้ rPr ของ run ตัวเองได้
+      // (ไม่ใช้ rPr ของ run แรกทาสีทุกตัว ซึ่งทำให้ format เพี้ยน)
+      final runRprs = <int, String>{};
+      for (var ri = 0; ri < runMatches.length; ri++) {
+        final rPrMatch = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true)
+            .firstMatch(runMatches[ri].group(0)!);
+        runRprs[ri] = rPrMatch?.group(0) ?? '';
+      }
 
-      // ประกอบ token กลับเป็น run ใหม่ทีละตัว: รวม token ข้อความที่ติดกัน
-      // เป็น <w:t> เดียว และคาย tab/br/page-break เป็น run แยกในตำแหน่งเดิม
+      // สร้าง token พร้อม index ของ run ต้นทาง เพื่อ track rPr
+      final indexedTokens = <({_RunToken token, int runIdx})>[];
+      for (var ri = 0; ri < runMatches.length; ri++) {
+        for (final t in _tokenizeRun(runMatches[ri].group(0)!)) {
+          indexedTokens.add((token: t, runIdx: ri));
+        }
+      }
+
+      // หา run ที่มี placeholder อยู่ — ใช้ rPr ของ run นั้นสำหรับ token ที่ merge
+      int placeholderRunIdx = 0;
+      final combinedForSearch = texts.join();
+      var charCount = 0;
+      outer:
+      for (var ri = 0; ri < runMatches.length; ri++) {
+        final runTexts = _tokenizeRun(runMatches[ri].group(0)!)
+            .where((t) => t.type == _TokenType.text)
+            .map((t) => t.text ?? '')
+            .join();
+        for (var ci = 0; ci < runTexts.length; ci++) {
+          if (combinedForSearch.substring(charCount).contains('{{')) {
+            placeholderRunIdx = ri;
+            break outer;
+          }
+        }
+        charCount += runTexts.length;
+      }
+      final placeholderRpr = runRprs[placeholderRunIdx] ?? '';
+
       final buffer = StringBuffer();
       final textBuffer = StringBuffer();
+      int currentRunIdx = 0;
 
       void flushText() {
         if (textBuffer.isEmpty) return;
-        final escaped = textBuffer
-            .toString()
+        final text = textBuffer.toString();
+        // ถ้า text นี้มี placeholder ใช้ rPr ของ placeholder run
+        // ถ้าไม่มี ใช้ rPr ของ run ปัจจุบัน
+        final rPr = text.contains('{{') || text.contains('}}')
+            ? placeholderRpr
+            : (runRprs[currentRunIdx] ?? '');
+        final escaped = text
             .replaceAll('&', '&amp;')
             .replaceAll('<', '&lt;')
             .replaceAll('>', '&gt;');
@@ -259,22 +332,23 @@ class DocxTemplateService {
         textBuffer.clear();
       }
 
-      for (final t in tokens) {
-        switch (t.type) {
+      for (final it in indexedTokens) {
+        currentRunIdx = it.runIdx;
+        switch (it.token.type) {
           case _TokenType.text:
-            textBuffer.write(t.text);
+            textBuffer.write(it.token.text);
             break;
           case _TokenType.tab:
             flushText();
-            buffer.write('<w:r>$rPr<w:tab/></w:r>');
+            buffer.write('<w:r>${runRprs[it.runIdx] ?? ''}<w:tab/></w:r>');
             break;
           case _TokenType.lineBreak:
             flushText();
-            buffer.write('<w:r>$rPr<w:br/></w:r>');
+            buffer.write('<w:r>${runRprs[it.runIdx] ?? ''}<w:br/></w:r>');
             break;
           case _TokenType.pageBreak:
             flushText();
-            buffer.write('<w:r>$rPr<w:br w:type="page"/></w:r>');
+            buffer.write('<w:r>${runRprs[it.runIdx] ?? ''}<w:br w:type="page"/></w:r>');
             break;
         }
       }

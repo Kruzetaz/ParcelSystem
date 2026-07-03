@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 3;
+  static const int _version = 4;
 
   Database? _db;
 
@@ -42,8 +42,6 @@ class AppDatabase {
         await _createSchema(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        // ยังไม่มี production data จริง — migration รอบแรกใช้วิธี drop & recreate
-        // เมื่อระบบเข้าสู่ production แล้วต้องเขียน ALTER TABLE ทีละ step แทน
         if (oldVersion < 3) {
           await db.execute('DROP TABLE IF EXISTS procurement_items');
           await db.execute('DROP TABLE IF EXISTS procurement_forms');
@@ -51,6 +49,19 @@ class AppDatabase {
           await db.execute('DROP TABLE IF EXISTS budgets');
           await db.execute('DROP TABLE IF EXISTS school_settings');
           await _createSchema(db);
+        }
+        if (oldVersion < 4) {
+          // ใช้ try/catch เผื่อ column มีอยู่แล้วจาก schema เดิม
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders ADD COLUMN delivery_doc_type TEXT',
+            );
+          } catch (_) {}
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders ADD COLUMN delivery_doc_number TEXT',
+            );
+          } catch (_) {}
         }
       },
     );
