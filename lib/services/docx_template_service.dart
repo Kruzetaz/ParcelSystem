@@ -133,7 +133,6 @@ class DocxTemplateService {
     // STEP 1b: Word มักตัด {{placeholder}} กระจายไป หลาย <w:r> เนื่องจาก
     // spellcheck/autocorrect (เช่น {{ite</w:t></w:r><w:r><w:t>m_name}})
     // ต้อง merge run ที่แตกกันก่อน ไม่งั้น regex หา placeholder ไม่เจอ
-    xml = _mergeSplitPlaceholderRuns(xml);
 
     // STEP 2: Clone table row ตาม items ก่อน (ต้องทำก่อน replace ปกติ
     // เพราะ {{item_name}} เป็น marker บอกตำแหน่งแถว seed)
@@ -274,6 +273,85 @@ class DocxTemplateService {
 
       // ไม่ได้ถูกตัดขาดจริง ไม่ต้อง merge — ปล่อย <w:r> เดิมไว้เฉยๆ
       if (!_looksSplit(texts)) return paragraph;
+
+      // ─── แนวทางใหม่: แทนที่เฉพาะกลุ่ม runs ที่ถูกตัด ───
+      // แทนที่จะ rebuild ย่อหน้าทั้งหมด ให้หากลุ่ม runs ที่ติดกัน
+      // ซึ่งเมื่อรวม text แล้วมี {{ หรือ }} แล้วแทนที่เฉพาะกลุ่มนั้น
+      // ส่วนอื่นของย่อหน้า (bookmark, hyperlink, proofErr ฯลฯ) ไม่แตะ
+
+      // สร้างข้อมูลแต่ละ run: (start, end, text)
+      final runInfos = <({int start, int end, String text, String rPr})>[];
+      for (final rm in runMatches) {
+        final rPrMatch = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true)
+            .firstMatch(rm.group(0)!);
+        final rPr = rPrMatch?.group(0) ?? '';
+        final runTexts = _tokenizeRun(rm.group(0)!)
+            .where((t) => t.type == _TokenType.text)
+            .map((t) => t.text ?? '')
+            .join();
+        runInfos.add((
+          start: rm.start,
+          end: rm.end,
+          text: runTexts,
+          rPr: rPr,
+        ));
+      }
+
+      // หากลุ่ม runs ที่ติดกันซึ่งรวมแล้วมี {{...}} ถูกตัด
+      // sliding window: ลองรวม runs ที่ติดกันทีละ 2, 3, 4 ตัว
+      var result = paragraph;
+      var offset = 0; // track offset หลัง replace
+
+      for (var windowSize = 2; windowSize <= runInfos.length; windowSize++) {
+        for (var start = 0; start <= runInfos.length - windowSize; start++) {
+          final group = runInfos.sublist(start, start + windowSize);
+          final groupText = group.map((r) => r.text).join();
+
+          // เช็คว่ากลุ่มนี้มี placeholder ถูกตัดขาดไหม
+          if (!groupText.contains('{{') || !groupText.contains('}}')) continue;
+          final groupTexts = group.map((r) => r.text).toList();
+          if (!_looksSplit(groupTexts)) continue;
+
+          // หา rPr ของ run ที่มี {{ อยู่
+          String mergeRpr = '';
+          var accumulated = '';
+          for (final r in group) {
+            accumulated += r.text;
+            if (accumulated.contains('{{')) {
+              mergeRpr = r.rPr;
+              break;
+            }
+          }
+
+          // สร้าง merged run แทนกลุ่มนี้
+          final mergedText = _escapeXmlText(groupText);
+          final mergedRun =
+              '<w:r>$mergeRpr<w:t xml:space="preserve">$mergedText</w:t></w:r>';
+
+          // แทนที่ใน result โดยใช้ตำแหน่งจาก runMatches พร้อม offset
+          final groupStart = group.first.start + offset;
+          final groupEnd = group.last.end + offset;
+          result = result.substring(0, groupStart) +
+              mergedRun +
+              result.substring(groupEnd);
+
+          // คำนวณ offset ใหม่
+          offset += mergedRun.length - (groupEnd - groupStart);
+
+          // rebuild runInfos ตาม result ใหม่ แล้ว break ออกไป restart
+          // (ง่ายกว่า track offset ซับซ้อน)
+          return _mergeSplitPlaceholderRuns_single(result);
+        }
+      }
+
+      return result;
+    });
+  }
+
+  /// helper: รัน _mergeSplitPlaceholderRuns ซ้ำอีกรอบบน paragraph เดียว
+  /// ใช้ตอนที่ merge แล้วยังมี split เหลืออยู่ (กรณี placeholder ซ้อนหรือตัดหลายจุด)
+  static String _mergeSplitPlaceholderRuns_single(String xml) {
+    return _mergeSplitPlaceholderRuns(xml);
 
       // สร้าง map จาก run index → rPr เพื่อให้แต่ละ token ใช้ rPr ของ run ตัวเองได้
       // (ไม่ใช้ rPr ของ run แรกทาสีทุกตัว ซึ่งทำให้ format เพี้ยน)
