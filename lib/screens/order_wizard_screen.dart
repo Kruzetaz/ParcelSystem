@@ -77,7 +77,11 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
   /// คืนค่า ProcurementOrder ที่บันทึกแล้ว (พร้อมยอดคำนวณล่าสุด)
   Future<ProcurementOrder> _calcAndSaveOrder() async {
     // คำนวณยอดสุดท้ายจาก items ก่อนบันทึก ป้องกันกรณี user แก้ Tab4 แล้วไม่ได้กลับมาดู
-    final calc = CalcEngine.calcAll(_itemsSubtotal);
+    final calc = CalcEngine.calcAllWithRates(
+      _itemsSubtotal,
+      vatRate: _draft.vatRate,
+      withholdingRate: _draft.withholdingTaxRate,
+    );
     final bahtText = CalcEngine.bahtText(calc['current_order_price']!);
 
     // คำนวณ allocatedAmountTh ถ้ายังไม่มี (กรณีโหลดของเก่าจาก DB)
@@ -827,12 +831,13 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   late final TextEditingController _vendorProvinceCtrl;
   late final TextEditingController _vendorPhoneCtrl;
   late final TextEditingController _vendorTaxIdCtrl;
-  late final TextEditingController _marketPriceCheckCtrl;
   late final TextEditingController _shippingDaysCtrl;
   late final TextEditingController _warrantyPeriodCtrl;
   late final TextEditingController _contractControlNumberCtrl;
   late final TextEditingController _inspectionControlNumberCtrl;
   late final TextEditingController _penaltyRateCtrl;
+  late final TextEditingController _vatRateCtrl;
+  late final TextEditingController _withholdingRateCtrl;
   
   // เพิ่มคอนโทรลเลอร์สำหรับตัวแปรเลขที่เอกสารส่งมอบ
   late final TextEditingController _deliveryDocNumberCtrl;
@@ -850,13 +855,18 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _vendorProvinceCtrl = TextEditingController(text: d.vendorProvince);
     _vendorPhoneCtrl = TextEditingController(text: d.vendorPhone);
     _vendorTaxIdCtrl = TextEditingController(text: d.vendorTaxId);
-    _marketPriceCheckCtrl = TextEditingController(text: d.marketPriceCheck);
     _shippingDaysCtrl = TextEditingController(text: d.shippingDays?.toString());
     _warrantyPeriodCtrl = TextEditingController(text: d.warrantyPeriod);
     _contractControlNumberCtrl = TextEditingController(text: d.contractControlNumber);
     _inspectionControlNumberCtrl = TextEditingController(text: d.inspectionControlNumber);
     _penaltyRateCtrl = TextEditingController(
-      text: (d.penaltyRate * 100).toStringAsFixed(2),
+      text: d.penaltyRate.toStringAsFixed(2),
+    );
+    _vatRateCtrl = TextEditingController(
+      text: (d.vatRate * 100).toStringAsFixed(0),
+    );
+    _withholdingRateCtrl = TextEditingController(
+      text: (d.withholdingTaxRate * 100).toStringAsFixed(0),
     );
     _deliveryDocNumberCtrl = TextEditingController(text: d.deliveryDocNumber);
   }
@@ -871,12 +881,13 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _vendorProvinceCtrl.dispose();
     _vendorPhoneCtrl.dispose();
     _vendorTaxIdCtrl.dispose();
-    _marketPriceCheckCtrl.dispose();
     _shippingDaysCtrl.dispose();
     _warrantyPeriodCtrl.dispose();
     _contractControlNumberCtrl.dispose();
     _inspectionControlNumberCtrl.dispose();
     _penaltyRateCtrl.dispose();
+    _vatRateCtrl.dispose();
+    _withholdingRateCtrl.dispose();
     _deliveryDocNumberCtrl.dispose();
     super.dispose();
   }
@@ -977,14 +988,6 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               ],
             ),
             const SizedBox(height: 24),
-            _sectionTitle('การตรวจสอบราคาตลาด'),
-            TextFormField(
-              controller: _marketPriceCheckCtrl,
-              decoration: _inputDecoration('ผลการสืบราคา/ตรวจสอบราคาตลาด'),
-              maxLines: 2,
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(marketPriceCheck: v)),
-            ),
-            const SizedBox(height: 24),
             _sectionTitle('ข้อมูลหลักฐาน/เอกสารที่ใช้ตรวจรับพัสดุ'),
             Row(
               children: [
@@ -1005,6 +1008,50 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle('ภาษี / ค่าธรรมเนียม'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _vatRateCtrl,
+                    decoration: _inputDecoration('VAT (%)').copyWith(
+                      suffixText: '%',
+                      hintText: '0 หรือ 7',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (v) {
+                      final pct = double.tryParse(v);
+                      if (pct != null) {
+                        widget.onChanged((d) => d.copyWith(vatRate: pct / 100));
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _withholdingRateCtrl,
+                    decoration: _inputDecoration('หัก ณ ที่จ่าย (%)').copyWith(
+                      suffixText: '%',
+                      hintText: '0, 1 หรือ 3',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (v) {
+                      final pct = double.tryParse(v);
+                      if (pct != null) {
+                        widget.onChanged((d) => d.copyWith(withholdingTaxRate: pct / 100));
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'กรอก 0 ถ้าไม่มีภาษีในบิลนี้',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 24),
             _sectionTitle('เงื่อนไขการส่งมอบ / ค่าปรับ / ประกัน'),
@@ -1033,14 +1080,15 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _penaltyRateCtrl,
-              decoration: _inputDecoration('อัตราค่าปรับ (% ต่อวัน)').copyWith(
-                suffixText: '% ต่อวัน',
+              decoration: _inputDecoration('อัตราค่าปรับต่อวัน').copyWith(
+                hintText: 'เช่น 0.10 หรือ 0.20',
+                suffixText: 'ต่อวัน',
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               onChanged: (v) {
-                final pct = double.tryParse(v);
-                if (pct != null) {
-                  widget.onChanged((d) => d.copyWith(penaltyRate: pct / 100));
+                final rate = double.tryParse(v);
+                if (rate != null) {
+                  widget.onChanged((d) => d.copyWith(penaltyRate: rate));
                 }
               },
             ),
@@ -1224,11 +1272,15 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
     return DateTime(buddhistYear - 543, month, day);
   }
 
+  static const _thaiMonths = [
+    '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
+    'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
+    'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  ];
+
   String _formatThaiDate(DateTime date) {
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
     final y = date.year + 543;
-    return '$d/$m/$y';
+    return '${date.day} ${_thaiMonths[date.month]} $y';
   }
 
   Future<void> _pickDate(int index) async {

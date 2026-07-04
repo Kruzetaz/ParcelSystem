@@ -27,8 +27,17 @@ class CalcEngine {
 
   /// คืน map ครบทุก field ที่ต้องบันทึกลง DB
   static Map<String, double> calcAll(double subtotal) {
-    final vat = calcVat(subtotal);
-    final withholding = calcWithholding(subtotal);
+    return calcAllWithRates(subtotal, vatRate: vatRate, withholdingRate: withholdingRate);
+  }
+
+  /// คำนวณด้วย rate ที่กรอกเองต่อบิล
+  static Map<String, double> calcAllWithRates(
+    double subtotal, {
+    required double vatRate,
+    required double withholdingRate,
+  }) {
+    final vat = subtotal * vatRate;
+    final withholding = subtotal * withholdingRate;
     final net = subtotal + vat - withholding;
     return {
       'subtotal_before_vat': subtotal,
