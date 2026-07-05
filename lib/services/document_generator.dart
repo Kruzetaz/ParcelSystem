@@ -147,6 +147,7 @@ class DocumentGenerator {
 
       // ปีงบประมาณ
       'fiscal_year': _str(o.fiscalYear),
+      'order_type': _str(o.orderType),
 
       // ข้อมูลโครงการ/กิจกรรม
       'project_name': _str(o.projectName),
