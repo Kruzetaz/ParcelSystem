@@ -1,14 +1,18 @@
 // docx_template_service.dart
 //
 // Engine หลักสำหรับประมวลผล Master .docx Template
+// - Merge run ที่ถูก Word ตัดขาดกลาง {{placeholder}} แบบ "เฉพาะกลุ่มที่จำเป็น"
+//   (ไม่ merge ทั้งย่อหน้า) เพื่อไม่ให้ฟอร์แมต/ช่องว่างเดิมของ run อื่นเสียหาย
 // - แทนที่ {{placeholder}} ทั้งหมดด้วยค่าจริงจาก procurement_forms
 // - Clone table row ที่มี {{item_name}} ตามจำนวนแถวใน procurement_items
 //   พร้อม increment {{idx}} อัตโนมัติ
 // - Export เป็นไฟล์ .docx ใหม่ (ไม่แตะต้อง master template)
 //
-// หมายเหตุ: master_template.docx ถูก pre-process ด้วย merge_runs.py แล้ว
-// ทำให้ {{placeholder}} ทุกตัวอยู่ใน <w:t> เดียว ไม่ถูกตัดขาด
-// จึงไม่จำเป็นต้องใช้ _mergeSplitPlaceholderRuns อีกต่อไป
+// หมายเหตุ: ไม่ต้องพึ่ง merge_runs.py pre-process อีกต่อไป — merge run
+// ทำที่นี่แบบ runtime ทุกครั้งที่ generate เอกสาร และปลอดภัยกว่าเดิม
+// (เดิม merge ทั้งย่อหน้าทำให้ format/ช่องว่างของ run ที่ไม่เกี่ยวกับ
+// placeholder เสียหายไปด้วย — บั๊กนี้แก้แล้วโดยการ merge เฉพาะกลุ่ม run
+// ที่ประกอบกันเป็น {{...}} ที่ถูกตัดขาดจริงเท่านั้น)
 
 import 'dart:convert';
 import 'dart:io';
@@ -88,6 +92,10 @@ class DocxTemplateService {
 
     String xml = utf8.decode(docFile.content as List<int>);
 
+    // STEP 0: Merge run ที่ถูก Word ตัดขาดกลาง {{placeholder}} — เฉพาะ
+    // กลุ่ม run ที่จำเป็นจริงๆ เท่านั้น ไม่แตะ run อื่นในย่อหน้าเลย
+    xml = _mergeSplitPlaceholderRuns(xml);
+
     // STEP 1: Strip MERGEFIELD blocks (เผื่อ template เก่ายังมีหลงเหลือ)
     xml = _stripMergeFields(xml);
 
@@ -145,6 +153,140 @@ class DocxTemplateService {
 
   static String _sanitizeFilename(String input) {
     return input.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+  }
+
+  /// รวมเฉพาะกลุ่ม <w:r> ที่ประกอบกันเป็น {{placeholder}} ที่ถูก Word ตัดขาด
+  /// (มักเกิดจาก autocorrect/spellcheck แทรก <w:proofErr> คั่นกลาง)
+  ///
+  /// ต่างจาก implementation เดิมที่ merge "ทั้งย่อหน้า" — ตัวนี้ merge เฉพาะ
+  /// run ที่ char-range ของมันซ้อนกับช่วง {{...}} ที่ตรวจพบว่าขาดตอนจริง
+  /// เท่านั้น run อื่นในย่อหน้าเดียวกันที่ไม่เกี่ยวข้องจะถูกคัดลอกผ่านแบบ
+  /// raw XML เดิมทุกตัวอักษร ไม่แตะ format หรือช่องว่างใดๆ ของมันเลย
+  static String _mergeSplitPlaceholderRuns(String xml) {
+    final paraPattern = RegExp(r'<w:p\b[^>]*>.*?</w:p>', dotAll: true);
+
+    return xml.replaceAllMapped(paraPattern, (m) {
+      final para = m.group(0)!;
+      if (!para.contains('{{')) return para;
+
+      final runPattern = RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true);
+      final runs = runPattern.allMatches(para).map((r) => r.group(0)!).toList();
+      if (runs.length < 2) return para;
+
+      final tPattern = RegExp(r'<w:t\b[^>]*>(.*?)</w:t>', dotAll: true);
+
+      // ข้อความของแต่ละ run (รองรับ run ที่ไม่มี <w:t> เลย เช่น <w:tab/>, <w:br/> -> '')
+      final runTexts = runs.map((r) {
+        final tm = tPattern.firstMatch(r);
+        return tm != null ? tm.group(1)! : '';
+      }).toList();
+
+      // ตำแหน่งเริ่ม/จบของแต่ละ run ใน combined text (หน่วย: unescaped char)
+      final starts = <int>[];
+      final ends = <int>[];
+      var pos = 0;
+      final combinedBuffer = StringBuffer();
+      for (final t in runTexts) {
+        final unescaped = _unescapeXmlText(t);
+        starts.add(pos);
+        combinedBuffer.write(unescaped);
+        pos += unescaped.length;
+        ends.add(pos);
+      }
+      final combined = combinedBuffer.toString();
+
+      if (!RegExp(r'\{\{[^{}]+\}\}').hasMatch(combined)) return para;
+
+      // หาช่วง run-index ที่ต้อง merge จริง (เฉพาะ match ที่คาบเกี่ยวมากกว่า 1 run)
+      final mergeRanges = <List<int>>[]; // [firstRunIdx, lastRunIdx]
+      for (final tagMatch in RegExp(r'\{\{[^{}]+\}\}').allMatches(combined)) {
+        int? firstIdx, lastIdx;
+        for (var i = 0; i < starts.length; i++) {
+          if (starts[i] < tagMatch.end && ends[i] > tagMatch.start) {
+            firstIdx ??= i;
+            lastIdx = i;
+          }
+        }
+        if (firstIdx != null && lastIdx != null && lastIdx > firstIdx) {
+          mergeRanges.add([firstIdx, lastIdx]);
+        }
+      }
+      if (mergeRanges.isEmpty) return para; // ไม่มี placeholder ไหนถูกตัดขาดจริง
+
+      // รวม range ที่ทับซ้อน/ติดกันเข้าด้วยกัน (เผื่อ 2 placeholder แชร์ run กลาง)
+      mergeRanges.sort((a, b) => a[0].compareTo(b[0]));
+      final merged = <List<int>>[];
+      for (final r in mergeRanges) {
+        if (merged.isNotEmpty && r[0] <= merged.last[1]) {
+          merged.last[1] = r[1] > merged.last[1] ? r[1] : merged.last[1];
+        } else {
+          merged.add([r[0], r[1]]);
+        }
+      }
+
+      // ถ้ากลุ่มไหนมี run ที่ไม่มี <w:t> เลย (opaque เช่น tab/br/drawing) อยู่ตรงกลาง
+      // ให้ข้ามกลุ่มนั้นไปอย่างปลอดภัย (ไม่ merge) ป้องกันโครงสร้าง XML พัง
+      final safeMerged = merged.where((range) {
+        for (var i = range[0]; i <= range[1]; i++) {
+          if (!runs[i].contains('<w:t')) return false;
+        }
+        return true;
+      }).toList();
+      if (safeMerged.isEmpty) return para;
+
+      // สร้างย่อหน้าใหม่: run ที่ไม่อยู่ในกลุ่มไหนเลย -> คัดลอกผ่านตรงๆ
+      // run ที่อยู่ในกลุ่ม -> แทนด้วย run เดียวที่รวมข้อความ + ใช้ rPr ของ run แรกในกลุ่ม
+      final rprPattern = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true);
+      final buffer = StringBuffer();
+      var i = 0;
+      var rangeIdx = 0;
+      while (i < runs.length) {
+        if (rangeIdx < safeMerged.length && i == safeMerged[rangeIdx][0]) {
+          final range = safeMerged[rangeIdx];
+          final groupText = StringBuffer();
+          for (var j = range[0]; j <= range[1]; j++) {
+            groupText.write(runTexts[j]); // เก็บ raw-escaped text ตรงๆ พอ (จะ escape รวมทีเดียวด้านล่าง)
+          }
+          final firstRun = runs[range[0]];
+          final rprMatch = rprPattern.firstMatch(firstRun);
+          final rpr = rprMatch?.group(0) ?? '';
+          final escaped = _escapeXmlText(_unescapeXmlText(groupText.toString()));
+          buffer.write('<w:r>$rpr<w:t xml:space="preserve">$escaped</w:t></w:r>');
+          i = range[1] + 1;
+          rangeIdx++;
+        } else {
+          buffer.write(runs[i]);
+          i++;
+        }
+      }
+
+      // แทนที่ run ทั้งหมดในย่อหน้าด้วยเวอร์ชันใหม่ (ตำแหน่งเดิม, นอก <w:r> คงเดิม)
+      var result = para;
+      final allRunsPattern = RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true);
+      // ลบ run เดิมทั้งหมด (รวม proofErr ที่คั่นกลางกลุ่มที่ merge ไปด้วย) แล้วแทรกผลลัพธ์ใหม่
+      // หา index ของ run แรกสุดในย่อหน้าเพื่อรู้ตำแหน่งแทรก
+      final firstRunMatch = allRunsPattern.firstMatch(result);
+      if (firstRunMatch == null) return para;
+
+      // แทนที่ตั้งแต่ run แรกถึง run สุดท้ายในย่อหน้า (รวม <w:proofErr/> ที่
+      // Word แทรกคั่นกลางไปด้วย — proofErr เป็นแค่ตัวช่วยตรวจสะกด ไม่มีผลต่อ
+      // เนื้อหา/layout จริง ตัดออกได้ปลอดภัย) ด้วยลำดับ run ใหม่ที่สร้างไว้
+      final lastRunEnd = runPattern.allMatches(result).last.end;
+      return result.replaceRange(
+        firstRunMatch.start,
+        lastRunEnd,
+        buffer.toString(),
+      );
+    });
+  }
+
+  static String _unescapeXmlText(String value) {
+    return value
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&apos;', "'");
   }
 
   static String _stripMergeFields(String xml) {
