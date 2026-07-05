@@ -49,7 +49,6 @@ class ProcurementOrder {
   final String? vendorProvince;
   final String? vendorPhone;
   final String? vendorTaxId;
-  final String? marketPriceCheck; // {{market_price_check}}
 
   // ข้อมูลเอกสารหลักฐานที่ใช้ส่งมอบเพื่อการตรวจรับ (เพิ่มใหม่ปี 2026)
   final String? deliveryDocType;    // {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
@@ -123,7 +122,6 @@ class ProcurementOrder {
     this.vendorProvince,
     this.vendorPhone,
     this.vendorTaxId,
-    this.marketPriceCheck,
     this.deliveryDocType,
     this.deliveryDocNumber,
     this.currentOrderPrice,
@@ -191,7 +189,6 @@ class ProcurementOrder {
         'vendor_province': vendorProvince,
         'vendor_phone': vendorPhone,
         'vendor_tax_id': vendorTaxId,
-        'market_price_check': marketPriceCheck,
         'delivery_doc_type': deliveryDocType,
         'delivery_doc_number': deliveryDocNumber,
         'current_order_price': currentOrderPrice,
@@ -259,7 +256,6 @@ class ProcurementOrder {
         vendorProvince: m['vendor_province'] as String?,
         vendorPhone: m['vendor_phone'] as String?,
         vendorTaxId: m['vendor_tax_id'] as String?,
-        marketPriceCheck: m['market_price_check'] as String?,
         deliveryDocType: m['delivery_doc_type'] as String?,
         deliveryDocNumber: m['delivery_doc_number'] as String?,
         currentOrderPrice: (m['current_order_price'] as num?)?.toDouble(),
@@ -327,7 +323,6 @@ class ProcurementOrder {
     String? vendorProvince,
     String? vendorPhone,
     String? vendorTaxId,
-    String? marketPriceCheck,
     String? deliveryDocType,
     String? deliveryDocNumber,
     double? currentOrderPrice,
@@ -394,7 +389,6 @@ class ProcurementOrder {
       vendorProvince: vendorProvince ?? this.vendorProvince,
       vendorPhone: vendorPhone ?? this.vendorPhone,
       vendorTaxId: vendorTaxId ?? this.vendorTaxId,
-      marketPriceCheck: marketPriceCheck ?? this.marketPriceCheck,
       deliveryDocType: deliveryDocType ?? this.deliveryDocType,
       deliveryDocNumber: deliveryDocNumber ?? this.deliveryDocNumber,
       currentOrderPrice: currentOrderPrice ?? this.currentOrderPrice,

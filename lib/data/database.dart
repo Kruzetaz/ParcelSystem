@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 4;
+  static const int _version = 5;
 
   Database? _db;
 
@@ -60,6 +60,16 @@ class AppDatabase {
           try {
             await db.execute(
               'ALTER TABLE procurement_orders ADD COLUMN delivery_doc_number TEXT',
+            );
+          } catch (_) {}
+        }
+        if (oldVersion < 5) {
+          // เลิกใช้ market_price_check แล้ว (ย้ายไปใช้ unit_price ระดับรายการแทน)
+          // ต้องใช้ SQLite >= 3.35 ถึงจะรองรับ DROP COLUMN — ถ้าเวอร์ชันเก่ากว่า
+          // จะ error เงียบๆ แล้วเหลือ column ไว้เฉยๆ ไม่กระทบการทำงาน (แค่ไม่ใช้)
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders DROP COLUMN market_price_check',
             );
           } catch (_) {}
         }
@@ -129,7 +139,6 @@ class AppDatabase {
         vendor_province TEXT,
         vendor_phone TEXT,
         vendor_tax_id TEXT,
-        market_price_check TEXT,
 
         -- ข้อมูลเอกสารหลักฐานที่ใช้ส่งมอบเพื่อการตรวจรับ (เพิ่มใหม่ปี 2026)
         delivery_doc_type TEXT,    -- {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
