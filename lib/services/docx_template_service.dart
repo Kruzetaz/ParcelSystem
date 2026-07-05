@@ -203,14 +203,23 @@ class DocxTemplateService {
       buffer.write(xml.substring(lastEnd, m.start));
 
       if (items.isNotEmpty) {
-        for (final item in items) {
+        for (var i = 0; i < items.length; i++) {
           var clonedRow = rowXml;
-          final rowValues = item.toPlaceholderMap();
+          final rowValues = items[i].toPlaceholderMap();
           for (final entry in rowValues.entries) {
             clonedRow = clonedRow.replaceAll(
               '{{${entry.key}}}',
               _escapeXmlText(entry.value),
             );
+          }
+          // แถวที่ 2+ ให้ลบ form-level placeholder ออกจาก cell
+          // เพื่อไม่ให้ข้อมูลอย่าง procurement_number และ purpose_reason
+          // ซ้ำในทุกแถว (แสดงแค่แถวแรก แถวถัดไปว่าง)
+          if (i > 0) {
+            clonedRow = clonedRow
+                .replaceAll('{{procurement_number}}', '')
+                .replaceAll('{{purpose_reason}}', '')
+                .replaceAll('{{order_number}}', '');
           }
           buffer.write(clonedRow);
         }
