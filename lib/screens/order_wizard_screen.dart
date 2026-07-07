@@ -353,6 +353,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   bool _loadingBudgets = true;
 
   late final TextEditingController _procurementNumberCtrl;
+  late final TextEditingController _procurementSubjectCtrl;
   late final TextEditingController _orderNumberCtrl;
   late final TextEditingController _projectNameCtrl;
   late final TextEditingController _activityNameCtrl;
@@ -363,6 +364,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   void initState() {
     super.initState();
     _procurementNumberCtrl = TextEditingController(text: widget.draft.procurementNumber);
+    _procurementSubjectCtrl = TextEditingController(text: widget.draft.procurementSubject);
     _orderNumberCtrl = TextEditingController(text: widget.draft.orderNumber);
     _projectNameCtrl = TextEditingController(text: widget.draft.projectName);
     _activityNameCtrl = TextEditingController(text: widget.draft.activityName);
@@ -457,6 +459,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   @override
   void dispose() {
     _procurementNumberCtrl.dispose();
+    _procurementSubjectCtrl.dispose();
     _orderNumberCtrl.dispose();
     _projectNameCtrl.dispose();
     _activityNameCtrl.dispose();
@@ -570,6 +573,14 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _procurementSubjectCtrl,
+              decoration: _inputDecoration(
+                'หัวเรื่อง (เช่น จัดซื้อวัสดุแข่งขันทักษะทางวิชาการระดับเครือข่าย)',
+              ),
+              onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementSubject: v)),
             ),
             const SizedBox(height: 16),
             TextFormField(

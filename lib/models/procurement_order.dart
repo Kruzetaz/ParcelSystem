@@ -15,6 +15,9 @@ class ProcurementOrder {
   final String? orderNumber; // {{order_number}}
 
   final String? projectName;
+  // หัวเรื่องสั้นสำหรับขึ้นหัวเอกสาร "ซ." — คนละความหมายกับ projectName
+  // (projectName = ชื่อโครงการเต็มในระบบ e-GP)
+  final String? procurementSubject;
   final String? activityName;
   final String? purposeReason;
   final String? purposeObjective;
@@ -92,6 +95,7 @@ class ProcurementOrder {
     this.procurementNumber,
     this.orderNumber,
     this.projectName,
+    this.procurementSubject,
     this.activityName,
     this.purposeReason,
     this.purposeObjective,
@@ -159,6 +163,7 @@ class ProcurementOrder {
         'procurement_number': procurementNumber,
         'order_number': orderNumber,
         'project_name': projectName,
+        'procurement_subject': procurementSubject,
         'activity_name': activityName,
         'purpose_reason': purposeReason,
         'purpose_objective': purposeObjective,
@@ -226,6 +231,7 @@ class ProcurementOrder {
         procurementNumber: m['procurement_number'] as String?,
         orderNumber: m['order_number'] as String?,
         projectName: m['project_name'] as String?,
+        procurementSubject: m['procurement_subject'] as String?,
         activityName: m['activity_name'] as String?,
         purposeReason: m['purpose_reason'] as String?,
         purposeObjective: m['purpose_objective'] as String?,
@@ -293,6 +299,7 @@ class ProcurementOrder {
     String? procurementNumber,
     String? orderNumber,
     String? projectName,
+    String? procurementSubject,
     String? activityName,
     String? purposeReason,
     String? purposeObjective,
@@ -359,6 +366,7 @@ class ProcurementOrder {
       procurementNumber: procurementNumber ?? this.procurementNumber,
       orderNumber: orderNumber ?? this.orderNumber,
       projectName: projectName ?? this.projectName,
+      procurementSubject: procurementSubject ?? this.procurementSubject,
       activityName: activityName ?? this.activityName,
       purposeReason: purposeReason ?? this.purposeReason,
       purposeObjective: purposeObjective ?? this.purposeObjective,

@@ -151,6 +151,9 @@ class DocumentGenerator {
 
       // ข้อมูลโครงการ/กิจกรรม
       'project_name': _str(o.projectName),
+      // หัวเรื่องสั้นสำหรับขึ้นหัวเอกสาร "ซ." — คนละความหมายกับ project_name
+      // (project_name = ชื่อโครงการเต็มในระบบ e-GP)
+      'procurement_subject': _str(o.procurementSubject),
       'activity_name': _str(o.activityName),
       'purpose_reason': _str(o.purposeReason),
       // ไม่มีช่องกรอกแยกใน UI แล้ว — ใช้ค่าเดียวกับ purpose_reason ตามที่ต้องการ

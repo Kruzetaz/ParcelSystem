@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 5;
+  static const int _version = 6;
 
   Database? _db;
 
@@ -73,6 +73,16 @@ class AppDatabase {
             );
           } catch (_) {}
         }
+        if (oldVersion < 6) {
+          // เพิ่มหัวเรื่องเอกสาร "ซ." — {{procurement_subject}} คนละความหมายกับ
+          // project_name (ชื่อโครงการเต็มในระบบ e-GP) เป็นข้อความสั้นสำหรับขึ้นหัว
+          // เอกสารโดยเฉพาะ เช่น "จัดซื้อวัสดุแข่งขันทักษะทางวิชาการระดับเครือข่าย..."
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders ADD COLUMN procurement_subject TEXT',
+            );
+          } catch (_) {}
+        }
       },
     );
   }
@@ -106,6 +116,7 @@ class AppDatabase {
         order_number TEXT,         -- {{order_number}} เลขที่คำสั่งแต่งตั้งกรรมการตรวจรับ
 
         project_name TEXT,
+        procurement_subject TEXT,  -- {{procurement_subject}} หัวเรื่องสั้นสำหรับเอกสาร ซ. (คนละความหมายกับ project_name)
         activity_name TEXT,
         purpose_reason TEXT,
         purpose_objective TEXT,
