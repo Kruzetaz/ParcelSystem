@@ -72,6 +72,54 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     setState(() => _draft = update(_draft));
   }
 
+  /// นับว่า "ผ่าน" กี่ tab จาก 5 tab แล้ว (เกณฑ์: กรอก field หลักของ tab นั้นครบ)
+  /// คืนค่าเป็นสัดส่วน 0.0-1.0 (เช่น 3/5 = 0.6) เก็บลง progressPercent
+  double _computeProgress() {
+    int done = 0;
+
+    // Tab 1: เลือกแผนงบ + เลขที่จัดซื้อ + ชื่อโครงการ
+    if (_draft.budgetId != null &&
+        (_draft.procurementNumber?.trim().isNotEmpty ?? false) &&
+        (_draft.projectName?.trim().isNotEmpty ?? false)) {
+      done++;
+    }
+
+    // Tab 2: ผู้อำนวยการ + เจ้าของงบ + ผู้ตรวจรับคนแรก
+    if ((_draft.directorName?.trim().isNotEmpty ?? false) &&
+        (_draft.ownerName?.trim().isNotEmpty ?? false) &&
+        (_draft.inspector1?.trim().isNotEmpty ?? false)) {
+      done++;
+    }
+
+    // Tab 3: ชื่อร้านค้า + ระยะเวลาส่งมอบ
+    if ((_draft.vendorName?.trim().isNotEmpty ?? false) && _draft.shippingDays != null) {
+      done++;
+    }
+
+    // Tab 4: มีรายการพัสดุอย่างน้อย 1 รายการ
+    if (_items.isNotEmpty) {
+      done++;
+    }
+
+    // Tab 5: กรอกวันที่ครบทั้ง 9 ช่อง
+    final dates = [
+      _draft.dateMemoUsed,
+      _draft.dateOrderCreated,
+      _draft.dateAnnouncement,
+      _draft.dateQuotation,
+      _draft.dateContractSigned,
+      _draft.dateDeadline,
+      _draft.dateShipping,
+      _draft.dateInspection,
+      _draft.dateDisbursement,
+    ];
+    if (dates.every((d) => d?.trim().isNotEmpty ?? false)) {
+      done++;
+    }
+
+    return done / 5;
+  }
+
   /// คำนวณยอดสุดท้ายจาก items แล้วบันทึกลง DB — ใช้ร่วมกันทั้งปุ่ม
   /// "บันทึก" และปุ่ม "สร้างเอกสาร Word" (ต้องบันทึกก่อนสร้างเอกสารเสมอ)
   /// คืนค่า ProcurementOrder ที่บันทึกแล้ว (พร้อมยอดคำนวณล่าสุด)
@@ -99,6 +147,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       taxWithholdingAmount: calc['tax_withholding_amount'],
       netPayableAmount: calc['net_payable_amount'],
       allocatedAmountTh: allocatedTh,
+      progressPercent: _computeProgress(),
     );
 
     await _repo.saveOrderWithItems(orderToSave, _items);
@@ -339,7 +388,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 allocatedAmount: allocated,
                 remainingAmount: allocated,
               );
-              
+
               // สมมติว่ามีฟังก์ชันบันทึกงบประมาณใน repo เช่น saveBudget
               // หากใน repo ตัวแปรใช้ saveBudget หรือเพิ่มเข้าไปตรงๆ สามารถเรียกตรงนี้ได้เลย
               // เพื่อความปลอดภัยเราใช้ฟังก์ชันผ่านตัวแปรกลางหรือส่งกลับไปประมวลผลภายนอก
@@ -355,7 +404,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       setState(() => _loadingBudgets = true);
       try {
         // บันทึกลงฐานข้อมูลพัสดุ
-        await widget.repo.insertBudget(result); 
+        await widget.repo.insertBudget(result);
         await _loadBudgets(); // โหลดรายการงบประมาณใหม่ทั้งหมด
 
         // ค้นหา ID ตัวที่พึ่งเพิ่มเข้าไปล่าสุดมาผูกเช็คอินเข้าหน้าฟอร์ม
@@ -838,7 +887,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   late final TextEditingController _penaltyRateCtrl;
   late final TextEditingController _vatRateCtrl;
   late final TextEditingController _withholdingRateCtrl;
-  
+
   // เพิ่มคอนโทรลเลอร์สำหรับตัวแปรเลขที่เอกสารส่งมอบ
   late final TextEditingController _deliveryDocNumberCtrl;
   final List<String> _docTypes = ['ใบส่งของ', 'ใบกำกับภาษี/ใบส่งของ', 'ใบเสร็จรับเงิน', 'บิลเงินสด'];
@@ -1168,7 +1217,7 @@ class _Tab4Items extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Tab 5: 定 (กำหนดการ) / ไทม์ไลน์วันที่สำคัญของกระบวนการจัดซื้อจัดจ้าง
+// Tab 5: กำหนดการ / ไทม์ไลน์วันที่สำคัญของกระบวนการจัดซื้อจัดจ้าง
 // เก็บวันที่เป็น String รูปแบบ dd/MM/yyyy (ปี พ.ศ.) ให้ตรงกับเอกสารราชการไทย
 // ─────────────────────────────────────────────────────────────────
 

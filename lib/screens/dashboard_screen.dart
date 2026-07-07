@@ -1,9 +1,11 @@
 // dashboard_screen.dart
 // หน้าแรกของแอป — แสดงรายการ procurement_orders ทั้งหมด ค้นหาได้ กดสร้างใหม่
-// หรือกดที่แถวเพื่อแก้ไขของเดิม (เชื่อมกับ OrderWizardScreen ที่จะทำต่อไป)
+// หรือกดที่แถวเพื่อแก้ไขของเดิม (เชื่อมกับ OrderWizardScreen)
 //
 // [Dashboard v2 - กรกฎาคม 2569]: เพิ่ม KPI 4 การ์ด, filter tabs (ทั้งหมด/ร่าง/เสร็จแล้ว),
 // progress bar ในการ์ดแต่ละใบ, ปรับ theme เล็กน้อย
+// [Dashboard v3 - กรกฎาคม 2569]: ปรับโทนสีเป็นน้ำเงิน-ทอง-เทาอ่อน เพิ่มเงาให้การ์ด
+// แทนเส้นขอบเรียบ ปรับ spacing ให้อ่านง่ายขึ้น, progress bar ใช้สีทองตอนใกล้เสร็จ
 
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
@@ -13,7 +15,9 @@ import 'order_wizard_screen.dart';
 import 'settings_screen.dart';
 import 'budget_list_screen.dart';
 
-const _brandColor = Color(0xFF1A3A5C);
+const _brandColor = Color(0xFF1A3A5C); // น้ำเงินหลัก
+const _goldAccent = Color(0xFFC9A227); // ทอง — ใช้เน้นจุดสำคัญ/ใกล้เสร็จ
+const _bgColor = Color(0xFFF5F6F8); // เทาอ่อน — พื้นหลังหลัก
 
 enum _OrderFilter { all, draft, completed }
 
@@ -142,58 +146,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
+      backgroundColor: _bgColor,
       appBar: AppBar(
         title: const Text('ระบบจัดซื้อจัดจ้าง'),
         backgroundColor: _brandColor,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
+          _appBarIconButton(
             tooltip: 'แผนงบประมาณ',
-            icon: const Icon(Icons.account_balance_wallet_outlined),
+            icon: Icons.account_balance_wallet_outlined,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const BudgetListScreen()),
               );
             },
           ),
-          IconButton(
+          const SizedBox(width: 4),
+          _appBarIconButton(
             tooltip: 'ข้อมูลโรงเรียน',
-            icon: const Icon(Icons.settings),
+            icon: Icons.settings,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openWizard(),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
+        backgroundColor: _goldAccent,
+        foregroundColor: _brandColor,
         icon: const Icon(Icons.add),
-        label: const Text('สร้างใหม่'),
+        label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w600)),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildKpiRow(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 _buildFilterTabs(),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _buildSearchBar(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 Expanded(child: _buildList()),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ปุ่มไอคอนมุมขวาบน — พื้นหลังวงกลมจางๆ ให้ดูเป็นกลุ่มปุ่มมากกว่าไอคอนลอยเดี่ยวๆ
+  Widget _appBarIconButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onPressed,
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
       ),
     );
@@ -205,7 +235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildKpiRow() {
     if (_loading && _orders.isEmpty) {
-      return const SizedBox(height: 88);
+      return const SizedBox(height: 96);
     }
 
     final fiscalYear = _currentFiscalYear;
@@ -232,10 +262,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _KpiCard(
             icon: Icons.payments_outlined,
-            iconColor: Colors.orange.shade800,
+            iconColor: _goldAccent,
             label: 'ยอดใช้จ่ายรวม',
             value: _formatBaht(_totalSpent),
             subLabel: 'เฉพาะเอกสารที่เสร็จแล้ว',
+            highlight: true,
           ),
           _KpiCard(
             icon: Icons.account_balance_wallet_outlined,
@@ -253,11 +284,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               for (int i = 0; i < cards.length; i += 2)
                 Padding(
-                  padding: EdgeInsets.only(bottom: i + 2 < cards.length ? 10 : 0),
+                  padding: EdgeInsets.only(bottom: i + 2 < cards.length ? 12 : 0),
                   child: Row(
                     children: [
                       Expanded(child: cards[i]),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       if (i + 1 < cards.length) Expanded(child: cards[i + 1]) else const Spacer(),
                     ],
                   ),
@@ -269,7 +300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Row(
           children: [
             for (int i = 0; i < cards.length; i++) ...[
-              if (i > 0) const SizedBox(width: 12),
+              if (i > 0) const SizedBox(width: 14),
               Expanded(child: cards[i]),
             ],
           ],
@@ -307,6 +338,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         side: BorderSide(color: selected ? _brandColor : Colors.grey.shade300),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: selected ? 2 : 0,
+        shadowColor: _brandColor.withOpacity(0.3),
       );
     }
 
@@ -322,30 +355,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildSearchBar() {
-    return TextField(
-      controller: _searchCtrl,
-      decoration: InputDecoration(
-        hintText: 'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อร้านค้า',
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        suffixIcon: _searchCtrl.text.isEmpty
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () {
-                  _searchCtrl.clear();
-                  _query = '';
-                  _load();
-                },
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      onSubmitted: (v) {
-        _query = v;
-        _load();
-      },
-      onChanged: (v) => _query = v,
+      child: TextField(
+        controller: _searchCtrl,
+        decoration: InputDecoration(
+          hintText: 'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อร้านค้า',
+          prefixIcon: const Icon(Icons.search),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: _searchCtrl.text.isEmpty
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    _searchCtrl.clear();
+                    _query = '';
+                    _load();
+                  },
+                ),
+        ),
+        onSubmitted: (v) {
+          _query = v;
+          _load();
+        },
+        onChanged: (v) => _query = v,
+      ),
     );
   }
 
@@ -378,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onRefresh: _load,
       child: ListView.separated(
         itemCount: filtered.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (context, index) => _buildOrderCard(filtered[index]),
       ),
     );
@@ -388,99 +436,115 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isCompleted = order.currentStatus == 'COMPLETED';
     final progress = order.progressPercent.clamp(0.0, 1.0);
     final progressPct = (progress * 100).toStringAsFixed(0);
+    final isNearlyDone = !isCompleted && progress >= 0.7;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.grey.shade200),
+    final progressColor = isCompleted
+        ? Colors.green.shade600
+        : isNearlyDone
+            ? _goldAccent
+            : _brandColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: () => _openWizard(existing: order),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  _statusBadge(isCompleted),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          order.projectName?.isNotEmpty == true
-                              ? order.projectName!
-                              : '(ไม่มีชื่อโครงการ)',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _openWizard(existing: order),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    _statusBadge(isCompleted),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            order.projectName?.isNotEmpty == true
+                                ? order.projectName!
+                                : '(ไม่มีชื่อโครงการ)',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            [
+                              if (order.procurementNumber?.isNotEmpty == true) order.procurementNumber,
+                              if (order.vendorName?.isNotEmpty == true) order.vendorName,
+                            ].join('  •  '),
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (order.currentOrderPrice != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: Text(
+                          '${order.currentOrderPrice!.toStringAsFixed(2)} บาท',
+                          style: const TextStyle(fontWeight: FontWeight.w600, color: _brandColor),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          [
-                            if (order.procurementNumber?.isNotEmpty == true) order.procurementNumber,
-                            if (order.vendorName?.isNotEmpty == true) order.vendorName,
-                          ].join('  •  '),
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (order.currentOrderPrice != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Text(
-                        '${order.currentOrderPrice!.toStringAsFixed(2)} บาท',
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: _brandColor),
                       ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      tooltip: 'ลบ',
+                      onPressed: () => _confirmDelete(order),
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                    tooltip: 'ลบ',
-                    onPressed: () => _confirmDelete(order),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 6,
-                        backgroundColor: Colors.grey.shade200,
-                        color: isCompleted ? Colors.green.shade600 : _brandColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    width: 40,
-                    child: Text(
-                      '$progressPct%',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                  if (isCompleted) ...[
-                    const SizedBox(width: 4),
-                    Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
                   ],
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey.shade200,
+                          color: progressColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 40,
+                      child: Text(
+                        '$progressPct%',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                    if (isCompleted) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -493,7 +557,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       height: 10,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isCompleted ? Colors.green : Colors.orange,
+        color: isCompleted ? Colors.green : _goldAccent,
       ),
     );
   }
@@ -509,6 +573,7 @@ class _KpiCard extends StatelessWidget {
   final String label;
   final String value;
   final String subLabel;
+  final bool highlight;
 
   const _KpiCard({
     required this.icon,
@@ -516,16 +581,24 @@ class _KpiCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.subLabel,
+    this.highlight = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(14),
+        border: highlight ? Border.all(color: _goldAccent.withOpacity(0.4), width: 1.2) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,14 +606,14 @@ class _KpiCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(icon, size: 18, color: iconColor),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 9),
               Expanded(
                 child: Text(
                   label,
@@ -551,14 +624,14 @@ class _KpiCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: _brandColor),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _brandColor),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(
             subLabel,
             style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
