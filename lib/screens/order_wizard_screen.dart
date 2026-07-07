@@ -24,7 +24,18 @@ const _brandColor = Color(0xFF1A3A5C);
 class OrderWizardScreen extends StatefulWidget {
   final ProcurementOrder? existingOrder;
 
-  const OrderWizardScreen({super.key, this.existingOrder});
+  // [อัปเดต — AppShell integration]: แจ้ง shell ทุกครั้งที่ข้อมูลในฟอร์มถูกแก้
+  // (สำหรับเด้ง dialog เตือนก่อนสลับเมนู) และแจ้งเมื่อกด "บันทึก" สำเร็จ
+  // (shell จะสลับกลับไป dashboard ให้)
+  final void Function(bool isDirty) onDirtyChanged;
+  final VoidCallback onSaved;
+
+  const OrderWizardScreen({
+    super.key,
+    this.existingOrder,
+    required this.onDirtyChanged,
+    required this.onSaved,
+  });
 
   @override
   State<OrderWizardScreen> createState() => _OrderWizardScreenState();
@@ -42,6 +53,10 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
 
   bool _saving = false;
   bool _generatingDoc = false;
+
+  // true ทันทีที่มีการแก้ฟอร์ม/รายการพัสดุ จนกว่าจะกด "บันทึก" หรือ
+  // "สร้างเอกสาร Word" สำเร็จ — ใช้แจ้ง AppShell ผ่าน widget.onDirtyChanged
+  bool _isDirty = false;
 
   @override
   void initState() {
@@ -70,6 +85,21 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
 
   void _updateDraft(ProcurementOrder Function(ProcurementOrder) update) {
     setState(() => _draft = update(_draft));
+    _markDirty();
+  }
+
+  /// ตั้งค่า dirty เป็น true และแจ้ง shell (ถ้ายังไม่ dirty อยู่แล้ว)
+  void _markDirty() {
+    if (!_isDirty) {
+      setState(() => _isDirty = true);
+    }
+    widget.onDirtyChanged(true);
+  }
+
+  /// ล้างสถานะ dirty หลังบันทึกสำเร็จ และแจ้ง shell
+  void _clearDirty() {
+    setState(() => _isDirty = false);
+    widget.onDirtyChanged(false);
   }
 
   /// นับว่า "ผ่าน" กี่ tab จาก 5 tab แล้ว (เกณฑ์: กรอก field หลักของ tab นั้นครบ)
@@ -159,12 +189,13 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     setState(() => _saving = true);
     try {
       await _calcAndSaveOrder();
+      _clearDirty();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('บันทึกเอกสารสำเร็จ')),
       );
-      Navigator.of(context).pop(true);
+      widget.onSaved();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -182,6 +213,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     setState(() => _generatingDoc = true);
     try {
       final orderToSave = await _calcAndSaveOrder();
+      _clearDirty();
 
       final schoolSettings = await _repo.getSchoolSettings();
 
@@ -207,47 +239,49 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
-      appBar: AppBar(
-        title: Text(widget.existingOrder == null ? 'สร้างเอกสารใหม่' : 'แก้ไขเอกสาร'),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: '1. โรงเรียน/งบประมาณ'),
-            Tab(text: '2. ผู้ปฏิบัติงาน'),
-            Tab(text: '3. ร้านค้า/เงื่อนไข'),
-            Tab(text: '4. รายการพัสดุ'),
-            Tab(text: '5. กำหนดการ'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _Tab1SchoolBudget(draft: _draft, onChanged: _updateDraft, repo: _repo),
-          _Tab2Officers(draft: _draft, onChanged: _updateDraft),
-          _Tab3VendorTerms(draft: _draft, onChanged: _updateDraft),
-          _Tab4Items(
-            initialItems: _items,
-            onChanged: (items, subtotal) {
-              setState(() {
-                _items = items;
-                _itemsSubtotal = subtotal;
-              });
-            },
+    return Column(
+      children: [
+        // TabBar เดิมเคยอยู่ใน AppBar.bottom — ย้ายมาไว้บนสุดของเนื้อหาแทน
+        // เพราะ AppBar ตอนนี้อยู่ที่ระดับ AppShell แล้ว
+        Container(
+          color: _brandColor,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            tabs: const [
+              Tab(text: '1. โรงเรียน/งบประมาณ'),
+              Tab(text: '2. ผู้ปฏิบัติงาน'),
+              Tab(text: '3. ร้านค้า/เงื่อนไข'),
+              Tab(text: '4. รายการพัสดุ'),
+              Tab(text: '5. กำหนดการ'),
+            ],
           ),
-          _Tab5Timeline(draft: _draft, onChanged: _updateDraft),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _Tab1SchoolBudget(draft: _draft, onChanged: _updateDraft, repo: _repo),
+              _Tab2Officers(draft: _draft, onChanged: _updateDraft),
+              _Tab3VendorTerms(draft: _draft, onChanged: _updateDraft),
+              _Tab4Items(
+                initialItems: _items,
+                onChanged: (items, subtotal) {
+                  setState(() {
+                    _items = items;
+                    _itemsSubtotal = subtotal;
+                  });
+                  _markDirty();
+                },
+              ),
+              _Tab5Timeline(draft: _draft, onChanged: _updateDraft),
+            ],
+          ),
+        ),
+        Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
@@ -290,7 +324,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -323,7 +357,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   late final TextEditingController _projectNameCtrl;
   late final TextEditingController _activityNameCtrl;
   late final TextEditingController _purposeReasonCtrl;
-  late final TextEditingController _purposeObjectiveCtrl;
+  String? _orderType; // 'ซื้อ' | 'จ้าง'
 
   @override
   void initState() {
@@ -333,7 +367,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _projectNameCtrl = TextEditingController(text: widget.draft.projectName);
     _activityNameCtrl = TextEditingController(text: widget.draft.activityName);
     _purposeReasonCtrl = TextEditingController(text: widget.draft.purposeReason);
-    _purposeObjectiveCtrl = TextEditingController(text: widget.draft.purposeObjective);
+    _orderType = widget.draft.orderType;
     _loadBudgets();
   }
 
@@ -427,7 +461,6 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _projectNameCtrl.dispose();
     _activityNameCtrl.dispose();
     _purposeReasonCtrl.dispose();
-    _purposeObjectiveCtrl.dispose();
     super.dispose();
   }
 
@@ -503,6 +536,20 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                         .toList(),
                     onChanged: _onBudgetSelected,
                   ),
+            const SizedBox(height: 24),
+            _sectionTitle('ประเภทเอกสาร'),
+            DropdownButtonFormField<String>(
+              value: _orderType,
+              decoration: _inputDecoration('จัดซื้อ หรือ จัดจ้าง'),
+              items: const [
+                DropdownMenuItem(value: 'ซื้อ', child: Text('จัดซื้อ')),
+                DropdownMenuItem(value: 'จ้าง', child: Text('จัดจ้าง')),
+              ],
+              onChanged: (v) {
+                setState(() => _orderType = v);
+                widget.onChanged((d) => d.copyWith(orderType: v));
+              },
+            ),
             const SizedBox(height: 24),
             _sectionTitle('ข้อมูลเอกสาร'),
             Row(

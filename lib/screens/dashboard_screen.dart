@@ -1,28 +1,31 @@
 // dashboard_screen.dart
-// หน้าแรกของแอป — แสดงรายการ procurement_orders ทั้งหมด ค้นหาได้ กดสร้างใหม่
-// หรือกดที่แถวเพื่อแก้ไขของเดิม (เชื่อมกับ OrderWizardScreen)
+// เนื้อหาหน้าแรกของแอป — แสดงรายการ procurement_orders ทั้งหมด ค้นหาได้
+// ไม่มี Scaffold/AppBar/FAB ของตัวเอง เพราะถูกวาดอยู่ในพื้นที่ขวาของ AppShell
+// เสมอ — AppBar อยู่ระดับ shell แทน สร้างใหม่/แก้ไข ใช้ callback จาก shell
 //
-// [Dashboard v2 - กรกฎาคม 2569]: เพิ่ม KPI 4 การ์ด, filter tabs (ทั้งหมด/ร่าง/เสร็จแล้ว),
-// progress bar ในการ์ดแต่ละใบ, ปรับ theme เล็กน้อย
-// [Dashboard v3 - กรกฎาคม 2569]: ปรับโทนสีเป็นน้ำเงิน-ทอง-เทาอ่อน เพิ่มเงาให้การ์ด
-// แทนเส้นขอบเรียบ ปรับ spacing ให้อ่านง่ายขึ้น, progress bar ใช้สีทองตอนใกล้เสร็จ
+// [Dashboard v2]: เพิ่ม KPI 4 การ์ด (เอกสารทั้งหมด/เสร็จสมบูรณ์/ยอดใช้จ่าย/
+// งบคงเหลือ) + filter tabs (ทั้งหมด/ร่าง/เสร็จแล้ว) + progress bar ในการ์ด
+// คำนวณจาก getAllOrders() + getAllBudgets() ที่โหลดอยู่แล้ว ไม่มี query เพิ่ม
 
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/procurement_order.dart';
 import '../models/budget.dart';
-import 'order_wizard_screen.dart';
-import 'settings_screen.dart';
-import 'budget_list_screen.dart';
 
-const _brandColor = Color(0xFF1A3A5C); // น้ำเงินหลัก
-const _goldAccent = Color(0xFFC9A227); // ทอง — ใช้เน้นจุดสำคัญ/ใกล้เสร็จ
-const _bgColor = Color(0xFFF5F6F8); // เทาอ่อน — พื้นหลังหลัก
+const _brandColor = Color(0xFF1A3A5C);
+const _goldAccent = Color(0xFFC9A227);
 
 enum _OrderFilter { all, draft, completed }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback onCreateNew;
+  final void Function(ProcurementOrder order) onEditOrder;
+
+  const DashboardScreen({
+    super.key,
+    required this.onCreateNew,
+    required this.onEditOrder,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -88,13 +91,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _openWizard({ProcurementOrder? existing}) async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => OrderWizardScreen(existingOrder: existing)),
-    );
-    if (saved == true) _load();
-  }
-
   // ─────────────────────────────────────────
   // KPI คำนวณจาก _orders + _budgets ที่โหลดไว้แล้ว (ไม่ query ใหม่)
   // ─────────────────────────────────────────
@@ -110,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double get _totalRemainingBudget =>
       _budgets.fold(0.0, (sum, b) => sum + (b.remainingAmount ?? 0));
 
-  /// ปีงบประมาณล่าสุด หา mode (ปีที่มีเอกสารเยอะสุด) ถ้าเสมอกันเลือกปีมากสุด
+  /// ปีงบประมาณล่าสุด — หาปีที่มีเอกสารเยอะสุด ถ้าเสมอกันเลือกปีมากสุด
   String? get _currentFiscalYear {
     if (_orders.isEmpty) return null;
     final counts = <String, int>{};
@@ -143,89 +139,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  String _formatBaht(double value) {
+    final s = value.toStringAsFixed(0);
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return '$buf บาท';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: const Text('ระบบจัดซื้อจัดจ้าง'),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          _appBarIconButton(
-            tooltip: 'แผนงบประมาณ',
-            icon: Icons.account_balance_wallet_outlined,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BudgetListScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-          _appBarIconButton(
-            tooltip: 'ข้อมูลโรงเรียน',
-            icon: Icons.settings,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openWizard(),
-        backgroundColor: _goldAccent,
-        foregroundColor: _brandColor,
-        icon: const Icon(Icons.add),
-        label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w600)),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildKpiRow(),
-                const SizedBox(height: 24),
-                _buildFilterTabs(),
-                const SizedBox(height: 14),
-                _buildSearchBar(),
-                const SizedBox(height: 18),
-                Expanded(child: _buildList()),
-              ],
+    return Stack(
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildKpiRow(),
+                  const SizedBox(height: 24),
+                  _buildFilterTabs(),
+                  const SizedBox(height: 14),
+                  _buildSearchBar(),
+                  const SizedBox(height: 18),
+                  Expanded(child: _buildList()),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ปุ่มไอคอนมุมขวาบน — พื้นหลังวงกลมจางๆ ให้ดูเป็นกลุ่มปุ่มมากกว่าไอคอนลอยเดี่ยวๆ
-  Widget _appBarIconButton({
-    required String tooltip,
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onPressed,
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            shape: BoxShape.circle,
+        Positioned(
+          right: 24,
+          bottom: 24,
+          child: FloatingActionButton.extended(
+            onPressed: widget.onCreateNew,
+            backgroundColor: _brandColor,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.add),
+            label: const Text('สร้างใหม่'),
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
         ),
-      ),
+      ],
     );
   }
 
@@ -274,7 +233,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: 'งบประมาณคงเหลือ',
             value: _formatBaht(_totalRemainingBudget),
             subLabel: fiscalYear == null
-                ? 'ปีงบฯ $_currentFiscalYearCount รายการ'
+                ? '${_budgets.length} แผนงบ'
                 : 'ปีงบฯ $fiscalYear · $_currentFiscalYearCount รายการ',
           ),
         ];
@@ -307,16 +266,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       },
     );
-  }
-
-  String _formatBaht(double value) {
-    final s = value.toStringAsFixed(0);
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return '$buf บาท';
   }
 
   // ─────────────────────────────────────────
@@ -426,6 +375,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onRefresh: _load,
       child: ListView.separated(
         itemCount: filtered.length,
+        // เผื่อพื้นที่ด้านล่างไม่ให้ FAB ลอยทับรายการสุดท้าย
+        padding: const EdgeInsets.only(bottom: 80),
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (context, index) => _buildOrderCard(filtered[index]),
       ),
@@ -436,13 +387,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isCompleted = order.currentStatus == 'COMPLETED';
     final progress = order.progressPercent.clamp(0.0, 1.0);
     final progressPct = (progress * 100).toStringAsFixed(0);
-    final isNearlyDone = !isCompleted && progress >= 0.7;
-
-    final progressColor = isCompleted
+    // 3 ระดับสถานะ: เทา = ยังไม่เริ่ม (0%), เหลือง = กำลังทำ (1-99%), เขียว = เสร็จครบถ้วน
+    final Color statusColor = isCompleted || progress >= 1.0
         ? Colors.green.shade600
-        : isNearlyDone
+        : progress > 0
             ? _goldAccent
-            : _brandColor;
+            : Colors.grey.shade400;
+
+    final progressColor = statusColor;
 
     return Container(
       decoration: BoxDecoration(
@@ -460,7 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _openWizard(existing: order),
+          onTap: () => widget.onEditOrder(order),
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -468,7 +420,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Row(
                   children: [
-                    _statusBadge(isCompleted),
+                    _statusBadge(statusColor),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -551,13 +503,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _statusBadge(bool isCompleted) {
+  Widget _statusBadge(Color color) {
     return Container(
       width: 10,
       height: 10,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isCompleted ? Colors.green : _goldAccent,
+        color: color,
       ),
     );
   }

@@ -1,11 +1,11 @@
 // license_gate.dart
-// Widget ที่นั่งอยู่หน้า DashboardScreen — ตรวจ license ตอนเปิดแอป
-// ถ้า valid → ไป Dashboard, ถ้าไม่ valid → ไป ActivationScreen
+// Widget ที่นั่งอยู่หน้า AppShell — ตรวจ license ตอนเปิดแอป
+// ถ้า valid → ไป AppShell, ถ้าไม่ valid → ไป ActivationScreen
 
 import 'package:flutter/material.dart';
 import '../services/license_service.dart';
 import 'activation_screen.dart';
-import 'dashboard_screen.dart';
+import 'app_shell.dart';
 
 class LicenseGate extends StatefulWidget {
   const LicenseGate({super.key});
@@ -26,15 +26,15 @@ class _LicenseGateState extends State<LicenseGate> {
     if (!mounted) return;
 
     if (result.isValid) {
-      _goToDashboard();
+      _goToAppShell();
     } else {
       _goToActivation(reason: result.errorReason);
     }
   }
 
-  void _goToDashboard() {
+  void _goToAppShell() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      MaterialPageRoute(builder: (_) => const AppShell()),
     );
   }
 
@@ -46,7 +46,7 @@ class _LicenseGateState extends State<LicenseGate> {
     if (!mounted) return;
 
     if (result != null && result.isValid) {
-      _goToDashboard();
+      _goToAppShell();
     } else {
       // ถ้ากด back หรือ activate ไม่สำเร็จ → แสดงหน้า activation ซ้ำ
       // (ปิดแอปได้อย่างเดียว)

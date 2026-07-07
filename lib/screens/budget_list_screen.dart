@@ -59,48 +59,50 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
-      appBar: AppBar(
-        title: const Text('แผนงบประมาณ'),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openForm(),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('เพิ่มแผนงบ'),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _budgets.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            Text('ยังไม่มีแผนงบประมาณ\nกด "เพิ่มแผนงบ" เพื่อเริ่มต้น',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
-                          ],
+    return Stack(
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _budgets.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey.shade400),
+                              const SizedBox(height: 12),
+                              Text('ยังไม่มีแผนงบประมาณ\nกด "เพิ่มแผนงบ" เพื่อเริ่มต้น',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: _budgets.length,
+                          // เผื่อพื้นที่ด้านล่างไม่ให้ FAB ลอยทับรายการสุดท้าย
+                          padding: const EdgeInsets.only(bottom: 80),
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) => _buildCard(_budgets[i]),
                         ),
-                      )
-                    : ListView.separated(
-                        itemCount: _budgets.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (_, i) => _buildCard(_budgets[i]),
-                      ),
+            ),
           ),
         ),
-      ),
+        Positioned(
+          right: 24,
+          bottom: 24,
+          child: FloatingActionButton.extended(
+            onPressed: () => _openForm(),
+            backgroundColor: _brandColor,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.add),
+            label: const Text('เพิ่มแผนงบ'),
+          ),
+        ),
+      ],
     );
   }
 

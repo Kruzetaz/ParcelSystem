@@ -95,16 +95,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
-      appBar: AppBar(
-        title: const Text('ข้อมูลโรงเรียน'),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+    return _loading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Center(
                 child: ConstrainedBox(
@@ -182,7 +175,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-            ),
-    );
+            );
   }
 }

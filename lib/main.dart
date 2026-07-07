@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'data/database.dart';
-import 'screens/app_shell.dart';
 import 'screens/license_gate.dart';
 
 void main() async {
@@ -27,7 +26,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: LicenseGate(child: const AppShell()),
+      home: const LicenseGate(),
     );
   }
 }

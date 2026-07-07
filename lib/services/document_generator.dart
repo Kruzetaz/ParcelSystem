@@ -153,7 +153,8 @@ class DocumentGenerator {
       'project_name': _str(o.projectName),
       'activity_name': _str(o.activityName),
       'purpose_reason': _str(o.purposeReason),
-      'purpose_objective': _str(o.purposeObjective),
+      // ไม่มีช่องกรอกแยกใน UI แล้ว — ใช้ค่าเดียวกับ purpose_reason ตามที่ต้องการ
+      'purpose_objective': _str(o.purposeReason),
 
       // เลขที่เอกสารต่างๆ
       'procurement_number': _str(o.procurementNumber),
@@ -211,9 +212,6 @@ class DocumentGenerator {
       'shipping_days': _intStr(o.shippingDays),
       'penalty_rate': _percent(o.penaltyRate),
       'warranty_period': _str(o.warrantyPeriod),
-      'delivery_doc_type': _str(o.deliveryDocType),
-      'delivery_doc_number': _str(o.deliveryDocNumber),
-      
       'delivery_doc_type': _str(o.deliveryDocType),
       'delivery_doc_number': _str(o.deliveryDocNumber),
 
