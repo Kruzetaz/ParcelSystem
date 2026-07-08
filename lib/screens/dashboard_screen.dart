@@ -1,30 +1,36 @@
 // dashboard_screen.dart
 // เนื้อหาหน้าแรกของแอป — แสดงรายการ procurement_orders ทั้งหมด ค้นหาได้
-// ไม่มี Scaffold/AppBar/FAB ของตัวเอง เพราะถูกวาดอยู่ในพื้นที่ขวาของ AppShell
-// เสมอ — AppBar อยู่ระดับ shell แทน สร้างใหม่/แก้ไข ใช้ callback จาก shell
+// [AppShell]: ไม่มี Scaffold/AppBar/FAB ของตัวเองแล้ว เพราะถูกวาดอยู่ในพื้นที่ขวา
+// ของ AppShell เสมอ — AppBar ย้ายไปอยู่ระดับ shell แทน
+// การสร้างใหม่/แก้ไขเอกสาร ใช้ callback ที่ shell ส่งมาให้ แทน Navigator.push เดิม
 //
-// [Dashboard v2]: เพิ่ม KPI 4 การ์ด (เอกสารทั้งหมด/เสร็จสมบูรณ์/ยอดใช้จ่าย/
-// งบคงเหลือ) + filter tabs (ทั้งหมด/ร่าง/เสร็จแล้ว) + progress bar ในการ์ด
-// คำนวณจาก getAllOrders() + getAllBudgets() ที่โหลดอยู่แล้ว ไม่มี query เพิ่ม
+// [Dashboard v2/v3]: มี KPI 4 การ์ด, filter tabs (ทั้งหมด/ร่าง/เสร็จแล้ว),
+// progress bar ในการ์ดแต่ละใบ, ธีมน้ำเงิน-ทอง-เทาอ่อน
 
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../data/procurement_repository.dart';
 import '../models/procurement_order.dart';
 import '../models/budget.dart';
+import '../models/school_settings.dart';
+import 'app_sidebar.dart' show AppMode;
 
-const _brandColor = Color(0xFF1A3A5C);
-const _goldAccent = Color(0xFFC9A227);
+const _brandColor = Color(0xFF1A3A5C); // น้ำเงินหลัก
+const _goldAccent = Color(0xFFC9A227); // ทอง — ใช้เน้นจุดสำคัญ/ใกล้เสร็จ
 
 enum _OrderFilter { all, draft, completed }
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onCreateNew;
   final void Function(ProcurementOrder order) onEditOrder;
+  // ให้ quick-action grid สลับไปหน้าแผนงบ/ตั้งค่าโรงเรียนได้ตรงๆ โดยไม่ต้องผ่าน sidebar
+  final void Function(AppMode mode) onNavigate;
 
   const DashboardScreen({
     super.key,
     required this.onCreateNew,
     required this.onEditOrder,
+    required this.onNavigate,
   });
 
   @override
@@ -37,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<ProcurementOrder> _orders = [];
   List<Budget> _budgets = [];
+  SchoolSettings? _school;
   bool _loading = true;
   String _query = '';
   _OrderFilter _filter = _OrderFilter.all;
@@ -58,10 +65,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final orders =
         _query.trim().isEmpty ? await _repo.getAllOrders() : await _repo.searchOrders(_query.trim());
     final budgets = await _repo.getAllBudgets();
+    final school = await _repo.getSchoolSettings();
     if (!mounted) return;
     setState(() {
       _orders = orders;
       _budgets = budgets;
+      _school = school;
       _loading = false;
     });
   }
@@ -106,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double get _totalRemainingBudget =>
       _budgets.fold(0.0, (sum, b) => sum + (b.remainingAmount ?? 0));
 
-  /// ปีงบประมาณล่าสุด — หาปีที่มีเอกสารเยอะสุด ถ้าเสมอกันเลือกปีมากสุด
+  /// ปีงบประมาณล่าสุด หา mode (ปีที่มีเอกสารเยอะสุด) ถ้าเสมอกันเลือกปีมากสุด
   String? get _currentFiscalYear {
     if (_orders.isEmpty) return null;
     final counts = <String, int>{};
@@ -139,35 +148,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  String _formatBaht(double value) {
-    final s = value.toStringAsFixed(0);
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return '$buf บาท';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _buildHeroBanner(),
+                  const SizedBox(height: 20),
                   _buildKpiRow(),
                   const SizedBox(height: 24),
-                  _buildFilterTabs(),
-                  const SizedBox(height: 14),
-                  _buildSearchBar(),
-                  const SizedBox(height: 18),
-                  Expanded(child: _buildList()),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildFilterTabs(),
+                              const SizedBox(height: 14),
+                              _buildSearchBar(),
+                              const SizedBox(height: 18),
+                              Expanded(child: _buildList()),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        SizedBox(width: 190, child: _buildQuickActionsPanel()),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -178,13 +196,278 @@ class _DashboardScreenState extends State<DashboardScreen> {
           bottom: 24,
           child: FloatingActionButton.extended(
             onPressed: widget.onCreateNew,
-            backgroundColor: _brandColor,
-            foregroundColor: Colors.white,
+            backgroundColor: _goldAccent,
+            foregroundColor: _brandColor,
             icon: const Icon(Icons.add),
-            label: const Text('สร้างใหม่'),
+            label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ),
       ],
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // HERO BANNER — ชื่อโรงเรียน + ตัวเลขสรุปใหญ่ + วงกลม % ความคืบหน้ารวม
+  // ─────────────────────────────────────────
+
+  Widget _buildHeroBanner() {
+    final total = _orders.length;
+    final ratio = total == 0 ? 0.0 : _completedCount / total;
+    final schoolName = _school?.schoolName?.isNotEmpty == true
+        ? _school!.schoolName!
+        : 'ยังไม่ได้กรอกชื่อโรงเรียน';
+    final fiscalYear = _currentFiscalYear;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF102A43), _brandColor],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _brandColor.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 640;
+          final schoolBlock = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.school_outlined, color: _goldAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      schoolName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                fiscalYear == null ? 'ยังไม่มีข้อมูลปีงบประมาณ' : 'ปีงบประมาณ $fiscalYear',
+                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12.5),
+              ),
+            ],
+          );
+
+          final statsRow = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _heroStat('$total', 'เอกสารทั้งหมด'),
+              _heroStatDivider(),
+              _heroStat('$_draftCount', 'ร่าง'),
+              _heroStatDivider(),
+              _heroStat('$_completedCount', 'เสร็จแล้ว'),
+              _heroStatDivider(),
+              _heroStat(_formatBaht(_totalSpent), 'ยอดใช้จ่าย', highlight: true),
+            ],
+          );
+
+          final ring = _buildProgressRing(ratio);
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: schoolBlock),
+                    ring,
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: statsRow,
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    schoolBlock,
+                    const SizedBox(height: 20),
+                    statsRow,
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              ring,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _heroStat(String value, String label, {bool highlight = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: highlight ? _goldAccent : Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11.5),
+        ),
+      ],
+    );
+  }
+
+  Widget _heroStatDivider() {
+    return Container(
+      width: 1,
+      height: 32,
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      color: Colors.white.withOpacity(0.15),
+    );
+  }
+
+  /// วงกลมแสดง % เอกสารที่เสร็จสมบูรณ์เทียบกับทั้งหมด วาดเองด้วย CustomPainter
+  /// (ไม่ใช้ CircularProgressIndicator ตรงๆ เพราะต้องคุมความหนาเส้น/ปลายมน/
+  /// สีพื้นหลังวงในให้ตรงกับดีไซน์ hero banner)
+  Widget _buildProgressRing(double ratio) {
+    final pct = (ratio * 100).toStringAsFixed(0);
+    return SizedBox(
+      width: 84,
+      height: 84,
+      child: CustomPaint(
+        painter: _ProgressRingPainter(ratio: ratio),
+        child: Center(
+          child: Text(
+            '$pct%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // QUICK ACTIONS — ทางลัด 4 ปุ่ม (ทำหน้าที่เหมือนเมนูใน sidebar แต่เป็น
+  // icon grid ให้กดถึงเร็วกว่าตอนอยู่หน้า dashboard)
+  // ─────────────────────────────────────────
+
+  Widget _buildQuickActionsPanel() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'เมนูด่วน',
+            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            children: [
+              _quickActionTile(
+                icon: Icons.add_circle_outline,
+                label: 'สร้างใหม่',
+                onTap: widget.onCreateNew,
+              ),
+              _quickActionTile(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'แผนงบ',
+                onTap: () => widget.onNavigate(AppMode.budgets),
+              ),
+              _quickActionTile(
+                icon: Icons.settings_outlined,
+                label: 'ตั้งค่า',
+                onTap: () => widget.onNavigate(AppMode.settings),
+              ),
+              _quickActionTile(
+                icon: Icons.refresh,
+                label: 'รีเฟรช',
+                onTap: _load,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionTile({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: _brandColor.withOpacity(0.06),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: _brandColor, size: 20),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: _brandColor, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -233,7 +516,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: 'งบประมาณคงเหลือ',
             value: _formatBaht(_totalRemainingBudget),
             subLabel: fiscalYear == null
-                ? '${_budgets.length} แผนงบ'
+                ? 'ปีงบฯ $_currentFiscalYearCount รายการ'
                 : 'ปีงบฯ $fiscalYear · $_currentFiscalYearCount รายการ',
           ),
         ];
@@ -266,6 +549,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       },
     );
+  }
+
+  String _formatBaht(double value) {
+    final s = value.toStringAsFixed(0);
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return '$buf บาท';
   }
 
   // ─────────────────────────────────────────
@@ -387,14 +680,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isCompleted = order.currentStatus == 'COMPLETED';
     final progress = order.progressPercent.clamp(0.0, 1.0);
     final progressPct = (progress * 100).toStringAsFixed(0);
-    // 3 ระดับสถานะ: เทา = ยังไม่เริ่ม (0%), เหลือง = กำลังทำ (1-99%), เขียว = เสร็จครบถ้วน
-    final Color statusColor = isCompleted || progress >= 1.0
-        ? Colors.green.shade600
-        : progress > 0
-            ? _goldAccent
-            : Colors.grey.shade400;
+    final isNearlyDone = !isCompleted && progress >= 0.7;
 
-    final progressColor = statusColor;
+    final progressColor = isCompleted
+        ? Colors.green.shade600
+        : isNearlyDone
+            ? _goldAccent
+            : _brandColor;
 
     return Container(
       decoration: BoxDecoration(
@@ -420,7 +712,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Row(
                   children: [
-                    _statusBadge(statusColor),
+                    _statusBadge(isCompleted),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -503,13 +795,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _statusBadge(Color color) {
+  Widget _statusBadge(bool isCompleted) {
     return Container(
       width: 10,
       height: 10,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color,
+        color: isCompleted ? Colors.green : _goldAccent,
       ),
     );
   }
@@ -594,4 +886,47 @@ class _KpiCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────
+// วงกลม % ความคืบหน้าบน hero banner — พื้นวงเป็นสีขาวจาง เส้น progress สีทอง
+// ปลายมน วาดเริ่มจากตำแหน่ง 12 นาฬิกา ตามเข็มนาฬิกา
+// ─────────────────────────────────────────
+
+class _ProgressRingPainter extends CustomPainter {
+  final double ratio;
+
+  _ProgressRingPainter({required this.ratio});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 7.0;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    final trackPaint = Paint()
+      ..color = Colors.white.withOpacity(0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    final progressPaint = Paint()
+      ..color = _goldAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    final sweepAngle = 2 * math.pi * ratio.clamp(0.0, 1.0);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProgressRingPainter oldDelegate) => oldDelegate.ratio != ratio;
 }

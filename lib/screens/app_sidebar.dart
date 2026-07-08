@@ -1,4 +1,4 @@
-// app_sidebar.dart
+ // app_sidebar.dart
 // Sidebar widget — ย่อ/ขยายได้, highlight เมนูปัจจุบัน
 // ใช้เฉพาะใน AppShell เท่านั้น (ไม่แปะซ้ำในหน้าอื่น)
 //
@@ -11,6 +11,7 @@ import '../data/procurement_repository.dart';
 import '../models/school_settings.dart';
 
 const _brandColor = Color(0xFF1A3A5C);
+const _goldAccent = Color(0xFFC9A227);
 const _sidebarExpandedWidth = 200.0;
 const _sidebarCollapsedWidth = 64.0;
 
@@ -82,6 +83,7 @@ class _AppSidebarState extends State<AppSidebar> {
         children: [
           const SizedBox(height: 12),
           if (widget.expanded) _buildSchoolInfo(),
+          if (widget.expanded) _buildVersionTag(),
           Divider(color: Colors.white.withOpacity(0.15), height: 1),
           const SizedBox(height: 4),
           _buildToggleButton(),
@@ -157,6 +159,25 @@ class _AppSidebarState extends State<AppSidebar> {
     );
   }
 
+  // ── ป้ายเวอร์ชันแอป ────────────────────────────────────────
+  Widget _buildVersionTag() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: _goldAccent.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: _goldAccent.withOpacity(0.4)),
+        ),
+        child: const Text(
+          'v1.0',
+          style: TextStyle(color: _goldAccent, fontSize: 10.5, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
   Widget _buildToggleButton() {
     return SizedBox(
       height: 44,
@@ -213,6 +234,9 @@ class _AppSidebarState extends State<AppSidebar> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.white.withOpacity(0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
+            border: isSelected
+                ? const Border(left: BorderSide(color: _goldAccent, width: 3))
+                : const Border(left: BorderSide(color: Colors.transparent, width: 3)),
           ),
           child: Row(
             mainAxisAlignment:
@@ -220,7 +244,7 @@ class _AppSidebarState extends State<AppSidebar> {
             children: [
               Icon(
                 icon,
-                color: isSelected ? Colors.white : Colors.white70,
+                color: isSelected ? _goldAccent : Colors.white70,
                 size: 22,
               ),
               if (widget.expanded) ...[

@@ -11,6 +11,7 @@ import 'settings_screen.dart';
 import '../models/procurement_order.dart';
 
 const _brandColor = Color(0xFF1A3A5C);
+const _goldAccent = Color(0xFFC9A227);
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -84,6 +85,20 @@ class _AppShellState extends State<AppShell> {
     _requestModeChange(AppMode.newOrder, editingOrder: order);
   }
 
+  // ให้ quick-action grid ใน DashboardScreen สลับไป budgets/settings ได้ตรงๆ
+  // (แยกจาก onCreateNew/onEditOrder เพราะสองตัวนั้นตั้งใจไปแค่ newOrder เท่านั้น)
+  void _onDashboardNavigate(AppMode mode) {
+    _requestModeChange(mode);
+  }
+
+  // ปุ่มสำรองข้อมูลใน AppBar — ยังไม่ได้ทำฟีเจอร์จริง (อยู่ใน backlog "Backup/Export")
+  // ใส่ปุ่มไว้ก่อนตามที่ตกลงกันไว้ตอนออกแบบ UI แต่บอกตรงๆ ว่ายังใช้งานไม่ได้จริง
+  void _onBackupPressed() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ฟีเจอร์สำรองข้อมูลยังไม่เปิดใช้งาน (อยู่ระหว่างพัฒนา)')),
+    );
+  }
+
   // ─────────────────────────────────────────
   // Callbacks ส่งลงไปให้ OrderWizardScreen
   // ─────────────────────────────────────────
@@ -112,6 +127,7 @@ class _AppShellState extends State<AppShell> {
         return DashboardScreen(
           onCreateNew: _onDashboardCreateNew,
           onEditOrder: _onDashboardEditOrder,
+          onNavigate: _onDashboardNavigate,
         );
       case AppMode.newOrder:
         return OrderWizardScreen(
@@ -124,6 +140,30 @@ class _AppShellState extends State<AppShell> {
       case AppMode.settings:
         return const SettingsScreen();
     }
+  }
+
+  // แสดงปีงบประมาณ พ.ศ. ปัจจุบันเฉยๆ (คำนวณจากวันที่เครื่องจริง) — ยังไม่ใช่
+  // dropdown เลือกปีงบ เพราะ dashboard ยังไม่รองรับกรองข้อมูลข้ามปีงบ
+  Widget _fiscalYearBadge() {
+    final buddhistYear = DateTime.now().year + 543;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.calendar_today_outlined, size: 14, color: _goldAccent),
+          const SizedBox(width: 6),
+          Text(
+            'ปีงบฯ $buddhistYear',
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -148,6 +188,19 @@ class _AppShellState extends State<AppShell> {
         backgroundColor: _brandColor,
         foregroundColor: Colors.white,
         elevation: 0,
+        toolbarHeight: 64,
+        actions: [
+          _fiscalYearBadge(),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: 'สำรองข้อมูล',
+            child: IconButton(
+              icon: const Icon(Icons.cloud_upload_outlined),
+              onPressed: _onBackupPressed,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Row(
         children: [
