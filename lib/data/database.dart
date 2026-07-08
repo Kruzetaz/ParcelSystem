@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 6;
+  static const int _version = 7;
 
   Database? _db;
 
@@ -80,6 +80,14 @@ class AppDatabase {
           try {
             await db.execute(
               'ALTER TABLE procurement_orders ADD COLUMN procurement_subject TEXT',
+            );
+          } catch (_) {}
+        }
+        if (oldVersion < 7) {
+          // เพิ่มเบอร์โทรโรงเรียน — {{school_phone}}
+          try {
+            await db.execute(
+              'ALTER TABLE school_settings ADD COLUMN school_phone TEXT',
             );
           } catch (_) {}
         }
@@ -212,7 +220,8 @@ class AppDatabase {
         school_address_no TEXT,
         school_subdistrict TEXT,
         school_amphoe TEXT,
-        school_changwat TEXT
+        school_changwat TEXT,
+        school_phone TEXT
       )
     ''');
 

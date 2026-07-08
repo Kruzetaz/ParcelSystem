@@ -23,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _schoolSubdistrictCtrl;
   late final TextEditingController _schoolAmphoeCtrl;
   late final TextEditingController _schoolChangwatCtrl;
+  late final TextEditingController _schoolPhoneCtrl;
 
   bool _loading = true;
   bool _saving = false;
@@ -35,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _schoolSubdistrictCtrl = TextEditingController();
     _schoolAmphoeCtrl = TextEditingController();
     _schoolChangwatCtrl = TextEditingController();
+    _schoolPhoneCtrl = TextEditingController();
     _load();
   }
 
@@ -47,6 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _schoolSubdistrictCtrl.text = settings.schoolSubdistrict ?? '';
       _schoolAmphoeCtrl.text = settings.schoolAmphoe ?? '';
       _schoolChangwatCtrl.text = settings.schoolChangwat ?? '';
+      _schoolPhoneCtrl.text = settings.schoolPhone ?? '';
     }
     setState(() => _loading = false);
   }
@@ -58,6 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _schoolSubdistrictCtrl.dispose();
     _schoolAmphoeCtrl.dispose();
     _schoolChangwatCtrl.dispose();
+    _schoolPhoneCtrl.dispose();
     super.dispose();
   }
 
@@ -70,6 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         schoolSubdistrict: _schoolSubdistrictCtrl.text.trim(),
         schoolAmphoe: _schoolAmphoeCtrl.text.trim(),
         schoolChangwat: _schoolChangwatCtrl.text.trim(),
+        schoolPhone: _schoolPhoneCtrl.text.trim(),
       );
       await _repo.saveSchoolSettings(settings);
       if (!mounted) return;
@@ -146,6 +151,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           TextFormField(
                             controller: _schoolChangwatCtrl,
                             decoration: _inputDecoration('จังหวัด'),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _schoolPhoneCtrl,
+                            decoration: _inputDecoration('เบอร์โทรโรงเรียน'),
+                            keyboardType: TextInputType.phone,
                           ),
                           const SizedBox(height: 32),
                           SizedBox(

@@ -144,6 +144,7 @@ class DocumentGenerator {
       'school_subdistrict': _str(s.schoolSubdistrict),
       'school_amphoe': _str(s.schoolAmphoe),
       'school_changwat': _str(s.schoolChangwat),
+      'school_phone': _str(s.schoolPhone),
 
       // ปีงบประมาณ
       'fiscal_year': _str(o.fiscalYear),
