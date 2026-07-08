@@ -80,7 +80,7 @@ class _AppSidebarState extends State<AppSidebar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
+          const SizedBox(height: 12),
           if (widget.expanded) _buildSchoolInfo(),
           Divider(color: Colors.white.withOpacity(0.15), height: 1),
           const SizedBox(height: 4),
@@ -94,43 +94,6 @@ class _AppSidebarState extends State<AppSidebar> {
           const SizedBox(height: 16),
         ],
       ),
-    );
-  }
-
-  // ── ชื่อระบบ + เครดิตผู้สร้าง ──────────────────────────────
-  Widget _buildHeader() {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: widget.expanded ? 16 : 8,
-        vertical: 16,
-      ),
-      child: widget.expanded
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ระบบจัดซื้อจัดจ้าง',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Ban Pa Lao School',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.55),
-                    fontSize: 11,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            )
-          : const Center(
-              child: Icon(Icons.account_balance_outlined, color: Colors.white, size: 22),
-            ),
     );
   }
 

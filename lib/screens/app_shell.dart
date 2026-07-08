@@ -29,20 +29,6 @@ class _AppShellState extends State<AppShell> {
   // existingOrder สำหรับกรณีกดแก้ไขจาก dashboard
   ProcurementOrder? _editingOrder;
 
-  // ชื่อ AppBar ตาม mode ปัจจุบัน
-  String get _appBarTitle {
-    switch (_mode) {
-      case AppMode.dashboard:
-        return 'ระบบจัดซื้อจัดจ้าง';
-      case AppMode.newOrder:
-        return _editingOrder == null ? 'สร้างเอกสารใหม่' : 'แก้ไขเอกสาร';
-      case AppMode.budgets:
-        return 'แผนงบประมาณ';
-      case AppMode.settings:
-        return 'ตั้งค่าโรงเรียน';
-    }
-  }
-
   // ─────────────────────────────────────────
   // การสลับ mode — ถ้า wizard dirty จะเด้ง dialog ก่อน
   // ─────────────────────────────────────────
@@ -145,7 +131,20 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppBar(
-        title: Text(_appBarTitle),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'ระบบจัดซื้อจัดจ้าง',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'พัฒนาโดย Kru.Zetaz',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: Colors.white70),
+            ),
+          ],
+        ),
         backgroundColor: _brandColor,
         foregroundColor: Colors.white,
         elevation: 0,
