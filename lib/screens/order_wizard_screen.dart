@@ -18,6 +18,7 @@ import '../models/school_settings.dart';
 import '../services/document_generator.dart';
 import '../utils/calc_engine.dart';
 import '../widgets/items_table_editor.dart';
+import 'settings_screen.dart';
 
 const _brandColor = Color(0xFF1A3A5C);
 const _goldAccent = Color(0xFFC9A227);
@@ -684,14 +685,14 @@ class _Tab2Officers extends StatefulWidget {
 }
 
 class _Tab2OfficersState extends State<_Tab2Officers> {
-  late final TextEditingController _directorNameCtrl;
+  final _repo = ProcurementRepository();
+  SchoolSettings? _schoolInfo;
+  bool _loadingSchoolInfo = true;
+
   late final TextEditingController _ownerNameCtrl;
   late final TextEditingController _ownerPositionCtrl;
-  late final TextEditingController _financeOfficerCtrl;
   late final TextEditingController _specCreatorNameCtrl;
   late final TextEditingController _specCreatorPositionCtrl;
-  late final TextEditingController _procurementOfficerCtrl;
-  late final TextEditingController _procurementHeadCtrl;
 
   late final TextEditingController _inspector1Ctrl;
   late final TextEditingController _inspector1PosCtrl;
@@ -707,14 +708,10 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
   void initState() {
     super.initState();
     final d = widget.draft;
-    _directorNameCtrl = TextEditingController(text: d.directorName);
     _ownerNameCtrl = TextEditingController(text: d.ownerName);
     _ownerPositionCtrl = TextEditingController(text: d.ownerPosition);
-    _financeOfficerCtrl = TextEditingController(text: d.financeOfficer);
     _specCreatorNameCtrl = TextEditingController(text: d.specCreatorName);
     _specCreatorPositionCtrl = TextEditingController(text: d.specCreatorPosition);
-    _procurementOfficerCtrl = TextEditingController(text: d.procurementOfficer);
-    _procurementHeadCtrl = TextEditingController(text: d.procurementHead);
 
     _inspector1Ctrl = TextEditingController(text: d.inspector1);
     _inspector1PosCtrl = TextEditingController(text: d.inspector1Pos);
@@ -724,18 +721,35 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     _inspector3PosCtrl = TextEditingController(text: d.inspector3Pos);
 
     _inspectorTitleGroup = d.inspectorTitleGroup ?? 'ผู้ตรวจรับพัสดุ';
+    _loadSchoolInfo();
+  }
+
+  Future<void> _loadSchoolInfo() async {
+    final school = await _repo.getSchoolSettings();
+    if (!mounted) return;
+    setState(() {
+      _schoolInfo = school;
+      _loadingSchoolInfo = false;
+    });
+    // เติมชื่อผู้บริหาร/เจ้าหน้าที่ลง draft อัตโนมัติจาก settings เผื่อเอกสาร
+    // ใหม่ที่ยังไม่เคยตั้งค่า (เอกสารเก่าที่เคยบันทึกค่าไว้ก่อนหน้าจะไม่ถูก
+    // เขียนทับ — ใช้ค่าที่บันทึกไว้ในเอกสารนั้นต่อไป)
+    if (school != null && widget.draft.directorName == null) {
+      widget.onChanged((d) => d.copyWith(
+            directorName: school.directorName,
+            procurementOfficer: school.procurementOfficer,
+            procurementHead: school.procurementHead,
+            financeOfficer: school.financeOfficer,
+          ));
+    }
   }
 
   @override
   void dispose() {
-    _directorNameCtrl.dispose();
     _ownerNameCtrl.dispose();
     _ownerPositionCtrl.dispose();
-    _financeOfficerCtrl.dispose();
     _specCreatorNameCtrl.dispose();
     _specCreatorPositionCtrl.dispose();
-    _procurementOfficerCtrl.dispose();
-    _procurementHeadCtrl.dispose();
     _inspector1Ctrl.dispose();
     _inspector1PosCtrl.dispose();
     _inspector2Ctrl.dispose();
@@ -762,12 +776,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('ผู้บริหาร'),
-            TextFormField(
-              controller: _directorNameCtrl,
-              decoration: _inputDecoration('ผู้อำนวยการโรงเรียน'),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(directorName: v)),
-            ),
+            _sectionTitle('ผู้บริหารและเจ้าหน้าที่ประจำโรงเรียน'),
+            _buildSchoolOfficersCard(),
             const SizedBox(height: 24),
             _sectionTitle('เจ้าของงบ / ผู้จัดทำสเปค'),
             Row(
@@ -808,33 +818,6 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 24),
-            _sectionTitle('เจ้าหน้าที่พัสดุ / การเงิน'),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _procurementOfficerCtrl,
-                    decoration: _inputDecoration('เจ้าหน้าที่พัสดุ'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementOfficer: v)),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _procurementHeadCtrl,
-                    decoration: _inputDecoration('หัวหน้าเจ้าหน้าที่พัสดุ'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementHead: v)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _financeOfficerCtrl,
-              decoration: _inputDecoration('เจ้าหน้าที่การเงิน'),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(financeOfficer: v)),
             ),
             const SizedBox(height: 24),
             _sectionTitle('คณะกรรมการ/ผู้ตรวจรับพัสดุ'),
@@ -911,6 +894,107 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
             const SizedBox(height: 40),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSchoolOfficersCard() {
+    if (_loadingSchoolInfo) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: LinearProgressIndicator(),
+      );
+    }
+
+    final school = _schoolInfo;
+    final hasData = school?.directorName?.isNotEmpty == true ||
+        school?.procurementOfficer?.isNotEmpty == true ||
+        school?.procurementHead?.isNotEmpty == true ||
+        school?.financeOfficer?.isNotEmpty == true;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.grey.shade500),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'ดึงจากข้อมูลประจำโรงเรียน ใช้ค่าเดียวกันทุกเอกสาร',
+                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(
+                          title: const Text('ตั้งค่าโรงเรียน'),
+                          backgroundColor: _brandColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        backgroundColor: const Color(0xFFF5F6F8),
+                        body: const SettingsScreen(),
+                      ),
+                    ),
+                  );
+                  _loadSchoolInfo(); // รีเฟรชหลังกลับจากหน้าตั้งค่า
+                },
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('แก้ไข'),
+                style: TextButton.styleFrom(foregroundColor: _brandColor),
+              ),
+            ],
+          ),
+          if (!hasData) ...[
+            const SizedBox(height: 4),
+            Text(
+              'ยังไม่ได้กรอกข้อมูลผู้บริหาร/เจ้าหน้าที่ กดปุ่ม "แก้ไข" ด้านบนเพื่อกรอก',
+              style: TextStyle(fontSize: 13, color: Colors.orange.shade800),
+            ),
+          ] else ...[
+            const Divider(height: 20),
+            _officerRow('ผู้อำนวยการโรงเรียน', school?.directorName),
+            _officerRow('เจ้าหน้าที่พัสดุ', school?.procurementOfficer),
+            _officerRow('หัวหน้าเจ้าหน้าที่พัสดุ', school?.procurementHead),
+            _officerRow('เจ้าหน้าที่การเงิน', school?.financeOfficer),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _officerRow(String label, String? value) {
+    final hasValue = value?.isNotEmpty == true;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 170,
+            child: Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          ),
+          Expanded(
+            child: Text(
+              hasValue ? value! : '(ยังไม่ได้กรอก)',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
+                fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
+                color: hasValue ? Colors.black87 : Colors.grey.shade400,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

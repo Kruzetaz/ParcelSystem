@@ -1,5 +1,5 @@
 // database.dart
-// SQLite schema v3 — budgets + procurement_orders + procurement_items
+// SQLite schema v9 — budgets + procurement_orders + procurement_items + assets + asset_histories
 //
 // เปลี่ยนจาก schema เดิม (procurement_forms แบบ PK = procurement_number TEXT)
 // มาเป็นโครงสร้างใหม่ตาม spec: แยกตาราง budgets (แผนงบประมาณ) ออกจาก
@@ -7,6 +7,7 @@
 // และแก้บั๊ก quantity เดิม โดยแยก quantity (REAL) ออกจาก unit (TEXT)
 //
 // [อัปเดตล่าสุด 2026]: เพิ่มฟิลด์เอกสารสำหรับตรวจรับ delivery_doc_type และ delivery_doc_number
+// [v9 กรกฎาคม 2569]: เพิ่มทะเบียนครุภัณฑ์ assets + asset_histories + close() สำหรับ backup
 
 import 'dart:io';
 import 'package:path/path.dart';
@@ -16,7 +17,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 7;
+  static const int _version = 9;
 
   Database? _db;
 
@@ -48,6 +49,8 @@ class AppDatabase {
           await db.execute('DROP TABLE IF EXISTS procurement_orders');
           await db.execute('DROP TABLE IF EXISTS budgets');
           await db.execute('DROP TABLE IF EXISTS school_settings');
+          await db.execute('DROP TABLE IF EXISTS assets');
+          await db.execute('DROP TABLE IF EXISTS asset_histories');
           await _createSchema(db);
         }
         if (oldVersion < 4) {
@@ -88,6 +91,59 @@ class AppDatabase {
           try {
             await db.execute(
               'ALTER TABLE school_settings ADD COLUMN school_phone TEXT',
+            );
+          } catch (_) {}
+        }
+        if (oldVersion < 8) {
+          // ย้ายผู้บริหาร/เจ้าหน้าที่พัสดุ/การเงิน มาเป็นค่าประจำโรงเรียน
+          // (ไม่เปลี่ยนบ่อยเหมือนชื่อ/ที่อยู่โรงเรียน) กรอกครั้งเดียวใช้ซ้ำ
+          // ทุกเอกสาร แทนที่จะกรอกซ้ำทุกใบใน Tab 2 ของ wizard
+          for (final col in [
+            'director_name',
+            'procurement_officer',
+            'procurement_head',
+            'finance_officer',
+          ]) {
+            try {
+              await db.execute(
+                'ALTER TABLE school_settings ADD COLUMN $col TEXT',
+              );
+            } catch (_) {}
+          }
+        }
+        if (oldVersion < 9) {
+          // เพิ่มตารางทะเบียนครุภัณฑ์ (ใหม่ทั้งหมด ไม่ต้อง DROP ตารางเก่า)
+          // ใช้ CREATE TABLE IF NOT EXISTS เผื่อเครื่องที่ install fresh ตั้งแต่ v9
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS assets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                asset_number TEXT NOT NULL,
+                asset_name TEXT NOT NULL,
+                category TEXT,
+                received_date TEXT,
+                price REAL,
+                responsible_unit TEXT,
+                location TEXT,
+                status TEXT DEFAULT 'active'
+                  CHECK(status IN ('active', 'damaged', 'disposed')),
+                note TEXT
+              )
+            ''');
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS asset_histories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                asset_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL
+                  CHECK(event_type IN ('repair', 'dispose')),
+                event_date TEXT NOT NULL,
+                description TEXT,
+                cost REAL,
+                FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+              )
+            ''');
+            await db.execute(
+              'CREATE INDEX IF NOT EXISTS idx_histories_asset_id ON asset_histories(asset_id)',
             );
           } catch (_) {}
         }
@@ -221,7 +277,11 @@ class AppDatabase {
         school_subdistrict TEXT,
         school_amphoe TEXT,
         school_changwat TEXT,
-        school_phone TEXT
+        school_phone TEXT,
+        director_name TEXT,
+        procurement_officer TEXT,
+        procurement_head TEXT,
+        finance_officer TEXT
       )
     ''');
 
@@ -231,5 +291,47 @@ class AppDatabase {
     await db.execute(
       'CREATE INDEX idx_items_order_id ON procurement_items(order_id)',
     );
+
+    // ── ตารางทะเบียนครุภัณฑ์ ────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE assets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_number TEXT NOT NULL,
+        asset_name TEXT NOT NULL,
+        category TEXT,
+        received_date TEXT,
+        price REAL,
+        responsible_unit TEXT,
+        location TEXT,
+        status TEXT DEFAULT 'active'
+          CHECK(status IN ('active', 'damaged', 'disposed')),
+        note TEXT
+      )
+    ''');
+
+    // ── ตารางประวัติซ่อม/จำหน่ายครุภัณฑ์ ───────────────────────────────
+    await db.execute('''
+      CREATE TABLE asset_histories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_id INTEGER NOT NULL,
+        event_type TEXT NOT NULL
+          CHECK(event_type IN ('repair', 'dispose')),
+        event_date TEXT NOT NULL,
+        description TEXT,
+        cost REAL,
+        FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX idx_histories_asset_id ON asset_histories(asset_id)',
+    );
+  }
+
+  /// ปิด connection — ใช้ตอน backup/restore เพื่อให้ไฟล์ไม่ถูก lock
+  /// connection จะเปิดใหม่อัตโนมัติตอนที่ query ครั้งถัดไป
+  Future<void> close() async {
+    await _db?.close();
+    _db = null;
   }
 }

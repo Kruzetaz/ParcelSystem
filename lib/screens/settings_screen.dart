@@ -24,6 +24,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _schoolAmphoeCtrl;
   late final TextEditingController _schoolChangwatCtrl;
   late final TextEditingController _schoolPhoneCtrl;
+  late final TextEditingController _directorNameCtrl;
+  late final TextEditingController _procurementOfficerCtrl;
+  late final TextEditingController _procurementHeadCtrl;
+  late final TextEditingController _financeOfficerCtrl;
 
   bool _loading = true;
   bool _saving = false;
@@ -37,6 +41,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _schoolAmphoeCtrl = TextEditingController();
     _schoolChangwatCtrl = TextEditingController();
     _schoolPhoneCtrl = TextEditingController();
+    _directorNameCtrl = TextEditingController();
+    _procurementOfficerCtrl = TextEditingController();
+    _procurementHeadCtrl = TextEditingController();
+    _financeOfficerCtrl = TextEditingController();
     _load();
   }
 
@@ -50,6 +58,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _schoolAmphoeCtrl.text = settings.schoolAmphoe ?? '';
       _schoolChangwatCtrl.text = settings.schoolChangwat ?? '';
       _schoolPhoneCtrl.text = settings.schoolPhone ?? '';
+      _directorNameCtrl.text = settings.directorName ?? '';
+      _procurementOfficerCtrl.text = settings.procurementOfficer ?? '';
+      _procurementHeadCtrl.text = settings.procurementHead ?? '';
+      _financeOfficerCtrl.text = settings.financeOfficer ?? '';
     }
     setState(() => _loading = false);
   }
@@ -62,6 +74,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _schoolAmphoeCtrl.dispose();
     _schoolChangwatCtrl.dispose();
     _schoolPhoneCtrl.dispose();
+    _directorNameCtrl.dispose();
+    _procurementOfficerCtrl.dispose();
+    _procurementHeadCtrl.dispose();
+    _financeOfficerCtrl.dispose();
     super.dispose();
   }
 
@@ -75,6 +91,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         schoolAmphoe: _schoolAmphoeCtrl.text.trim(),
         schoolChangwat: _schoolChangwatCtrl.text.trim(),
         schoolPhone: _schoolPhoneCtrl.text.trim(),
+        directorName: _directorNameCtrl.text.trim(),
+        procurementOfficer: _procurementOfficerCtrl.text.trim(),
+        procurementHead: _procurementHeadCtrl.text.trim(),
+        financeOfficer: _financeOfficerCtrl.text.trim(),
       );
       await _repo.saveSchoolSettings(settings);
       if (!mounted) return;
@@ -157,6 +177,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             controller: _schoolPhoneCtrl,
                             decoration: _inputDecoration('เบอร์โทรโรงเรียน'),
                             keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 32),
+                          const Divider(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'ผู้บริหารและเจ้าหน้าที่ประจำโรงเรียน',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: _brandColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'ใช้เป็นค่าเริ่มต้นในทุกเอกสารที่สร้าง ไม่ต้องกรอกซ้ำในแต่ละใบ',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _directorNameCtrl,
+                            decoration: _inputDecoration('ผู้อำนวยการโรงเรียน'),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _procurementOfficerCtrl,
+                                  decoration: _inputDecoration('เจ้าหน้าที่พัสดุ'),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _procurementHeadCtrl,
+                                  decoration: _inputDecoration('หัวหน้าเจ้าหน้าที่พัสดุ'),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _financeOfficerCtrl,
+                            decoration: _inputDecoration('เจ้าหน้าที่การเงิน'),
                           ),
                           const SizedBox(height: 32),
                           SizedBox(
