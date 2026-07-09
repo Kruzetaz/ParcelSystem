@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 7;
+  static const int _version = 8;
 
   Database? _db;
 
@@ -90,6 +90,23 @@ class AppDatabase {
               'ALTER TABLE school_settings ADD COLUMN school_phone TEXT',
             );
           } catch (_) {}
+        }
+        if (oldVersion < 8) {
+          // ย้ายผู้บริหาร/เจ้าหน้าที่พัสดุ/การเงิน มาเป็นค่าประจำโรงเรียน
+          // (ไม่เปลี่ยนบ่อยเหมือนชื่อ/ที่อยู่โรงเรียน) กรอกครั้งเดียวใช้ซ้ำ
+          // ทุกเอกสาร แทนที่จะกรอกซ้ำทุกใบใน Tab 2 ของ wizard
+          for (final col in [
+            'director_name',
+            'procurement_officer',
+            'procurement_head',
+            'finance_officer',
+          ]) {
+            try {
+              await db.execute(
+                'ALTER TABLE school_settings ADD COLUMN $col TEXT',
+              );
+            } catch (_) {}
+          }
         }
       },
     );
@@ -221,7 +238,11 @@ class AppDatabase {
         school_subdistrict TEXT,
         school_amphoe TEXT,
         school_changwat TEXT,
-        school_phone TEXT
+        school_phone TEXT,
+        director_name TEXT,
+        procurement_officer TEXT,
+        procurement_head TEXT,
+        finance_officer TEXT
       )
     ''');
 

@@ -9,6 +9,10 @@ class SchoolSettings {
   final String? schoolAmphoe;
   final String? schoolChangwat;
   final String? schoolPhone;
+  final String? directorName;
+  final String? procurementOfficer;
+  final String? procurementHead;
+  final String? financeOfficer;
 
   const SchoolSettings({
     this.schoolName,
@@ -17,6 +21,10 @@ class SchoolSettings {
     this.schoolAmphoe,
     this.schoolChangwat,
     this.schoolPhone,
+    this.directorName,
+    this.procurementOfficer,
+    this.procurementHead,
+    this.financeOfficer,
   });
 
   Map<String, dynamic> toMap() => {
@@ -27,6 +35,10 @@ class SchoolSettings {
         'school_amphoe': schoolAmphoe,
         'school_changwat': schoolChangwat,
         'school_phone': schoolPhone,
+        'director_name': directorName,
+        'procurement_officer': procurementOfficer,
+        'procurement_head': procurementHead,
+        'finance_officer': financeOfficer,
       };
 
   factory SchoolSettings.fromMap(Map<String, dynamic> m) => SchoolSettings(
@@ -36,6 +48,10 @@ class SchoolSettings {
         schoolAmphoe: m['school_amphoe'] as String?,
         schoolChangwat: m['school_changwat'] as String?,
         schoolPhone: m['school_phone'] as String?,
+        directorName: m['director_name'] as String?,
+        procurementOfficer: m['procurement_officer'] as String?,
+        procurementHead: m['procurement_head'] as String?,
+        financeOfficer: m['finance_officer'] as String?,
       );
 
   SchoolSettings copyWith({
@@ -45,6 +61,10 @@ class SchoolSettings {
     String? schoolAmphoe,
     String? schoolChangwat,
     String? schoolPhone,
+    String? directorName,
+    String? procurementOfficer,
+    String? procurementHead,
+    String? financeOfficer,
   }) {
     return SchoolSettings(
       schoolName: schoolName ?? this.schoolName,
@@ -53,6 +73,10 @@ class SchoolSettings {
       schoolAmphoe: schoolAmphoe ?? this.schoolAmphoe,
       schoolChangwat: schoolChangwat ?? this.schoolChangwat,
       schoolPhone: schoolPhone ?? this.schoolPhone,
+      directorName: directorName ?? this.directorName,
+      procurementOfficer: procurementOfficer ?? this.procurementOfficer,
+      procurementHead: procurementHead ?? this.procurementHead,
+      financeOfficer: financeOfficer ?? this.financeOfficer,
     );
   }
 }
