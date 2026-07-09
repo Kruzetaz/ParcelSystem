@@ -1,30 +1,37 @@
 // dashboard_screen.dart
-// หน้าแรกของแอป — แสดงรายการ procurement_orders ทั้งหมด ค้นหาได้ กดสร้างใหม่
-// หรือกดที่แถวเพื่อแก้ไขของเดิม (เชื่อมกับ OrderWizardScreen)
+// เนื้อหาหน้าแรกของแอป — แสดงรายการ procurement_orders ทั้งหมด ค้นหาได้
+// [AppShell]: ไม่มี Scaffold/AppBar/FAB ของตัวเองแล้ว เพราะถูกวาดอยู่ในพื้นที่ขวา
+// ของ AppShell เสมอ — AppBar ย้ายไปอยู่ระดับ shell แทน
+// การสร้างใหม่/แก้ไขเอกสาร ใช้ callback ที่ shell ส่งมาให้ แทน Navigator.push เดิม
 //
-// [Dashboard v2 - กรกฎาคม 2569]: เพิ่ม KPI 4 การ์ด, filter tabs (ทั้งหมด/ร่าง/เสร็จแล้ว),
-// progress bar ในการ์ดแต่ละใบ, ปรับ theme เล็กน้อย
-// [Dashboard v3 - กรกฎาคม 2569]: ปรับโทนสีเป็นน้ำเงิน-ทอง-เทาอ่อน เพิ่มเงาให้การ์ด
-// แทนเส้นขอบเรียบ ปรับ spacing ให้อ่านง่ายขึ้น, progress bar ใช้สีทองตอนใกล้เสร็จ
+// [Dashboard v2/v3]: มี KPI 4 การ์ด, filter tabs (ทั้งหมด/ร่าง/เสร็จแล้ว),
+// progress bar ในการ์ดแต่ละใบ, ธีมน้ำเงิน-ทอง-เทาอ่อน
 
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'dart:math' as math;
 import '../data/procurement_repository.dart';
 import '../models/procurement_order.dart';
 import '../models/budget.dart';
-import '../services/backup_service.dart';
-import 'order_wizard_screen.dart';
-import 'settings_screen.dart';
-import 'budget_list_screen.dart';
+import '../models/school_settings.dart';
+import 'app_sidebar.dart' show AppMode;
 
 const _brandColor = Color(0xFF1A3A5C); // น้ำเงินหลัก
 const _goldAccent = Color(0xFFC9A227); // ทอง — ใช้เน้นจุดสำคัญ/ใกล้เสร็จ
-const _bgColor = Color(0xFFF5F6F8); // เทาอ่อน — พื้นหลังหลัก
 
 enum _OrderFilter { all, draft, completed }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback onCreateNew;
+  final void Function(ProcurementOrder order) onEditOrder;
+  // ให้ quick-action grid สลับไปหน้าแผนงบ/ตั้งค่าโรงเรียนได้ตรงๆ โดยไม่ต้องผ่าน sidebar
+  final void Function(AppMode mode) onNavigate;
+
+  const DashboardScreen({
+    super.key,
+    required this.onCreateNew,
+    required this.onEditOrder,
+    required this.onNavigate,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -36,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<ProcurementOrder> _orders = [];
   List<Budget> _budgets = [];
+  SchoolSettings? _school;
   bool _loading = true;
   String _query = '';
   _OrderFilter _filter = _OrderFilter.all;
@@ -57,10 +65,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final orders =
         _query.trim().isEmpty ? await _repo.getAllOrders() : await _repo.searchOrders(_query.trim());
     final budgets = await _repo.getAllBudgets();
+    final school = await _repo.getSchoolSettings();
     if (!mounted) return;
     setState(() {
       _orders = orders;
       _budgets = budgets;
+      _school = school;
       _loading = false;
     });
   }
@@ -88,76 +98,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await _repo.deleteOrder(order.id!);
       _load();
     }
-  }
-
-  Future<void> _openWizard({ProcurementOrder? existing}) async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => OrderWizardScreen(existingOrder: existing)),
-    );
-    if (saved == true) _load();
-  }
-
-  Future<void> _backup() async {
-    try {
-      final path = await BackupService.instance.backup();
-      if (!mounted) return;
-      _showSnack('สำรองข้อมูลสำเร็จ\n$path', isError: false);
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack('สำรองข้อมูลไม่สำเร็จ: $e', isError: true);
-    }
-  }
-
-  Future<void> _restore() async {
-    // ยืนยันก่อนทำ restore เพราะข้อมูลปัจจุบันจะถูกทับ
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการคืนข้อมูล'),
-        content: const Text(
-          'ข้อมูลปัจจุบันทั้งหมดจะถูกแทนที่ด้วยข้อมูลจากไฟล์ backup\n\n'
-          'แนะนำให้สำรองข้อมูลปัจจุบันก่อนดำเนินการ\n\n'
-          'ต้องการดำเนินการต่อหรือไม่?',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('คืนข้อมูล'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    // เปิด file picker เลือกไฟล์ .zip
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['zip'],
-      dialogTitle: 'เลือกไฟล์ backup (.zip)',
-    );
-    if (result == null || result.files.single.path == null) return;
-
-    try {
-      await BackupService.instance.restore(result.files.single.path!);
-      if (!mounted) return;
-      _showSnack('คืนข้อมูลสำเร็จ กำลังโหลดข้อมูลใหม่...', isError: false);
-      _load(); // โหลด UI ใหม่จาก DB ที่ restore แล้ว
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack('คืนข้อมูลไม่สำเร็จ: $e', isError: true);
-    }
-  }
-
-  void _showSnack(String message, {required bool isError}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : Colors.green.shade700,
-        duration: const Duration(seconds: 4),
-      ),
-    );
   }
 
   // ─────────────────────────────────────────
@@ -210,71 +150,234 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: const Text('ระบบจัดซื้อจัดจ้าง'),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          _appBarIconButton(
-            tooltip: 'สำรองข้อมูล (Backup)',
-            icon: Icons.cloud_upload_outlined,
-            onPressed: _backup,
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildHeroBanner(),
+                      const SizedBox(height: 20),
+                      _buildKpiRow(),
+                      const SizedBox(height: 24),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildFilterTabs(),
+                                const SizedBox(height: 14),
+                                _buildSearchBar(),
+                                const SizedBox(height: 18),
+                                _buildList(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          SizedBox(width: 190, child: _buildQuickActionsPanel()),
+                        ],
+                      ),
+                      // เผื่อพื้นที่ด้านล่างไม่ให้ FAB ลอยทับรายการสุดท้าย
+                      const SizedBox(height: 96),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-          const SizedBox(width: 4),
-          _appBarIconButton(
-            tooltip: 'คืนข้อมูล (Restore)',
-            icon: Icons.cloud_download_outlined,
-            onPressed: _restore,
+        ),
+        Positioned(
+          right: 24,
+          bottom: 24,
+          child: FloatingActionButton.extended(
+            onPressed: widget.onCreateNew,
+            backgroundColor: _goldAccent,
+            foregroundColor: _brandColor,
+            icon: const Icon(Icons.add),
+            label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
-          const SizedBox(width: 4),
-          _appBarIconButton(
-            tooltip: 'แผนงบประมาณ',
-            icon: Icons.account_balance_wallet_outlined,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BudgetListScreen()),
-              );
-            },
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // HERO BANNER — ชื่อโรงเรียน + ตัวเลขสรุปใหญ่ + วงกลม % ความคืบหน้ารวม
+  // ─────────────────────────────────────────
+
+  Widget _buildHeroBanner() {
+    final total = _orders.length;
+    final ratio = total == 0 ? 0.0 : _completedCount / total;
+    final schoolName = _school?.schoolName?.isNotEmpty == true
+        ? _school!.schoolName!
+        : 'ยังไม่ได้กรอกชื่อโรงเรียน';
+    final fiscalYear = _currentFiscalYear;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF102A43), _brandColor],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _brandColor.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
-          const SizedBox(width: 4),
-          _appBarIconButton(
-            tooltip: 'ข้อมูลโรงเรียน',
-            icon: Icons.settings,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openWizard(),
-        backgroundColor: _goldAccent,
-        foregroundColor: _brandColor,
-        icon: const Icon(Icons.add),
-        label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w600)),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 640;
+          final schoolBlock = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.school_outlined, color: _goldAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      schoolName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                fiscalYear == null ? 'ยังไม่มีข้อมูลปีงบประมาณ' : 'ปีงบประมาณ $fiscalYear',
+                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12.5),
+              ),
+            ],
+          );
+
+          final statsRow = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _heroStat('$total', 'เอกสารทั้งหมด'),
+              _heroStatDivider(),
+              _heroStat('$_draftCount', 'ร่าง'),
+              _heroStatDivider(),
+              _heroStat('$_completedCount', 'เสร็จแล้ว'),
+              _heroStatDivider(),
+              _heroStat(_formatBaht(_totalSpent), 'ยอดใช้จ่าย', highlight: true),
+            ],
+          );
+
+          final ring = _buildProgressRing(ratio);
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildKpiRow(),
-                const SizedBox(height: 24),
-                _buildFilterTabs(),
-                const SizedBox(height: 14),
-                _buildSearchBar(),
-                const SizedBox(height: 18),
-                Expanded(child: _buildList()),
+                Row(
+                  children: [
+                    Expanded(child: schoolBlock),
+                    ring,
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: statsRow,
+                ),
               ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    schoolBlock,
+                    const SizedBox(height: 20),
+                    statsRow,
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              ring,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _heroStat(String value, String label, {bool highlight = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: highlight ? _goldAccent : Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11.5),
+        ),
+      ],
+    );
+  }
+
+  Widget _heroStatDivider() {
+    return Container(
+      width: 1,
+      height: 32,
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      color: Colors.white.withOpacity(0.15),
+    );
+  }
+
+  /// วงกลมแสดง % เอกสารที่เสร็จสมบูรณ์เทียบกับทั้งหมด วาดเองด้วย CustomPainter
+  /// (ไม่ใช้ CircularProgressIndicator ตรงๆ เพราะต้องคุมความหนาเส้น/ปลายมน/
+  /// สีพื้นหลังวงในให้ตรงกับดีไซน์ hero banner)
+  Widget _buildProgressRing(double ratio) {
+    final pct = (ratio * 100).toStringAsFixed(0);
+    return SizedBox(
+      width: 84,
+      height: 84,
+      child: CustomPaint(
+        painter: _ProgressRingPainter(ratio: ratio),
+        child: Center(
+          child: Text(
+            '$pct%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -282,25 +385,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ปุ่มไอคอนมุมขวาบน — พื้นหลังวงกลมจางๆ ให้ดูเป็นกลุ่มปุ่มมากกว่าไอคอนลอยเดี่ยวๆ
-  Widget _appBarIconButton({
-    required String tooltip,
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onPressed,
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            shape: BoxShape.circle,
+  // ─────────────────────────────────────────
+  // QUICK ACTIONS — ทางลัด 4 ปุ่ม (ทำหน้าที่เหมือนเมนูใน sidebar แต่เป็น
+  // icon grid ให้กดถึงเร็วกว่าตอนอยู่หน้า dashboard)
+  // ─────────────────────────────────────────
+
+  Widget _buildQuickActionsPanel() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'เมนูด่วน',
+            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            children: [
+              _quickActionTile(
+                icon: Icons.add_circle_outline,
+                label: 'สร้างใหม่',
+                onTap: widget.onCreateNew,
+              ),
+              _quickActionTile(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'แผนงบ',
+                onTap: () => widget.onNavigate(AppMode.budgets),
+              ),
+              _quickActionTile(
+                icon: Icons.settings_outlined,
+                label: 'ตั้งค่า',
+                onTap: () => widget.onNavigate(AppMode.settings),
+              ),
+              _quickActionTile(
+                icon: Icons.refresh,
+                label: 'รีเฟรช',
+                onTap: _load,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionTile({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: _brandColor.withOpacity(0.06),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: _brandColor, size: 20),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: _brandColor, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -475,37 +646,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildList() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     final filtered = _filteredOrders;
 
     if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            Text(
-              _query.isNotEmpty
-                  ? 'ไม่พบผลการค้นหา'
-                  : _orders.isEmpty
-                      ? 'ยังไม่มีเอกสารจัดซื้อจัดจ้าง'
-                      : 'ไม่มีเอกสารในหมวดนี้',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-            ),
-          ],
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(
+                _query.isNotEmpty
+                    ? 'ไม่พบผลการค้นหา'
+                    : _orders.isEmpty
+                        ? 'ยังไม่มีเอกสารจัดซื้อจัดจ้าง'
+                        : 'ไม่มีเอกสารในหมวดนี้',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.separated(
-        itemCount: filtered.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) => _buildOrderCard(filtered[index]),
-      ),
+    // หน้าเลื่อนได้ทั้งหน้าแล้ว (SingleChildScrollView ใน build()) จึงไม่ต้อง
+    // ใช้ ListView/RefreshIndicator ซ้อนตรงนี้อีกชั้น — ป้องกันปัญหา nested
+    // scrollable ที่เคยทำให้ overflow ตอนหน้าต่างเตี้ย
+    return Column(
+      children: [
+        for (int i = 0; i < filtered.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _buildOrderCard(filtered[i]),
+        ],
+      ],
     );
   }
 
@@ -537,7 +719,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _openWizard(existing: order),
+          onTap: () => widget.onEditOrder(order),
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -719,4 +901,47 @@ class _KpiCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────
+// วงกลม % ความคืบหน้าบน hero banner — พื้นวงเป็นสีขาวจาง เส้น progress สีทอง
+// ปลายมน วาดเริ่มจากตำแหน่ง 12 นาฬิกา ตามเข็มนาฬิกา
+// ─────────────────────────────────────────
+
+class _ProgressRingPainter extends CustomPainter {
+  final double ratio;
+
+  _ProgressRingPainter({required this.ratio});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 7.0;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    final trackPaint = Paint()
+      ..color = Colors.white.withOpacity(0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    final progressPaint = Paint()
+      ..color = _goldAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    final sweepAngle = 2 * math.pi * ratio.clamp(0.0, 1.0);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProgressRingPainter oldDelegate) => oldDelegate.ratio != ratio;
 }
