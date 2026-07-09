@@ -152,41 +152,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeroBanner(),
-                  const SizedBox(height: 20),
-                  _buildKpiRow(),
-                  const SizedBox(height: 24),
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildFilterTabs(),
-                              const SizedBox(height: 14),
-                              _buildSearchBar(),
-                              const SizedBox(height: 18),
-                              Expanded(child: _buildList()),
-                            ],
+        RefreshIndicator(
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildHeroBanner(),
+                      const SizedBox(height: 20),
+                      _buildKpiRow(),
+                      const SizedBox(height: 24),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildFilterTabs(),
+                                const SizedBox(height: 14),
+                                _buildSearchBar(),
+                                const SizedBox(height: 18),
+                                _buildList(),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 20),
-                        SizedBox(width: 190, child: _buildQuickActionsPanel()),
-                      ],
-                    ),
+                          const SizedBox(width: 20),
+                          SizedBox(width: 190, child: _buildQuickActionsPanel()),
+                        ],
+                      ),
+                      // เผื่อพื้นที่ด้านล่างไม่ให้ FAB ลอยทับรายการสุดท้าย
+                      const SizedBox(height: 96),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -640,39 +646,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildList() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     final filtered = _filteredOrders;
 
     if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            Text(
-              _query.isNotEmpty
-                  ? 'ไม่พบผลการค้นหา'
-                  : _orders.isEmpty
-                      ? 'ยังไม่มีเอกสารจัดซื้อจัดจ้าง'
-                      : 'ไม่มีเอกสารในหมวดนี้',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-            ),
-          ],
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(
+                _query.isNotEmpty
+                    ? 'ไม่พบผลการค้นหา'
+                    : _orders.isEmpty
+                        ? 'ยังไม่มีเอกสารจัดซื้อจัดจ้าง'
+                        : 'ไม่มีเอกสารในหมวดนี้',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.separated(
-        itemCount: filtered.length,
-        // เผื่อพื้นที่ด้านล่างไม่ให้ FAB ลอยทับรายการสุดท้าย
-        padding: const EdgeInsets.only(bottom: 80),
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) => _buildOrderCard(filtered[index]),
-      ),
+    // หน้าเลื่อนได้ทั้งหน้าแล้ว (SingleChildScrollView ใน build()) จึงไม่ต้อง
+    // ใช้ ListView/RefreshIndicator ซ้อนตรงนี้อีกชั้น — ป้องกันปัญหา nested
+    // scrollable ที่เคยทำให้ overflow ตอนหน้าต่างเตี้ย
+    return Column(
+      children: [
+        for (int i = 0; i < filtered.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _buildOrderCard(filtered[i]),
+        ],
+      ],
     );
   }
 

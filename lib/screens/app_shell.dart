@@ -171,15 +171,33 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppBar(
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'ระบบจัดซื้อจัดจ้าง',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'ระบบจัดซื้อจัดจ้าง',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _goldAccent.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _goldAccent.withOpacity(0.4)),
+                  ),
+                  child: const Text(
+                    'v1.0',
+                    style: TextStyle(color: _goldAccent, fontSize: 10.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
             ),
-            Text(
+            const Text(
               'พัฒนาโดย Kru.Zetaz',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: Colors.white70),
             ),

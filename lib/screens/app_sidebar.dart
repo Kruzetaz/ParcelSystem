@@ -1,4 +1,4 @@
- // app_sidebar.dart
+// app_sidebar.dart
 // Sidebar widget — ย่อ/ขยายได้, highlight เมนูปัจจุบัน
 // ใช้เฉพาะใน AppShell เท่านั้น (ไม่แปะซ้ำในหน้าอื่น)
 //
@@ -83,7 +83,6 @@ class _AppSidebarState extends State<AppSidebar> {
         children: [
           const SizedBox(height: 12),
           if (widget.expanded) _buildSchoolInfo(),
-          if (widget.expanded) _buildVersionTag(),
           Divider(color: Colors.white.withOpacity(0.15), height: 1),
           const SizedBox(height: 4),
           _buildToggleButton(),
@@ -154,25 +153,6 @@ class _AppSidebarState extends State<AppSidebar> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  // ── ป้ายเวอร์ชันแอป ────────────────────────────────────────
-  Widget _buildVersionTag() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: _goldAccent.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: _goldAccent.withOpacity(0.4)),
-        ),
-        child: const Text(
-          'v1.0',
-          style: TextStyle(color: _goldAccent, fontSize: 10.5, fontWeight: FontWeight.w700),
         ),
       ),
     );

@@ -20,6 +20,7 @@ import '../utils/calc_engine.dart';
 import '../widgets/items_table_editor.dart';
 
 const _brandColor = Color(0xFF1A3A5C);
+const _goldAccent = Color(0xFFC9A227);
 
 class OrderWizardScreen extends StatefulWidget {
   final ProcurementOrder? existingOrder;
@@ -169,6 +170,8 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
             ? CalcEngine.bahtText(_draft.allocatedAmount!)
             : null);
 
+    final progress = _computeProgress();
+
     final orderToSave = _draft.copyWith(
       currentOrderPrice: calc['current_order_price'],
       totalPriceTh: bahtText,
@@ -177,7 +180,10 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       taxWithholdingAmount: calc['tax_withholding_amount'],
       netPayableAmount: calc['net_payable_amount'],
       allocatedAmountTh: allocatedTh,
-      progressPercent: _computeProgress(),
+      progressPercent: progress,
+      // เดิม currentStatus ไม่เคยถูกตั้งค่าที่ไหนเลย ค้างเป็น 'DRAFT' ตลอด
+      // แม้กรอกครบ 100% แล้ว ทำให้ KPI "เสร็จสมบูรณ์" นับไม่ตรงกับ progress bar
+      currentStatus: progress >= 1.0 ? 'COMPLETED' : 'DRAFT',
     );
 
     await _repo.saveOrderWithItems(orderToSave, _items);
@@ -355,6 +361,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   late final TextEditingController _procurementNumberCtrl;
   late final TextEditingController _procurementSubjectCtrl;
   late final TextEditingController _orderNumberCtrl;
+  late final TextEditingController _egpProjectIdCtrl;
   late final TextEditingController _projectNameCtrl;
   late final TextEditingController _activityNameCtrl;
   late final TextEditingController _purposeReasonCtrl;
@@ -366,6 +373,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _procurementNumberCtrl = TextEditingController(text: widget.draft.procurementNumber);
     _procurementSubjectCtrl = TextEditingController(text: widget.draft.procurementSubject);
     _orderNumberCtrl = TextEditingController(text: widget.draft.orderNumber);
+    _egpProjectIdCtrl = TextEditingController(text: widget.draft.egpProjectId);
     _projectNameCtrl = TextEditingController(text: widget.draft.projectName);
     _activityNameCtrl = TextEditingController(text: widget.draft.activityName);
     _purposeReasonCtrl = TextEditingController(text: widget.draft.purposeReason);
@@ -461,6 +469,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _procurementNumberCtrl.dispose();
     _procurementSubjectCtrl.dispose();
     _orderNumberCtrl.dispose();
+    _egpProjectIdCtrl.dispose();
     _projectNameCtrl.dispose();
     _activityNameCtrl.dispose();
     _purposeReasonCtrl.dispose();
@@ -486,6 +495,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     setState(() {
       _projectNameCtrl.text = budget.projectName ?? '';
       _activityNameCtrl.text = budget.activityName ?? '';
+      _egpProjectIdCtrl.text = budget.egpNumber ?? '';
     });
   }
 
@@ -573,6 +583,12 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _egpProjectIdCtrl,
+              decoration: _inputDecoration('เลขที่โครงการ e-GP (auto-fill จากแผนงบ แก้ไขเองได้)'),
+              onChanged: (v) => widget.onChanged((d) => d.copyWith(egpProjectId: v)),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -1398,6 +1414,32 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
       firstDate: DateTime(initial.year - 10),
       lastDate: DateTime(initial.year + 10),
       helpText: _fields[index].label,
+      // ครอบธีมสีให้ตรงแบรนด์ (น้ำเงิน-ทอง) แทนสีน้ำเงิน Material default
+      // — ยังใช้ showDatePicker ของ Flutter เดิม แค่เปลี่ยนสีผ่าน Theme/บ
+      // DatePickerThemeData ไม่ได้เขียนปฏิทินเองใหม่ทั้งหมด
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: _brandColor, // หัวปฏิทิน + วันที่ที่เลือกอยู่
+              onPrimary: Colors.white,
+              onSurface: _brandColor, // ตัวเลขวันที่ปกติ
+              secondary: _goldAccent,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: _brandColor),
+            ),
+            datePickerTheme: DatePickerThemeData(
+              headerBackgroundColor: _brandColor,
+              headerForegroundColor: Colors.white,
+              todayForegroundColor: WidgetStateProperty.all(_goldAccent),
+              todayBorder: const BorderSide(color: _goldAccent, width: 1.4),
+              dayOverlayColor: WidgetStateProperty.all(_goldAccent.withOpacity(0.12)),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked == null) return;
     final formatted = _formatThaiDate(picked);
@@ -1409,26 +1451,43 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionTitle('ไทม์ไลน์วันที่สำคัญ (พ.ศ.)'),
-            for (int i = 0; i < _fields.length; i++) ...[
-              TextFormField(
-                controller: _controllers[i],
-                readOnly: true,
-                decoration: _inputDecoration(_fields[i].label).copyWith(
-                  suffixIcon: const Icon(Icons.calendar_today, size: 20),
-                ),
-                onTap: () => _pickDate(i),
-              ),
-              const SizedBox(height: 16),
-            ],
-            const SizedBox(height: 24),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('ไทม์ไลน์วันที่สำคัญ (พ.ศ.)'),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 16.0;
+              // ปรับจำนวนคอลัมน์ตามความกว้างที่มีจริง กันหน้าจอแคบแล้วช่องบี้เกินไป
+              final columns = constraints.maxWidth >= 950
+                  ? 3
+                  : constraints.maxWidth >= 620
+                      ? 2
+                      : 1;
+              final itemWidth =
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: 16,
+                children: [
+                  for (int i = 0; i < _fields.length; i++)
+                    SizedBox(
+                      width: itemWidth,
+                      child: TextFormField(
+                        controller: _controllers[i],
+                        readOnly: true,
+                        decoration: _inputDecoration(_fields[i].label).copyWith(
+                          suffixIcon: const Icon(Icons.calendar_today, size: 20),
+                        ),
+                        onTap: () => _pickDate(i),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }
