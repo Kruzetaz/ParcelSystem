@@ -58,23 +58,56 @@ class LicenseService {
         final id = match?.group(1)?.trim() ?? '';
         if (id.isNotEmpty) return 'MAC-$id';
       } else if (Platform.isWindows) {
-        final result = await Process.run(
-          'wmic',
-          ['csproduct', 'get', 'UUID'],
-          runInShell: true,
-        );
-        final lines = result.stdout
-            .toString()
-            .trim()
-            .split('\n')
-            .map((l) => l.trim())
-            .where((l) => l.isNotEmpty && l != 'UUID')
-            .toList();
-        final id = lines.isNotEmpty ? lines.last : '';
-        if (id.isNotEmpty) return 'WIN-$id';
+        final id = await _fetchWindowsHwIdViaWmic() ?? await _fetchWindowsHwIdViaPowerShell();
+        if (id != null && id.isNotEmpty) return 'WIN-$id';
       }
     } catch (_) {}
     return 'DEV-${Platform.localHostname}-${Platform.operatingSystem}';
+  }
+
+  /// วิธีหลัก: wmic (เร็ว, ใช้ได้กับ Windows ส่วนใหญ่ที่ยังมี wmic ติดตั้งอยู่)
+  /// คืนค่า null ถ้าใช้ไม่ได้ (คำสั่งไม่มี/error) — ไม่ throw ออกไปให้ตัวเรียกจัดการ fallback ต่อ
+  Future<String?> _fetchWindowsHwIdViaWmic() async {
+    try {
+      final result = await Process.run(
+        'wmic',
+        ['csproduct', 'get', 'UUID'],
+        runInShell: true,
+      );
+      if (result.exitCode != 0) return null;
+      final lines = result.stdout
+          .toString()
+          .trim()
+          .split('\n')
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty && l != 'UUID')
+          .toList();
+      final id = lines.isNotEmpty ? lines.last : '';
+      return id.isNotEmpty ? id : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// วิธีสำรอง: PowerShell — ใช้เมื่อ wmic ใช้ไม่ได้ (Windows รุ่นใหม่บางเครื่อง
+  /// เริ่มถอด wmic ออกแล้ว หรือถูกปิดโดย group policy ขององค์กร/โรงเรียน)
+  Future<String?> _fetchWindowsHwIdViaPowerShell() async {
+    try {
+      final result = await Process.run(
+        'powershell',
+        [
+          '-NoProfile',
+          '-Command',
+          '(Get-CimInstance Win32_ComputerSystemProduct).UUID',
+        ],
+        runInShell: true,
+      );
+      if (result.exitCode != 0) return null;
+      final id = result.stdout.toString().trim();
+      return id.isNotEmpty ? id : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   // ── Cache ────────────────────────────────────────────────────────
