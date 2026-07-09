@@ -28,7 +28,9 @@ class BackupService {
     }
 
     // 2. ปิด connection ชั่วคราวเพื่อให้ไฟล์ไม่ถูก lock ตอน copy
-    await (await AppDatabase.instance.database).close();
+    final db = await AppDatabase.instance.database;
+    await db.close();
+    AppDatabase.instance.resetDatabase();
 
     try {
       // 3. เตรียมโฟลเดอร์ปลายทาง
@@ -76,7 +78,9 @@ class BackupService {
     }
 
     // 2. ปิด connection ก่อนเขียนทับ
-    await (await AppDatabase.instance.database).close();
+    final db = await AppDatabase.instance.database;
+    await db.close();
+    AppDatabase.instance.resetDatabase();
 
     try {
       // 3. เขียน DB ใหม่ทับของเดิม

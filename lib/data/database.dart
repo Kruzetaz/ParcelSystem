@@ -26,6 +26,21 @@ class AppDatabase {
     return _db!;
   }
 
+  /// reset _db = null เพื่อให้ getter เปิด connection ใหม่ครั้งถัดไป
+  /// เรียกหลัง db.close() เสมอ (ใช้ใน BackupService)
+  void resetDatabase() {
+    _db = null;
+  }
+
+  /// ปิด connection และ reset ให้ getter เปิดใหม่อัตโนมัติตอน query ครั้งถัดไป
+  /// ใช้ตอน backup/restore เพื่อปลด lock บน .db file
+  Future<void> closeAndReset() async {
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+    }
+  }
+
   Future<Database> _open() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'procurement.db');
