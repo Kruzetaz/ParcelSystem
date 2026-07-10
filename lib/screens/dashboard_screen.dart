@@ -15,9 +15,6 @@ import '../models/budget.dart';
 import '../models/school_settings.dart';
 import 'app_sidebar.dart' show AppMode;
 
-const _brandColor = Color(0xFF1A3A5C); // น้ำเงินหลัก
-const _goldAccent = Color(0xFFC9A227); // ทอง — ใช้เน้นจุดสำคัญ/ใกล้เสร็จ
-
 enum _OrderFilter { all, draft, completed }
 
 class DashboardScreen extends StatefulWidget {
@@ -150,6 +147,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Stack(
       children: [
         RefreshIndicator(
@@ -164,9 +162,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildHeroBanner(),
+                      _buildHeroBanner(colors),
                       const SizedBox(height: 20),
-                      _buildKpiRow(),
+                      _buildKpiRow(colors),
                       const SizedBox(height: 24),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,16 +174,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _buildFilterTabs(),
+                                _buildFilterTabs(colors),
                                 const SizedBox(height: 14),
                                 _buildSearchBar(),
                                 const SizedBox(height: 18),
-                                _buildList(),
+                                _buildList(colors),
                               ],
                             ),
                           ),
                           const SizedBox(width: 20),
-                          SizedBox(width: 190, child: _buildQuickActionsPanel()),
+                          SizedBox(width: 190, child: _buildQuickActionsPanel(colors)),
                         ],
                       ),
                       // เผื่อพื้นที่ด้านล่างไม่ให้ FAB ลอยทับรายการสุดท้าย
@@ -202,8 +200,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           bottom: 24,
           child: FloatingActionButton.extended(
             onPressed: widget.onCreateNew,
-            backgroundColor: _goldAccent,
-            foregroundColor: _brandColor,
+            backgroundColor: colors.tertiary,
+            foregroundColor: colors.onTertiary,
             icon: const Icon(Icons.add),
             label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
@@ -216,7 +214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // HERO BANNER — ชื่อโรงเรียน + ตัวเลขสรุปใหญ่ + วงกลม % ความคืบหน้ารวม
   // ─────────────────────────────────────────
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner(ColorScheme colors) {
     final total = _orders.length;
     final ratio = total == 0 ? 0.0 : _completedCount / total;
     final schoolName = _school?.schoolName?.isNotEmpty == true
@@ -227,15 +225,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF102A43), _brandColor],
+          colors: [Color.lerp(colors.primary, Colors.black, 0.35)!, colors.primary],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: _brandColor.withOpacity(0.3),
+            color: colors.primary.withOpacity(0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -250,13 +248,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.school_outlined, color: _goldAccent, size: 20),
+                  Icon(Icons.school_outlined, color: colors.tertiary, size: 20),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       schoolName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -269,7 +267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 4),
               Text(
                 fiscalYear == null ? 'ยังไม่มีข้อมูลปีงบประมาณ' : 'ปีงบประมาณ $fiscalYear',
-                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12.5),
+                style: TextStyle(color: colors.onPrimary.withOpacity(0.6), fontSize: 12.5),
               ),
             ],
           );
@@ -277,17 +275,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final statsRow = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _heroStat('$total', 'เอกสารทั้งหมด'),
-              _heroStatDivider(),
-              _heroStat('$_draftCount', 'ร่าง'),
-              _heroStatDivider(),
-              _heroStat('$_completedCount', 'เสร็จแล้ว'),
-              _heroStatDivider(),
-              _heroStat(_formatBaht(_totalSpent), 'ยอดใช้จ่าย', highlight: true),
+              _heroStat(colors, '$total', 'เอกสารทั้งหมด'),
+              _heroStatDivider(colors),
+              _heroStat(colors, '$_draftCount', 'ร่าง', valueColor: Colors.grey.shade300),
+              _heroStatDivider(colors),
+              _heroStat(colors, '$_completedCount', 'เสร็จแล้ว', valueColor: Colors.green.shade300),
+              _heroStatDivider(colors),
+              _heroStat(colors, _formatBaht(_totalSpent), 'ยอดใช้จ่าย', valueColor: Colors.amber.shade300),
             ],
           );
 
-          final ring = _buildProgressRing(ratio);
+          final ring = _buildProgressRing(colors, ratio);
 
           if (isNarrow) {
             return Column(
@@ -330,7 +328,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _heroStat(String value, String label, {bool highlight = false}) {
+  Widget _heroStat(ColorScheme colors, String value, String label, {Color? valueColor}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -338,7 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(
           value,
           style: TextStyle(
-            color: highlight ? _goldAccent : Colors.white,
+            color: valueColor ?? colors.onPrimary,
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
@@ -346,36 +344,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11.5),
+          style: TextStyle(color: colors.onPrimary.withOpacity(0.6), fontSize: 11.5),
         ),
       ],
     );
   }
 
-  Widget _heroStatDivider() {
+  Widget _heroStatDivider(ColorScheme colors) {
     return Container(
       width: 1,
       height: 32,
       margin: const EdgeInsets.symmetric(horizontal: 18),
-      color: Colors.white.withOpacity(0.15),
+      color: colors.onPrimary.withOpacity(0.15),
     );
   }
 
   /// วงกลมแสดง % เอกสารที่เสร็จสมบูรณ์เทียบกับทั้งหมด วาดเองด้วย CustomPainter
   /// (ไม่ใช้ CircularProgressIndicator ตรงๆ เพราะต้องคุมความหนาเส้น/ปลายมน/
   /// สีพื้นหลังวงในให้ตรงกับดีไซน์ hero banner)
-  Widget _buildProgressRing(double ratio) {
+  Widget _buildProgressRing(ColorScheme colors, double ratio) {
     final pct = (ratio * 100).toStringAsFixed(0);
     return SizedBox(
       width: 84,
       height: 84,
       child: CustomPaint(
-        painter: _ProgressRingPainter(ratio: ratio),
+        painter: _ProgressRingPainter(ratio: ratio, trackColor: colors.onPrimary, progressColor: Colors.amber.shade300),
         child: Center(
           child: Text(
             '$pct%',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Colors.amber.shade300,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -390,11 +388,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // icon grid ให้กดถึงเร็วกว่าตอนอยู่หน้า dashboard)
   // ─────────────────────────────────────────
 
-  Widget _buildQuickActionsPanel() {
+  Widget _buildQuickActionsPanel(ColorScheme colors) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -409,7 +407,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Text(
             'เมนูด่วน',
-            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           GridView.count(
@@ -420,21 +418,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisSpacing: 10,
             children: [
               _quickActionTile(
+                colors: colors,
                 icon: Icons.add_circle_outline,
                 label: 'สร้างใหม่',
                 onTap: widget.onCreateNew,
               ),
               _quickActionTile(
+                colors: colors,
                 icon: Icons.account_balance_wallet_outlined,
                 label: 'แผนงบ',
                 onTap: () => widget.onNavigate(AppMode.budgets),
               ),
               _quickActionTile(
+                colors: colors,
                 icon: Icons.settings_outlined,
                 label: 'ตั้งค่า',
                 onTap: () => widget.onNavigate(AppMode.settings),
               ),
               _quickActionTile(
+                colors: colors,
+                icon: Icons.auto_awesome_outlined,
+                label: 'ตั้งค่า AI',
+                onTap: () => widget.onNavigate(AppMode.aiSettings),
+              ),
+              _quickActionTile(
+                colors: colors,
                 icon: Icons.refresh,
                 label: 'รีเฟรช',
                 onTap: _load,
@@ -447,12 +455,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _quickActionTile({
+    required ColorScheme colors,
     required IconData icon,
     required String label,
     required VoidCallback onTap,
   }) {
     return Material(
-      color: _brandColor.withOpacity(0.06),
+      color: colors.primary.withOpacity(0.06),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -462,11 +471,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: _brandColor, size: 20),
+              Icon(icon, color: colors.primary, size: 20),
               const SizedBox(height: 6),
               Text(
                 label,
-                style: const TextStyle(fontSize: 11, color: _brandColor, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 11, color: colors.primary, fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -481,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // KPI ROW — 4 การ์ด
   // ─────────────────────────────────────────
 
-  Widget _buildKpiRow() {
+  Widget _buildKpiRow(ColorScheme colors) {
     if (_loading && _orders.isEmpty) {
       return const SizedBox(height: 96);
     }
@@ -494,7 +503,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final cards = [
           _KpiCard(
             icon: Icons.description_outlined,
-            iconColor: _brandColor,
+            iconColor: colors.primary,
             label: 'เอกสารทั้งหมด',
             value: '${_orders.length}',
             subLabel: 'ร่าง $_draftCount · เสร็จ $_completedCount',
@@ -510,7 +519,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _KpiCard(
             icon: Icons.payments_outlined,
-            iconColor: _goldAccent,
+            iconColor: colors.tertiary,
             label: 'ยอดใช้จ่ายรวม',
             value: _formatBaht(_totalSpent),
             subLabel: 'เฉพาะเอกสารที่เสร็จแล้ว',
@@ -518,7 +527,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _KpiCard(
             icon: Icons.account_balance_wallet_outlined,
-            iconColor: Colors.teal.shade700,
+            iconColor: colors.primary,
             label: 'งบประมาณคงเหลือ',
             value: _formatBaht(_totalRemainingBudget),
             subLabel: fiscalYear == null
@@ -571,23 +580,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // FILTER TABS
   // ─────────────────────────────────────────
 
-  Widget _buildFilterTabs() {
+  Widget _buildFilterTabs(ColorScheme colors) {
     Widget chip(String label, _OrderFilter value) {
       final selected = _filter == value;
       return ChoiceChip(
         label: Text(label),
         selected: selected,
         onSelected: (_) => setState(() => _filter = value),
-        selectedColor: _brandColor,
-        backgroundColor: Colors.white,
+        selectedColor: colors.primary,
+        backgroundColor: colors.surface,
         labelStyle: TextStyle(
-          color: selected ? Colors.white : Colors.grey.shade700,
+          color: selected ? colors.onPrimary : colors.onSurfaceVariant,
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
         ),
-        side: BorderSide(color: selected ? _brandColor : Colors.grey.shade300),
+        side: BorderSide(color: selected ? colors.primary : colors.outlineVariant),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: selected ? 2 : 0,
-        shadowColor: _brandColor.withOpacity(0.3),
+        shadowColor: colors.primary.withOpacity(0.3),
       );
     }
 
@@ -619,8 +628,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: InputDecoration(
           hintText: 'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อร้านค้า',
           prefixIcon: const Icon(Icons.search),
-          filled: true,
-          fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
@@ -645,7 +652,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildList() {
+  Widget _buildList(ColorScheme colors) {
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
@@ -662,7 +669,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade400),
+              Icon(Icons.inbox_outlined, size: 64, color: colors.onSurfaceVariant),
               const SizedBox(height: 12),
               Text(
                 _query.isNotEmpty
@@ -670,7 +677,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     : _orders.isEmpty
                         ? 'ยังไม่มีเอกสารจัดซื้อจัดจ้าง'
                         : 'ไม่มีเอกสารในหมวดนี้',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
               ),
             ],
           ),
@@ -685,13 +692,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         for (int i = 0; i < filtered.length; i++) ...[
           if (i > 0) const SizedBox(height: 10),
-          _buildOrderCard(filtered[i]),
+          _buildOrderCard(colors, filtered[i]),
         ],
       ],
     );
   }
 
-  Widget _buildOrderCard(ProcurementOrder order) {
+  Widget _buildOrderCard(ColorScheme colors, ProcurementOrder order) {
     final isCompleted = order.currentStatus == 'COMPLETED';
     final progress = order.progressPercent.clamp(0.0, 1.0);
     final progressPct = (progress * 100).toStringAsFixed(0);
@@ -700,12 +707,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final progressColor = isCompleted
         ? Colors.green.shade600
         : isNearlyDone
-            ? _goldAccent
-            : _brandColor;
+            ? colors.tertiary
+            : colors.primary;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -727,7 +734,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Row(
                   children: [
-                    _statusBadge(isCompleted),
+                    _statusBadge(colors, isCompleted),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -747,7 +754,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               if (order.procurementNumber?.isNotEmpty == true) order.procurementNumber,
                               if (order.vendorName?.isNotEmpty == true) order.vendorName,
                             ].join('  •  '),
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -759,7 +766,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         padding: const EdgeInsets.only(right: 10),
                         child: Text(
                           '${order.currentOrderPrice!.toStringAsFixed(2)} บาท',
-                          style: const TextStyle(fontWeight: FontWeight.w600, color: _brandColor),
+                          style: TextStyle(fontWeight: FontWeight.w600, color: colors.primary),
                         ),
                       ),
                     IconButton(
@@ -778,7 +785,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: LinearProgressIndicator(
                           value: progress,
                           minHeight: 8,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: colors.outlineVariant,
                           color: progressColor,
                         ),
                       ),
@@ -792,7 +799,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade600,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -810,13 +817,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _statusBadge(bool isCompleted) {
+  Widget _statusBadge(ColorScheme colors, bool isCompleted) {
     return Container(
       width: 10,
       height: 10,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isCompleted ? Colors.green : _goldAccent,
+        color: isCompleted ? Colors.green : colors.tertiary,
       ),
     );
   }
@@ -845,12 +852,13 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: highlight ? Border.all(color: _goldAccent.withOpacity(0.4), width: 1.2) : null,
+        border: highlight ? Border.all(color: colors.tertiary.withOpacity(0.4), width: 1.2) : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -876,7 +884,7 @@ class _KpiCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -886,14 +894,14 @@ class _KpiCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _brandColor),
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: colors.onSurface),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 3),
           Text(
             subLabel,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -910,8 +918,10 @@ class _KpiCard extends StatelessWidget {
 
 class _ProgressRingPainter extends CustomPainter {
   final double ratio;
+  final Color trackColor;
+  final Color progressColor;
 
-  _ProgressRingPainter({required this.ratio});
+  _ProgressRingPainter({required this.ratio, required this.trackColor, required this.progressColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -920,12 +930,12 @@ class _ProgressRingPainter extends CustomPainter {
     final radius = (size.width - strokeWidth) / 2;
 
     final trackPaint = Paint()
-      ..color = Colors.white.withOpacity(0.18)
+      ..color = trackColor.withOpacity(0.18)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
 
     final progressPaint = Paint()
-      ..color = _goldAccent
+      ..color = progressColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -943,5 +953,8 @@ class _ProgressRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ProgressRingPainter oldDelegate) => oldDelegate.ratio != ratio;
+  bool shouldRepaint(covariant _ProgressRingPainter oldDelegate) =>
+      oldDelegate.ratio != ratio ||
+      oldDelegate.trackColor != trackColor ||
+      oldDelegate.progressColor != progressColor;
 }

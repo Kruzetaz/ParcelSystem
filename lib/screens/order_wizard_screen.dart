@@ -9,6 +9,9 @@
 //   Tab 4 (รายการพัสดุ) — ต่อกับ ItemsTableEditor
 //   Tab 5 (กำหนดการ) — 9 ช่องวันที่ เลือกผ่าน date picker เก็บเป็น dd/MM/yyyy พ.ศ.
 
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/budget.dart';
@@ -16,12 +19,12 @@ import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
 import '../services/document_generator.dart';
+import '../services/gemini_service.dart';
+import '../services/toast_service.dart';
 import '../utils/calc_engine.dart';
 import '../widgets/items_table_editor.dart';
+import '../widgets/receipt_ocr_dialog.dart';
 import 'settings_screen.dart';
-
-const _brandColor = Color(0xFF1A3A5C);
-const _goldAccent = Color(0xFFC9A227);
 
 class OrderWizardScreen extends StatefulWidget {
   final ProcurementOrder? existingOrder;
@@ -52,6 +55,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
   late ProcurementOrder _draft;
   List<ProcurementItem> _items = [];
   double _itemsSubtotal = 0;
+  final _itemsTableController = ItemsTableEditorController();
 
   bool _saving = false;
   bool _generatingDoc = false;
@@ -246,18 +250,19 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       children: [
         // TabBar เดิมเคยอยู่ใน AppBar.bottom — ย้ายมาไว้บนสุดของเนื้อหาแทน
         // เพราะ AppBar ตอนนี้อยู่ที่ระดับ AppShell แล้ว
         Container(
-          color: _brandColor,
+          color: colors.primary,
           child: TabBar(
             controller: _tabController,
             isScrollable: true,
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
+            indicatorColor: colors.onPrimary,
+            labelColor: colors.onPrimary,
+            unselectedLabelColor: colors.onPrimary.withOpacity(0.7),
             tabs: const [
               Tab(text: '1. โรงเรียน/งบประมาณ'),
               Tab(text: '2. ผู้ปฏิบัติงาน'),
@@ -276,6 +281,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
               _Tab3VendorTerms(draft: _draft, onChanged: _updateDraft),
               _Tab4Items(
                 initialItems: _items,
+                itemsController: _itemsTableController,
                 onChanged: (items, subtotal) {
                   setState(() {
                     _items = items;
@@ -304,8 +310,8 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                       : const Icon(Icons.save),
                   label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึก'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: _brandColor,
-                    side: const BorderSide(color: _brandColor),
+                    foregroundColor: colors.primary,
+                    side: BorderSide(color: colors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
@@ -315,15 +321,15 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                 child: FilledButton.icon(
                   onPressed: (_saving || _generatingDoc) ? null : _saveAndGenerateDocument,
                   icon: _generatingDoc
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary),
                         )
                       : const Icon(Icons.description),
                   label: Text(_generatingDoc ? 'กำลังสร้าง...' : 'สร้างเอกสาร Word'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: _brandColor,
+                    backgroundColor: colors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
@@ -393,6 +399,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
 
   // ฟังก์ชันเพิ่มแผนงบประมาณเร่งด่วนในกรณี Dropdown ว่างเปล่า
   Future<void> _showQuickAddBudgetDialog() async {
+    final colors = Theme.of(context).colorScheme;
     final yearCtrl = TextEditingController(text: DateTime.now().year + 543 >= 2569 ? '2569' : '2568');
     final projCtrl = TextEditingController();
     final actCtrl = TextEditingController();
@@ -401,7 +408,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     final result = await showDialog<Budget?>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('เพิ่มแผนงบประมาณแบบด่วน', style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
+        title: Text('เพิ่มแผนงบประมาณแบบด่วน', style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -423,7 +430,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: _brandColor),
+            style: FilledButton.styleFrom(backgroundColor: colors.primary),
             onPressed: () async {
               final allocated = double.tryParse(amountCtrl.text) ?? 0.0;
               final newBudget = Budget(
@@ -502,6 +509,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     Budget? selectedBudget;
     for (final b in _budgets) {
       if (b.id == widget.draft.budgetId) {
@@ -520,12 +528,12 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _sectionTitle('เลือกแผนงบประมาณ'),
+                _sectionTitle(colors, 'เลือกแผนงบประมาณ'),
                 TextButton.icon(
                   onPressed: _showQuickAddBudgetDialog,
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('เพิ่มแผนด่วน'),
-                  style: TextButton.styleFrom(foregroundColor: _brandColor),
+                  style: TextButton.styleFrom(foregroundColor: colors.primary),
                 ),
               ],
             ),
@@ -551,7 +559,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                     onChanged: _onBudgetSelected,
                   ),
             const SizedBox(height: 24),
-            _sectionTitle('ประเภทเอกสาร'),
+            _sectionTitle(colors, 'ประเภทเอกสาร'),
             DropdownButtonFormField<String>(
               value: _orderType,
               decoration: _inputDecoration('จัดซื้อ หรือ จัดจ้าง'),
@@ -565,7 +573,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               },
             ),
             const SizedBox(height: 24),
-            _sectionTitle('ข้อมูลเอกสาร'),
+            _sectionTitle(colors, 'ข้อมูลเอกสาร'),
             Row(
               children: [
                 Expanded(
@@ -612,7 +620,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               onChanged: (v) => widget.onChanged((d) => d.copyWith(activityName: v)),
             ),
             const SizedBox(height: 24),
-            _sectionTitle('เหตุผลความจำเป็น'),
+            _sectionTitle(colors, 'เหตุผลความจำเป็น'),
             TextFormField(
               controller: _purposeReasonCtrl,
               decoration: _inputDecoration('เหตุผลความจำเป็น'),
@@ -620,7 +628,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               onChanged: (v) => widget.onChanged((d) => d.copyWith(purposeReason: v)),
             ),
             const SizedBox(height: 24),
-            _sectionTitle('งบประมาณ'),
+            _sectionTitle(colors, 'งบประมาณ'),
             Row(
               children: [
                 Expanded(
@@ -635,7 +643,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             const SizedBox(height: 4),
             Text(
               'ยอดงบประมาณดึงมาจากแผนงบที่เลือกด้านบนโดยอัตโนมัติ (แก้ที่หน้าจัดการแผนงบ)',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 40),
           ],
@@ -644,18 +652,16 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     );
   }
 
-  Widget _sectionTitle(String text) => Padding(
+  Widget _sectionTitle(ColorScheme colors, String text) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _brandColor),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
         ),
       );
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
         labelText: label,
-        filled: true,
-        fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       );
 
@@ -767,6 +773,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final isCommittee = _inspectorTitleGroup == 'คณะกรรมการตรวจรับ';
 
     return SingleChildScrollView(
@@ -776,10 +783,10 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('ผู้บริหารและเจ้าหน้าที่ประจำโรงเรียน'),
-            _buildSchoolOfficersCard(),
+            _sectionTitle(colors, 'ผู้บริหารและเจ้าหน้าที่ประจำโรงเรียน'),
+            _buildSchoolOfficersCard(colors),
             const SizedBox(height: 24),
-            _sectionTitle('เจ้าของงบ / ผู้จัดทำสเปค'),
+            _sectionTitle(colors, 'เจ้าของงบ / ผู้จัดทำสเปค'),
             Row(
               children: [
                 Expanded(
@@ -820,7 +827,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
               ],
             ),
             const SizedBox(height: 24),
-            _sectionTitle('คณะกรรมการ/ผู้ตรวจรับพัสดุ'),
+            _sectionTitle(colors, 'คณะกรรมการ/ผู้ตรวจรับพัสดุ'),
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'ผู้ตรวจรับพัสดุ', label: Text('ผู้ตรวจรับคนเดียว')),
@@ -898,7 +905,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     );
   }
 
-  Widget _buildSchoolOfficersCard() {
+  Widget _buildSchoolOfficersCard(ColorScheme colors) {
     if (_loadingSchoolInfo) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
@@ -915,21 +922,21 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, size: 16, color: Colors.grey.shade500),
+              Icon(Icons.info_outline, size: 16, color: colors.onSurfaceVariant),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'ดึงจากข้อมูลประจำโรงเรียน ใช้ค่าเดียวกันทุกเอกสาร',
-                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
                 ),
               ),
               TextButton.icon(
@@ -939,10 +946,9 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       builder: (_) => Scaffold(
                         appBar: AppBar(
                           title: const Text('ตั้งค่าโรงเรียน'),
-                          backgroundColor: _brandColor,
-                          foregroundColor: Colors.white,
+                          backgroundColor: colors.primary,
+                          foregroundColor: colors.onPrimary,
                         ),
-                        backgroundColor: const Color(0xFFF5F6F8),
                         body: const SettingsScreen(),
                       ),
                     ),
@@ -951,7 +957,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                 },
                 icon: const Icon(Icons.edit_outlined, size: 16),
                 label: const Text('แก้ไข'),
-                style: TextButton.styleFrom(foregroundColor: _brandColor),
+                style: TextButton.styleFrom(foregroundColor: colors.primary),
               ),
             ],
           ),
@@ -963,17 +969,17 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
             ),
           ] else ...[
             const Divider(height: 20),
-            _officerRow('ผู้อำนวยการโรงเรียน', school?.directorName),
-            _officerRow('เจ้าหน้าที่พัสดุ', school?.procurementOfficer),
-            _officerRow('หัวหน้าเจ้าหน้าที่พัสดุ', school?.procurementHead),
-            _officerRow('เจ้าหน้าที่การเงิน', school?.financeOfficer),
+            _officerRow(colors, 'ผู้อำนวยการโรงเรียน', school?.directorName),
+            _officerRow(colors, 'เจ้าหน้าที่พัสดุ', school?.procurementOfficer),
+            _officerRow(colors, 'หัวหน้าเจ้าหน้าที่พัสดุ', school?.procurementHead),
+            _officerRow(colors, 'เจ้าหน้าที่การเงิน', school?.financeOfficer),
           ],
         ],
       ),
     );
   }
 
-  Widget _officerRow(String label, String? value) {
+  Widget _officerRow(ColorScheme colors, String label, String? value) {
     final hasValue = value?.isNotEmpty == true;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -981,7 +987,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         children: [
           SizedBox(
             width: 170,
-            child: Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant)),
           ),
           Expanded(
             child: Text(
@@ -990,7 +996,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                 fontSize: 13,
                 fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
                 fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
-                color: hasValue ? Colors.black87 : Colors.grey.shade400,
+                color: hasValue ? colors.onSurface : colors.onSurfaceVariant,
               ),
             ),
           ),
@@ -999,18 +1005,16 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     );
   }
 
-  Widget _sectionTitle(String text) => Padding(
+  Widget _sectionTitle(ColorScheme colors, String text) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _brandColor),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
         ),
       );
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
         labelText: label,
-        filled: true,
-        fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       );
 }
@@ -1101,6 +1105,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     String? currentDocType = widget.draft.deliveryDocType;
     if (currentDocType != null && !_docTypes.contains(currentDocType)) {
       currentDocType = null; // ป้องกันบั๊กกรณีค่าจากเบสไม่ตรงกับ List ในแอป
@@ -1113,7 +1118,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('ข้อมูลร้านค้า'),
+            _sectionTitle(colors, 'ข้อมูลร้านค้า'),
             Row(
               children: [
                 Expanded(
@@ -1195,7 +1200,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               ],
             ),
             const SizedBox(height: 24),
-            _sectionTitle('ข้อมูลหลักฐาน/เอกสารที่ใช้ตรวจรับพัสดุ'),
+            _sectionTitle(colors, 'ข้อมูลหลักฐาน/เอกสารที่ใช้ตรวจรับพัสดุ'),
             Row(
               children: [
                 Expanded(
@@ -1217,7 +1222,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               ],
             ),
             const SizedBox(height: 24),
-            _sectionTitle('ภาษี / ค่าธรรมเนียม'),
+            _sectionTitle(colors, 'ภาษี / ค่าธรรมเนียม'),
             Row(
               children: [
                 Expanded(
@@ -1258,10 +1263,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
             const SizedBox(height: 8),
             Text(
               'กรอก 0 ถ้าไม่มีภาษีในบิลนี้',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
-            _sectionTitle('เงื่อนไขการส่งมอบ / ค่าปรับ / ประกัน'),
+            _sectionTitle(colors, 'เงื่อนไขการส่งมอบ / ค่าปรับ / ประกัน'),
             Row(
               children: [
                 Expanded(
@@ -1300,7 +1305,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               },
             ),
             const SizedBox(height: 24),
-            _sectionTitle('เลขที่ควบคุมเอกสาร'),
+            _sectionTitle(colors, 'เลขที่ควบคุมเอกสาร'),
             Row(
               children: [
                 Expanded(
@@ -1327,18 +1332,16 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     );
   }
 
-  Widget _sectionTitle(String text) => Padding(
+  Widget _sectionTitle(ColorScheme colors, String text) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _brandColor),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
         ),
       );
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
         labelText: label,
-        filled: true,
-        fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       );
 }
@@ -1347,27 +1350,150 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
 // Tab 4: รายการพัสดุ — ต่อกับ ItemsTableEditor ที่มีอยู่แล้วจริง
 // ─────────────────────────────────────────────────────────────────
 
-class _Tab4Items extends StatelessWidget {
+class _Tab4Items extends StatefulWidget {
   final List<ProcurementItem> initialItems;
+  final ItemsTableEditorController itemsController;
   final void Function(List<ProcurementItem> items, double subtotal) onChanged;
 
-  const _Tab4Items({required this.initialItems, required this.onChanged});
+  const _Tab4Items({
+    required this.initialItems,
+    required this.itemsController,
+    required this.onChanged,
+  });
+
+  @override
+  State<_Tab4Items> createState() => _Tab4ItemsState();
+}
+
+class _Tab4ItemsState extends State<_Tab4Items> {
+  bool _readingReceipt = false;
+
+  // prompt สั่งให้ Gemini ตอบเป็น JSON array ล้วนๆ ไม่มีข้อความอื่นปน และเดา
+  // หน่วยนับให้เหมาะสมถ้าใบเสร็จไม่ได้ระบุ — ถ้าพบว่าอาจมีของหลายโครงการปนกัน
+  // ให้ทำเครื่องหมาย multi_project_hint:true ไว้ในแถวที่สงสัย (ไม่ต้องแยกเอง)
+  static const _ocrPrompt = '''
+คุณเป็นผู้ช่วยอ่านใบเสร็จ/ใบกำกับภาษีภาษาไทย จงแกะรายการสินค้าทั้งหมดจากไฟล์ที่แนบมา
+ตอบกลับเป็น JSON array เท่านั้น ห้ามมีข้อความอื่นใดนอกเหนือ JSON และห้ามใช้ ```
+แต่ละ item มี field ดังนี้:
+- item_name: ชื่อสินค้า (string)
+- quantity: จำนวน (ตัวเลขล้วน)
+- unit: หน่วยนับ เช่น ชิ้น, กล่อง, ชุด, รีม (เดาให้เหมาะสมถ้าใบเสร็จไม่ได้ระบุ)
+- unit_price: ราคาต่อหน่วย (ตัวเลขล้วน)
+- total_price: ราคารวมของรายการนั้น (ตัวเลขล้วน)
+- multi_project_hint: true เฉพาะแถวที่ดูเหมือนเป็นสินค้าคนละประเภท/วัตถุประสงค์กับแถวอื่นอย่างชัดเจน
+  (เช่น ปนกันระหว่างของใช้สำนักงานกับอุปกรณ์ไฟฟ้า) ถ้าไม่แน่ใจไม่ต้องใส่ field นี้
+
+ตัวอย่าง: [{"item_name":"กระดาษ A4","quantity":5,"unit":"รีม","unit_price":120,"total_price":600}]
+''';
+
+  Future<void> _pickAndReadReceipt() async {
+    final apiKey = await GeminiService.instance.getApiKey();
+    if (apiKey == null) {
+      showAppToast('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน', isError: true);
+      return;
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      // heic/heif คือรูปแบบที่ iPhone/Mac ถ่ายรูปแล้วเซฟเป็นค่าเริ่มต้น
+      // Gemini รองรับ mime type นี้โดยตรง ไม่ต้องแปลงไฟล์ก่อนส่ง
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'heic', 'heif', 'pdf'],
+      dialogTitle: 'เลือกรูปหรือไฟล์ใบเสร็จ',
+    );
+    if (result == null || result.files.single.path == null) return;
+
+    final path = result.files.single.path!;
+    final ext = path.split('.').last.toLowerCase();
+    final mimeType = switch (ext) {
+      'png' => 'image/png',
+      'heic' => 'image/heic',
+      'heif' => 'image/heif',
+      'pdf' => 'application/pdf',
+      _ => 'image/jpeg',
+    };
+
+    setState(() => _readingReceipt = true);
+    try {
+      final bytes = await File(path).readAsBytes();
+      final responseText = await GeminiService.instance.generateFromFile(
+        prompt: _ocrPrompt,
+        fileBytes: bytes,
+        mimeType: mimeType,
+      );
+      final parsed = _parseOcrResponse(responseText);
+      if (!mounted) return;
+      setState(() => _readingReceipt = false);
+
+      if (parsed.isEmpty) {
+        showAppToast('AI ไม่พบรายการสินค้าในไฟล์นี้', isError: true);
+        return;
+      }
+
+      final confirmed = await showReceiptOcrPreviewDialog(context, parsed);
+      if (confirmed != null && confirmed.isNotEmpty) {
+        widget.itemsController.addItems(confirmed);
+        showAppToast('นำเข้า ${confirmed.length} รายการจากใบเสร็จแล้ว');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _readingReceipt = false);
+      showAppToast('อ่านใบเสร็จไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
+  /// Gemini บางทีตอบมาพร้อม ```json ... ``` ครอบ ต้องแกะออกก่อน jsonDecode
+  List<OcrParsedItem> _parseOcrResponse(String raw) {
+    var text = raw.trim();
+    if (text.startsWith('```')) {
+      text = text.replaceFirst(RegExp(r'^```[a-zA-Z]*\n?'), '');
+      text = text.replaceFirst(RegExp(r'```\s*$'), '');
+    }
+    final decoded = jsonDecode(text.trim());
+    if (decoded is! List) return [];
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map(OcrParsedItem.fromJson)
+        .where((i) => i.itemName.text.trim().isNotEmpty)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 900),
-        child: Card(
-          elevation: 1,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: ItemsTableEditor(
-              initialItems: initialItems,
-              onChanged: onChanged,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: _readingReceipt ? null : _pickAndReadReceipt,
+                icon: _readingReceipt
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                      )
+                    : const Icon(Icons.camera_alt_outlined),
+                label: Text(_readingReceipt ? 'กำลังอ่านใบเสร็จ...' : '📷 อ่านจากใบเสร็จ'),
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
+            Card(
+              elevation: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ItemsTableEditor(
+                  initialItems: widget.initialItems,
+                  controller: widget.itemsController,
+                  onChanged: widget.onChanged,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1491,6 +1617,7 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
   }
 
   Future<void> _pickDate(int index) async {
+    final colors = Theme.of(context).colorScheme;
     final initial = _parseThaiDate(_controllers[index].text) ?? DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -1498,27 +1625,27 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
       firstDate: DateTime(initial.year - 10),
       lastDate: DateTime(initial.year + 10),
       helpText: _fields[index].label,
-      // ครอบธีมสีให้ตรงแบรนด์ (น้ำเงิน-ทอง) แทนสีน้ำเงิน Material default
+      // ครอบธีมสีให้ตรงกับสีหลักของแอป (teal/tertiary) แทนสีน้ำเงิน Material default
       // — ยังใช้ showDatePicker ของ Flutter เดิม แค่เปลี่ยนสีผ่าน Theme/บ
       // DatePickerThemeData ไม่ได้เขียนปฏิทินเองใหม่ทั้งหมด
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: _brandColor, // หัวปฏิทิน + วันที่ที่เลือกอยู่
-              onPrimary: Colors.white,
-              onSurface: _brandColor, // ตัวเลขวันที่ปกติ
-              secondary: _goldAccent,
+            colorScheme: ColorScheme.light(
+              primary: colors.primary, // หัวปฏิทิน + วันที่ที่เลือกอยู่
+              onPrimary: colors.onPrimary,
+              onSurface: colors.primary, // ตัวเลขวันที่ปกติ
+              secondary: colors.tertiary,
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: _brandColor),
+              style: TextButton.styleFrom(foregroundColor: colors.primary),
             ),
             datePickerTheme: DatePickerThemeData(
-              headerBackgroundColor: _brandColor,
-              headerForegroundColor: Colors.white,
-              todayForegroundColor: WidgetStateProperty.all(_goldAccent),
-              todayBorder: const BorderSide(color: _goldAccent, width: 1.4),
-              dayOverlayColor: WidgetStateProperty.all(_goldAccent.withOpacity(0.12)),
+              headerBackgroundColor: colors.primary,
+              headerForegroundColor: colors.onPrimary,
+              todayForegroundColor: WidgetStateProperty.all(colors.tertiary),
+              todayBorder: BorderSide(color: colors.tertiary, width: 1.4),
+              dayOverlayColor: WidgetStateProperty.all(colors.tertiary.withOpacity(0.12)),
             ),
           ),
           child: child!,
@@ -1533,12 +1660,13 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('ไทม์ไลน์วันที่สำคัญ (พ.ศ.)'),
+          _sectionTitle(colors, 'ไทม์ไลน์วันที่สำคัญ (พ.ศ.)'),
           LayoutBuilder(
             builder: (context, constraints) {
               const spacing = 16.0;
@@ -1576,18 +1704,16 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
     );
   }
 
-  Widget _sectionTitle(String text) => Padding(
+  Widget _sectionTitle(ColorScheme colors, String text) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _brandColor),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
         ),
       );
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
         labelText: label,
-        filled: true,
-        fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       );
 }

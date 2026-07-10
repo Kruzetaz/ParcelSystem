@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/school_settings.dart';
 
-const _brandColor = Color(0xFF1A3A5C);
-
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -113,13 +111,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
         labelText: label,
-        filled: true,
-        fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       );
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return _loading
         ? const Center(child: CircularProgressIndicator())
         : SingleChildScrollView(
@@ -137,7 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Text(
                             'ข้อมูลนี้จะถูกใช้เติมในเอกสารทุกใบที่สร้าง '
                             '(กรอกครั้งเดียว ไม่ต้องกรอกซ้ำทุกครั้ง)',
-                            style: TextStyle(color: Colors.grey.shade700),
+                            style: TextStyle(color: colors.onSurfaceVariant),
                           ),
                           const SizedBox(height: 24),
                           TextFormField(
@@ -186,13 +183,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: _brandColor,
+                              color: colors.primary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'ใช้เป็นค่าเริ่มต้นในทุกเอกสารที่สร้าง ไม่ต้องกรอกซ้ำในแต่ละใบ',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5),
+                            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12.5),
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
@@ -228,18 +225,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: FilledButton.icon(
                               onPressed: _saving ? null : _save,
                               icon: _saving
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: colors.onPrimary,
                                       ),
                                     )
                                   : const Icon(Icons.save),
                               label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึก'),
                               style: FilledButton.styleFrom(
-                                backgroundColor: _brandColor,
+                                backgroundColor: colors.primary,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                               ),
                             ),

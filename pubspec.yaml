@@ -1,5 +1,6 @@
 name: ban_pa_lao_procurement
 description: ระบบสร้างเอกสารจัดซื้อจัดจ้างอัตโนมัติ
+version: 2.0.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -19,6 +20,7 @@ dependencies:
   provider: ^6.1.0
   http: ^1.2.0
   shared_preferences: ^2.2.0 # state management
+  excel: ^4.0.3 # อ่านไฟล์ .xlsx สำหรับ Import แผนงบประมาณ
 
 flutter:
   uses-material-design: true

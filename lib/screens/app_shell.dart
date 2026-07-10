@@ -1,6 +1,13 @@
 // app_shell.dart
 // Scaffold หลักของแอป — ถือ AppBar + Sidebar + สลับ content 4 โหมด
 // dirty-check dialog เตือนก่อนสลับเมื่อ wizard ยังไม่ได้บันทึก
+//
+// [อัปเดต ธีมใหม่]: เลิกใช้สีกรมท่า/ทองคงที่ (_brandColor / _goldAccent)
+// เปลี่ยนไปดึงสีจาก Theme.of(context).colorScheme ทั้งหมด เพื่อรองรับ
+// โหมดสว่าง/มืด และเพิ่มปุ่มสลับธีม (ไอคอนพระอาทิตย์/พระจันทร์) ใน AppBar
+//
+// [ย้ายมาจาก sidebar]: กล่องข้อมูลโรงเรียน (ชื่อ+ที่อยู่) ย้ายมาแสดงตรงนี้
+// ในแถบบนสุด อยู่ข้างๆ ชื่อระบบ แทนที่จะอยู่ใน sidebar เหมือนเดิม
 
 import 'package:flutter/material.dart';
 import 'app_sidebar.dart';
@@ -8,12 +15,13 @@ import 'dashboard_screen.dart';
 import 'order_wizard_screen.dart';
 import 'budget_list_screen.dart';
 import 'settings_screen.dart';
+import 'ai_settings_screen.dart';
 import '../models/procurement_order.dart';
+import '../models/school_settings.dart';
+import '../data/procurement_repository.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup_service.dart';
-
-const _brandColor = Color(0xFF1A3A5C);
-const _goldAccent = Color(0xFFC9A227);
+import '../services/theme_controller.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -32,6 +40,21 @@ class _AppShellState extends State<AppShell> {
   // existingOrder สำหรับกรณีกดแก้ไขจาก dashboard
   ProcurementOrder? _editingOrder;
 
+  final _repo = ProcurementRepository();
+  SchoolSettings? _school;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSchool();
+  }
+
+  Future<void> _loadSchool() async {
+    final school = await _repo.getSchoolSettings();
+    if (!mounted) return;
+    setState(() => _school = school);
+  }
+
   // ─────────────────────────────────────────
   // การสลับ mode — ถ้า wizard dirty จะเด้ง dialog ก่อน
   // ─────────────────────────────────────────
@@ -42,11 +65,14 @@ class _AppShellState extends State<AppShell> {
       final confirmed = await _showDirtyDialog();
       if (!confirmed) return;
     }
+    final leavingSettings = _mode == AppMode.settings && newMode != AppMode.settings;
     setState(() {
       _mode = newMode;
       _editingOrder = editingOrder;
       _wizardIsDirty = false;
     });
+    // กลับมาจากหน้าตั้งค่า → โหลดข้อมูลโรงเรียนใหม่ เผื่อมีการแก้ไข
+    if (leavingSettings) _loadSchool();
   }
 
   Future<bool> _showDirtyDialog() async {
@@ -93,9 +119,8 @@ class _AppShellState extends State<AppShell> {
     _requestModeChange(mode);
   }
 
-  // ปุ่มสำรองข้อมูลใน AppBar — ยังไม่ได้ทำฟีเจอร์จริง (อยู่ใน backlog "Backup/Export")
-  // ใส่ปุ่มไว้ก่อนตามที่ตกลงกันไว้ตอนออกแบบ UI แต่บอกตรงๆ ว่ายังใช้งานไม่ได้จริง
   Future<void> _onBackupPressed() async {
+    final colors = Theme.of(context).colorScheme;
     // แสดง bottom sheet เลือก Backup หรือ Restore
     await showModalBottomSheet(
       context: context,
@@ -121,13 +146,13 @@ class _AppShellState extends State<AppShell> {
             ),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1A3A5C)),
+              leading: Icon(Icons.cloud_upload_outlined, color: colors.primary),
               title: const Text('สำรองข้อมูล (Backup)'),
               subtitle: const Text('บันทึกไฟล์ .zip ไปที่ BanPaLao_Documents'),
               onTap: () { Navigator.pop(ctx); _doBackup(); },
             ),
             ListTile(
-              leading: const Icon(Icons.cloud_download_outlined, color: Color(0xFFC9A227)),
+              leading: Icon(Icons.cloud_download_outlined, color: colors.tertiary),
               title: const Text('คืนข้อมูล (Restore)'),
               subtitle: const Text('เลือกไฟล์ .zip เพื่อคืนข้อมูลเดิมกลับมา'),
               onTap: () { Navigator.pop(ctx); _doRestore(); },
@@ -257,27 +282,79 @@ class _AppShellState extends State<AppShell> {
         return const BudgetListScreen();
       case AppMode.settings:
         return const SettingsScreen();
+      case AppMode.aiSettings:
+        return const AiSettingsScreen();
     }
   }
 
   // แสดงปีงบประมาณ พ.ศ. ปัจจุบันเฉยๆ (คำนวณจากวันที่เครื่องจริง) — ยังไม่ใช่
   // dropdown เลือกปีงบ เพราะ dashboard ยังไม่รองรับกรองข้อมูลข้ามปีงบ
-  Widget _fiscalYearBadge() {
+  Widget _fiscalYearBadge(ColorScheme colors) {
     final buddhistYear = DateTime.now().year + 543;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
+        color: colors.onPrimary.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.calendar_today_outlined, size: 14, color: _goldAccent),
+          Icon(Icons.calendar_today_outlined, size: 14, color: colors.onPrimary),
           const SizedBox(width: 6),
           Text(
             'ปีงบฯ $buddhistYear',
-            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: colors.onPrimary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── กล่องข้อมูลโรงเรียน — ย้ายมาจาก sidebar ให้อยู่ข้างชื่อระบบแทน ──
+  Widget _schoolInfoBadge(ColorScheme colors) {
+    final school = _school;
+    final hasName = school?.schoolName?.isNotEmpty == true;
+    if (!hasName) return const SizedBox.shrink();
+
+    final addressParts = <String>[
+      if (school?.schoolAmphoe?.isNotEmpty == true) 'อ.${school!.schoolAmphoe}',
+      if (school?.schoolChangwat?.isNotEmpty == true) 'จ.${school!.schoolChangwat}',
+    ];
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 240),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.onPrimary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.onPrimary.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.school_outlined, size: 15, color: colors.onPrimary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  school!.schoolName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.onPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                if (addressParts.isNotEmpty)
+                  Text(
+                    addressParts.join(' '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: colors.onPrimary.withOpacity(0.75), fontSize: 10.5),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -286,48 +363,68 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        // mainAxisSize เป็นค่า default (max) และห่อลูกทุกตัวด้วย Flexible
+        // เพื่อให้ "ยอม" หดตัวเองเมื่อหน้าต่างแคบ แทนที่จะ overflow
+        title: Row(
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'ระบบจัดซื้อจัดจ้าง',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _goldAccent.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _goldAccent.withOpacity(0.4)),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'ระบบจัดซื้อจัดจ้าง',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.onPrimary),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colors.onPrimary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: colors.onPrimary.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          'v1.0',
+                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.onPrimary),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: const Text(
-                    'v1.0',
-                    style: TextStyle(color: _goldAccent, fontSize: 10.5, fontWeight: FontWeight.w700),
+                  Text(
+                    'พัฒนาโดย Kru.Zetaz',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: colors.onPrimary.withOpacity(0.7)),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const Text(
-              'พัฒนาโดย Kru.Zetaz',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: Colors.white70),
-            ),
+            const SizedBox(width: 16),
+            Flexible(child: _schoolInfoBadge(colors)),
           ],
         ),
-        backgroundColor: _brandColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
         toolbarHeight: 64,
         actions: [
-          _fiscalYearBadge(),
+          _fiscalYearBadge(colors),
           const SizedBox(width: 8),
+          Tooltip(
+            message: ThemeController.instance.isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด',
+            child: IconButton(
+              icon: Icon(ThemeController.instance.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+              onPressed: () => ThemeController.instance.toggle(),
+            ),
+          ),
           Tooltip(
             message: 'รีเฟรชข้อมูล',
             child: IconButton(

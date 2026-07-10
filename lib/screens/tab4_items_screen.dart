@@ -19,11 +19,12 @@ class _Tab4TestScreenState extends State<Tab4TestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tab 4 — รายการพัสดุ'),
-        backgroundColor: const Color(0xFF1A3A5C),
-        foregroundColor: Colors.white,
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
       ),
       body: Center(
         child: ConstrainedBox(
@@ -51,7 +52,7 @@ class _Tab4TestScreenState extends State<Tab4TestScreen> {
                 // แผงตรวจสอบผลลัพธ์ real-time ที่ parent ได้รับจาก callback
                 // (เอาไว้ debug ตอนนี้ — ตอนต่อ wizard จริงค่อยเอาออก)
                 Card(
-                  color: Colors.grey.shade50,
+                  color: colors.surfaceContainerLow,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(

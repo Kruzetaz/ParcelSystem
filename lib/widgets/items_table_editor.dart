@@ -55,6 +55,18 @@ class _ItemRowControllers {
   }
 }
 
+/// ควบคุม ItemsTableEditor จากภายนอกได้ (เช่นเพิ่มแถวจากผลลัพธ์ AI อ่านใบเสร็จ)
+/// โดยไม่ต้องรื้อ initialItems/onChanged เดิม — ผูกกับ instance เดียวผ่าน
+/// _attach/_detach ตอน widget mount/unmount
+class ItemsTableEditorController {
+  _ItemsTableEditorState? _state;
+  void _attach(_ItemsTableEditorState state) => _state = state;
+  void _detach() => _state = null;
+
+  /// เพิ่มรายการต่อท้ายตารางที่มีอยู่ — ใช้ตอนยืนยันนำเข้าจากใบเสร็จที่ AI อ่านให้
+  void addItems(List<ProcurementItem> items) => _state?._addItems(items);
+}
+
 class ItemsTableEditor extends StatefulWidget {
   /// รายการเริ่มต้น (กรณีแก้ไข order เดิม) — ปล่อยว่างสำหรับ order ใหม่
   final List<ProcurementItem> initialItems;
@@ -63,10 +75,13 @@ class ItemsTableEditor extends StatefulWidget {
   /// ส่งกลับ items ที่ valid ทั้งหมด + ยอดรวมสุทธิของ items (ก่อน VAT)
   final void Function(List<ProcurementItem> items, double subtotal) onChanged;
 
+  final ItemsTableEditorController? controller;
+
   const ItemsTableEditor({
     super.key,
     this.initialItems = const [],
     required this.onChanged,
+    this.controller,
   });
 
   @override
@@ -79,6 +94,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
   @override
   void initState() {
     super.initState();
+    widget.controller?._attach(this);
     if (widget.initialItems.isEmpty) {
       _rows.add(_ItemRowControllers());
     } else {
@@ -96,11 +112,33 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _notifyChanged());
   }
 
+  /// เรียกจาก ItemsTableEditorController.addItems — เพิ่มแถวต่อท้าย ไม่ล้างของเดิม
+  /// (ถ้าแถวแรกสุดยังว่างเปล่าอยู่ ให้ใช้แถวนั้นแทนแถวใหม่แถวแรก)
+  void _addItems(List<ProcurementItem> items) {
+    if (items.isEmpty) return;
+    setState(() {
+      if (_rows.length == 1 && _rows[0].itemName.text.trim().isEmpty) {
+        _rows[0].dispose();
+        _rows.removeAt(0);
+      }
+      for (final item in items) {
+        _rows.add(_ItemRowControllers(
+          itemName: item.itemName,
+          quantity: _formatNum(item.quantity),
+          unit: item.unit ?? '',
+          unitPrice: _formatNum(item.unitPrice),
+        ));
+      }
+    });
+    _notifyChanged();
+  }
+
   static String _formatNum(double n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
   @override
   void dispose() {
+    widget.controller?._detach();
     for (final r in _rows) {
       r.dispose();
     }
@@ -141,17 +179,18 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildHeaderRow(),
+        _buildHeaderRow(colors),
         const Divider(height: 1),
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _rows.length,
           separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) => _buildDataRow(index),
+          itemBuilder: (context, index) => _buildDataRow(colors, index),
         ),
         const SizedBox(height: 8),
         Align(
@@ -171,10 +210,10 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
               const Text('รวมทั้งสิ้น: ', style: TextStyle(fontWeight: FontWeight.bold)),
               Text(
                 '${_grandTotal.toStringAsFixed(2)} บาท',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Color(0xFF1A3A5C),
+                  color: colors.primary,
                 ),
               ),
             ],
@@ -184,25 +223,25 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
     );
   }
 
-  Widget _buildHeaderRow() {
-    const style = TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey);
+  Widget _buildHeaderRow(ColorScheme colors) {
+    final style = TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: colors.onSurfaceVariant);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        children: const [
+        children: [
           SizedBox(width: 32, child: Text('ลำดับ', style: style)),
           Expanded(flex: 4, child: Text('ชื่อรายการ', style: style)),
           SizedBox(width: 90, child: Text('จำนวน', style: style)),
           SizedBox(width: 80, child: Text('หน่วย', style: style)),
           SizedBox(width: 110, child: Text('ราคา/หน่วย', style: style)),
           SizedBox(width: 120, child: Text('รวม', style: style, textAlign: TextAlign.right)),
-          SizedBox(width: 40),
+          const SizedBox(width: 40),
         ],
       ),
     );
   }
 
-  Widget _buildDataRow(int index) {
+  Widget _buildDataRow(ColorScheme colors, int index) {
     final row = _rows[index];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -211,7 +250,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
         children: [
           SizedBox(
             width: 32,
-            child: Text('${index + 1}', style: const TextStyle(color: Colors.grey)),
+            child: Text('${index + 1}', style: TextStyle(color: colors.onSurfaceVariant)),
           ),
           Expanded(
             flex: 4,

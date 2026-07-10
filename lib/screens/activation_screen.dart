@@ -153,8 +153,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     decoration: InputDecoration(
                       labelText: 'License Key',
                       hintText: 'XXXX-XXXX-XXXX-XXXX',
-                      filled: true,
-                      fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
