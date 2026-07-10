@@ -14,6 +14,15 @@ import 'app_sidebar.dart';
 import 'dashboard_screen.dart';
 import 'order_wizard_screen.dart';
 import 'budget_list_screen.dart';
+import 'tor_screen.dart';
+import 'contracts_screen.dart';
+import 'guarantees_screen.dart';
+import 'inspections_screen.dart';
+import 'fixed_assets_screen.dart';
+import 'materials_screen.dart';
+import 'annual_count_screen.dart';
+import 'disposals_screen.dart';
+import 'reports_screen.dart';
 import 'settings_screen.dart';
 import 'ai_settings_screen.dart';
 import '../models/procurement_order.dart';
@@ -280,6 +289,24 @@ class _AppShellState extends State<AppShell> {
         );
       case AppMode.budgets:
         return const BudgetListScreen();
+      case AppMode.tor:
+        return const TorScreen();
+      case AppMode.contracts:
+        return const ContractsScreen();
+      case AppMode.guarantees:
+        return const GuaranteesScreen();
+      case AppMode.inspections:
+        return const InspectionsScreen();
+      case AppMode.fixedAssets:
+        return const FixedAssetsScreen();
+      case AppMode.materials:
+        return const MaterialsScreen();
+      case AppMode.annualCount:
+        return const AnnualCountScreen();
+      case AppMode.disposals:
+        return const DisposalsScreen();
+      case AppMode.reports:
+        return const ReportsScreen();
       case AppMode.settings:
         return const SettingsScreen();
       case AppMode.aiSettings:

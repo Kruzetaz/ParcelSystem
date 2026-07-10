@@ -24,7 +24,7 @@ const _sidebarLabelWidth = 130.0;
 const _sidebarAnimDuration = Duration(milliseconds: 220);
 const _sidebarAnimCurve = Curves.easeInOut;
 
-enum AppMode { dashboard, newOrder, budgets, settings, aiSettings }
+enum AppMode { dashboard, newOrder, budgets, tor, contracts, guarantees, inspections, fixedAssets, materials, annualCount, disposals, reports, settings, aiSettings }
 
 class AppSidebar extends StatelessWidget {
   final AppMode currentMode;
@@ -58,10 +58,30 @@ class AppSidebar extends StatelessWidget {
             const SizedBox(height: 12),
             _buildToggleButton(colors),
             const SizedBox(height: 8),
-            _buildItem(colors, AppMode.dashboard, Icons.dashboard_outlined, 'หน้าหลัก'),
-            _buildItem(colors, AppMode.newOrder, Icons.add_circle_outline, 'สร้างใหม่'),
-            _buildItem(colors, AppMode.budgets, Icons.account_balance_wallet_outlined, 'แผนงบประมาณ'),
-            const Spacer(),
+            // เมนูมีเยอะขึ้นเรื่อยๆ ตามฟีเจอร์ที่เพิ่ม — ห่อด้วย Expanded +
+            // SingleChildScrollView กันไม่ให้ล้นจอตอนหน้าต่างเตี้ย/เมนูเยอะเกินพื้นที่
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildItem(colors, AppMode.dashboard, Icons.dashboard_outlined, 'หน้าหลัก'),
+                    _buildItem(colors, AppMode.newOrder, Icons.add_circle_outline, 'สร้างใหม่'),
+                    _buildItem(colors, AppMode.budgets, Icons.account_balance_wallet_outlined, 'แผนงบประมาณ'),
+                    _buildItem(colors, AppMode.tor, Icons.description_outlined, 'TOR/คุณลักษณะ'),
+                    _buildItem(colors, AppMode.contracts, Icons.article_outlined, 'บริหารสัญญา'),
+                    _buildItem(colors, AppMode.guarantees, Icons.shield_outlined, 'หลักประกัน'),
+                    _buildItem(colors, AppMode.inspections, Icons.fact_check_outlined, 'ตรวจรับพัสดุ'),
+                    _buildItem(colors, AppMode.fixedAssets, Icons.inventory_2_outlined, 'ทะเบียนครุภัณฑ์'),
+                    _buildItem(colors, AppMode.materials, Icons.inventory_outlined, 'วัสดุ/คลังพัสดุ'),
+                    _buildItem(colors, AppMode.annualCount, Icons.checklist_outlined, 'ตรวจนับประจำปี'),
+                    _buildItem(colors, AppMode.disposals, Icons.delete_sweep_outlined, 'จำหน่ายพัสดุ'),
+                    _buildItem(colors, AppMode.reports, Icons.bar_chart_outlined, 'รายงาน/สตง.'),
+                  ],
+                ),
+              ),
+            ),
+            Divider(height: 1, color: colors.outlineVariant),
             _buildItem(colors, AppMode.aiSettings, Icons.auto_awesome_outlined, 'ตั้งค่า AI'),
             _buildItem(colors, AppMode.settings, Icons.settings_outlined, 'ตั้งค่าโรงเรียน'),
             const SizedBox(height: 16),

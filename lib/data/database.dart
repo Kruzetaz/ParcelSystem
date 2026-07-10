@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 8;
+  static const int _version = 19;
 
   Database? _db;
 
@@ -122,6 +122,182 @@ class AppDatabase {
               );
             } catch (_) {}
           }
+        }
+        if (oldVersion < 9) {
+          // เพิ่มตาราง TOR / ข้อมูลคุณลักษณะเฉพาะ (blueprint หน้าที่ 4)
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS tor_documents (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              document_number TEXT,
+              title TEXT NOT NULL,
+              category TEXT CHECK(category IN ('ครุภัณฑ์', 'วัสดุ', 'จ้าง')),
+              estimated_amount REAL,
+              created_date TEXT,
+              status TEXT CHECK(status IN ('ร่าง', 'อนุมัติ')) DEFAULT 'ร่าง',
+              specification_text TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 10) {
+          // คลัง TOR Template — เก็บสเปกที่ใช้ซ้ำบ่อย (เช่นสเปกมาตรฐาน สพฐ.)
+          // ไว้ดึงมาใช้ตอนสร้าง TOR ใหม่ แทนการพิมพ์ซ้ำทุกครั้ง
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS tor_templates (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              category TEXT CHECK(category IN ('ครุภัณฑ์', 'วัสดุ', 'จ้าง')),
+              specification_text TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 11) {
+          // บริหารสัญญา/ใบสั่งซื้อ/สั่งจ้าง (blueprint หน้าที่ 5)
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS contracts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              contract_number TEXT,
+              egp_number TEXT,
+              order_id INTEGER,
+              contract_type TEXT CHECK(contract_type IN ('สัญญาซื้อขาย', 'สัญญาจ้าง', 'ใบสั่งซื้อ', 'ใบสั่งจ้าง')),
+              contract_amount REAL,
+              vendor_name TEXT,
+              start_date TEXT,
+              end_date TEXT,
+              installment_count INTEGER,
+              status TEXT CHECK(status IN ('กำลังดำเนินการ', 'ครบกำหนดแล้ว', 'ยกเลิก')) DEFAULT 'กำลังดำเนินการ',
+              FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+            )
+          ''');
+        }
+        if (oldVersion < 12) {
+          // ทะเบียนหลักประกัน (blueprint หน้าที่ 6)
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS guarantees (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              guarantee_type TEXT CHECK(guarantee_type IN ('หลักประกันซอง', 'หลักประกันสัญญา', 'เงินสด', 'หนังสือค้ำประกันธนาคาร')),
+              counterparty_name TEXT,
+              amount REAL,
+              start_date TEXT,
+              expiry_date TEXT,
+              contract_id INTEGER,
+              status TEXT CHECK(status IN ('ถืออยู่', 'คืนแล้ว')) DEFAULT 'ถืออยู่',
+              returned_date TEXT,
+              FOREIGN KEY (contract_id) REFERENCES contracts(id)
+            )
+          ''');
+        }
+        if (oldVersion < 13) {
+          // ตรวจรับพัสดุ (blueprint หน้าที่ 7) — ผูกกับ procurement_orders
+          // เพื่อดึงชื่อผู้ส่งมอบ (vendor_name) และวงเงิน/อัตราค่าปรับมาใช้คำนวณ
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS inspections (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              inspection_number TEXT,
+              order_id INTEGER,
+              due_date TEXT,
+              actual_delivery_date TEXT,
+              result TEXT CHECK(result IN ('ผ่าน', 'ไม่ผ่าน')),
+              penalty_amount REAL,
+              notes TEXT,
+              FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+            )
+          ''');
+        }
+        if (oldVersion < 14) {
+          // ทะเบียนครุภัณฑ์ (blueprint หน้าที่ 8) + ประวัติซ่อมแซม/โอนย้าย
+          // photo_path เก็บ path ไฟล์ในเครื่อง (local storage) ตามที่ตกลงกันไว้
+          // — ไม่อัปโหลดขึ้น cloud
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS fixed_assets (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              asset_number TEXT,
+              name TEXT NOT NULL,
+              quantity REAL DEFAULT 1,
+              unit_price REAL,
+              location TEXT,
+              acquired_date TEXT,
+              photo_path TEXT,
+              status TEXT CHECK(status IN ('ใช้งานปกติ', 'ชำรุด', 'รอจำหน่าย')) DEFAULT 'ใช้งานปกติ'
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS asset_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              asset_id INTEGER NOT NULL,
+              event_type TEXT CHECK(event_type IN ('ซ่อมแซม', 'โอนย้าย', 'จำหน่าย')),
+              event_date TEXT,
+              description TEXT,
+              FOREIGN KEY (asset_id) REFERENCES fixed_assets(id) ON DELETE CASCADE
+            )
+          ''');
+        }
+        if (oldVersion < 15) {
+          // วัสดุ/คลังพัสดุ (blueprint หน้าที่ 9) — ของสิ้นเปลือง คงเหลือคำนวณจาก
+          // stock_in - stock_out เสมอ (ไม่เก็บ remaining แยก กันข้อมูลเพี้ยน)
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS materials (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              material_code TEXT,
+              name TEXT NOT NULL,
+              category TEXT,
+              unit TEXT,
+              stock_in REAL DEFAULT 0,
+              stock_out REAL DEFAULT 0,
+              unit_price REAL
+            )
+          ''');
+        }
+        if (oldVersion < 16) {
+          // ตรวจนับพัสดุประจำปี (blueprint หน้าที่ 10)
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS annual_counts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fiscal_year TEXT NOT NULL,
+              start_date TEXT,
+              responsible_persons TEXT,
+              total_items INTEGER,
+              found_items INTEGER,
+              damaged_lost_items INTEGER,
+              status TEXT CHECK(status IN ('กำลังดำเนินการ', 'เสร็จสิ้น')) DEFAULT 'กำลังดำเนินการ',
+              summary_notes TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 17) {
+          // จำหน่ายพัสดุ (blueprint หน้าที่ 11) — ผูกกับ fixed_assets แบบไม่บังคับ
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS disposals (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              asset_id INTEGER,
+              item_name TEXT,
+              disposal_method TEXT CHECK(disposal_method IN ('ขายทอดตลาด', 'โอนให้หน่วยงานอื่น', 'ทำลาย')),
+              approved_date TEXT,
+              approver_name TEXT,
+              status TEXT CHECK(status IN ('รอดำเนินการ', 'ตัดยอดแล้ว')) DEFAULT 'รอดำเนินการ',
+              FOREIGN KEY (asset_id) REFERENCES fixed_assets(id)
+            )
+          ''');
+        }
+        if (oldVersion < 18) {
+          // Audit Trail (blueprint หน้าที่ 13) — log เฉพาะ สร้าง/แก้ไข/ลบ
+          // ไม่ log การเปิดดู ตามที่ตกลงกันไว้
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS audit_log (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              timestamp TEXT NOT NULL,
+              action TEXT CHECK(action IN ('สร้าง', 'แก้ไข', 'ลบ')),
+              table_label TEXT,
+              description TEXT,
+              user_name TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 19) {
+          // ผูก TOR กับรายการจัดซื้อจัดจ้าง — ใช้ export เอกสาร .docx และ
+          // auto-create TOR ตอนสร้างเอกสารจัดซื้อจัดจ้างใหม่
+          try {
+            await db.execute('ALTER TABLE tor_documents ADD COLUMN order_id INTEGER');
+          } catch (_) {}
         }
       },
     );
@@ -267,5 +443,160 @@ class AppDatabase {
     await db.execute(
       'CREATE INDEX idx_items_order_id ON procurement_items(order_id)',
     );
+
+    // ── ตาราง TOR / ข้อมูลคุณลักษณะเฉพาะ ──────────────────────────────
+    await db.execute('''
+      CREATE TABLE tor_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_number TEXT,
+        title TEXT NOT NULL,
+        category TEXT CHECK(category IN ('ครุภัณฑ์', 'วัสดุ', 'จ้าง')),
+        estimated_amount REAL,
+        created_date TEXT,
+        status TEXT CHECK(status IN ('ร่าง', 'อนุมัติ')) DEFAULT 'ร่าง',
+        specification_text TEXT,
+        order_id INTEGER,
+        FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+      )
+    ''');
+
+    // ── คลัง TOR Template ──────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE tor_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT CHECK(category IN ('ครุภัณฑ์', 'วัสดุ', 'จ้าง')),
+        specification_text TEXT
+      )
+    ''');
+
+    // ── บริหารสัญญา/ใบสั่งซื้อ/สั่งจ้าง ────────────────────────────────
+    await db.execute('''
+      CREATE TABLE contracts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        contract_number TEXT,
+        egp_number TEXT,
+        order_id INTEGER,
+        contract_type TEXT CHECK(contract_type IN ('สัญญาซื้อขาย', 'สัญญาจ้าง', 'ใบสั่งซื้อ', 'ใบสั่งจ้าง')),
+        contract_amount REAL,
+        vendor_name TEXT,
+        start_date TEXT,
+        end_date TEXT,
+        installment_count INTEGER,
+        status TEXT CHECK(status IN ('กำลังดำเนินการ', 'ครบกำหนดแล้ว', 'ยกเลิก')) DEFAULT 'กำลังดำเนินการ',
+        FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+      )
+    ''');
+
+    // ── ทะเบียนหลักประกัน ────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE guarantees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guarantee_type TEXT CHECK(guarantee_type IN ('หลักประกันซอง', 'หลักประกันสัญญา', 'เงินสด', 'หนังสือค้ำประกันธนาคาร')),
+        counterparty_name TEXT,
+        amount REAL,
+        start_date TEXT,
+        expiry_date TEXT,
+        contract_id INTEGER,
+        status TEXT CHECK(status IN ('ถืออยู่', 'คืนแล้ว')) DEFAULT 'ถืออยู่',
+        returned_date TEXT,
+        FOREIGN KEY (contract_id) REFERENCES contracts(id)
+      )
+    ''');
+
+    // ── ตรวจรับพัสดุ ────────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE inspections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        inspection_number TEXT,
+        order_id INTEGER,
+        due_date TEXT,
+        actual_delivery_date TEXT,
+        result TEXT CHECK(result IN ('ผ่าน', 'ไม่ผ่าน')),
+        penalty_amount REAL,
+        notes TEXT,
+        FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+      )
+    ''');
+
+    // ── ทะเบียนครุภัณฑ์ + ประวัติซ่อมแซม/โอนย้าย ─────────────────────
+    await db.execute('''
+      CREATE TABLE fixed_assets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_number TEXT,
+        name TEXT NOT NULL,
+        quantity REAL DEFAULT 1,
+        unit_price REAL,
+        location TEXT,
+        acquired_date TEXT,
+        photo_path TEXT,
+        status TEXT CHECK(status IN ('ใช้งานปกติ', 'ชำรุด', 'รอจำหน่าย')) DEFAULT 'ใช้งานปกติ'
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE asset_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_id INTEGER NOT NULL,
+        event_type TEXT CHECK(event_type IN ('ซ่อมแซม', 'โอนย้าย', 'จำหน่าย')),
+        event_date TEXT,
+        description TEXT,
+        FOREIGN KEY (asset_id) REFERENCES fixed_assets(id) ON DELETE CASCADE
+      )
+    ''');
+
+    // ── วัสดุ/คลังพัสดุ ──────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE materials (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        material_code TEXT,
+        name TEXT NOT NULL,
+        category TEXT,
+        unit TEXT,
+        stock_in REAL DEFAULT 0,
+        stock_out REAL DEFAULT 0,
+        unit_price REAL
+      )
+    ''');
+
+    // ── ตรวจนับพัสดุประจำปี ──────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE annual_counts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fiscal_year TEXT NOT NULL,
+        start_date TEXT,
+        responsible_persons TEXT,
+        total_items INTEGER,
+        found_items INTEGER,
+        damaged_lost_items INTEGER,
+        status TEXT CHECK(status IN ('กำลังดำเนินการ', 'เสร็จสิ้น')) DEFAULT 'กำลังดำเนินการ',
+        summary_notes TEXT
+      )
+    ''');
+
+    // ── จำหน่ายพัสดุ ────────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE disposals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_id INTEGER,
+        item_name TEXT,
+        disposal_method TEXT CHECK(disposal_method IN ('ขายทอดตลาด', 'โอนให้หน่วยงานอื่น', 'ทำลาย')),
+        approved_date TEXT,
+        approver_name TEXT,
+        status TEXT CHECK(status IN ('รอดำเนินการ', 'ตัดยอดแล้ว')) DEFAULT 'รอดำเนินการ',
+        FOREIGN KEY (asset_id) REFERENCES fixed_assets(id)
+      )
+    ''');
+
+    // ── Audit Trail ────────────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        action TEXT CHECK(action IN ('สร้าง', 'แก้ไข', 'ลบ')),
+        table_label TEXT,
+        description TEXT,
+        user_name TEXT
+      )
+    ''');
   }
 }

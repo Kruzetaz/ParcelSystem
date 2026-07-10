@@ -373,6 +373,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   late final TextEditingController _activityNameCtrl;
   late final TextEditingController _purposeReasonCtrl;
   String? _orderType; // 'ซื้อ' | 'จ้าง'
+  bool _generatingReason = false;
 
   @override
   void initState() {
@@ -482,6 +483,46 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _activityNameCtrl.dispose();
     _purposeReasonCtrl.dispose();
     super.dispose();
+  }
+
+  // Feature C: AI ช่วยเขียน "เหตุผลความจำเป็น" จากข้อมูลที่กรอกไว้แล้วใน Tab 1
+  Future<void> _generateReason() async {
+    if (_projectNameCtrl.text.trim().isEmpty && _procurementSubjectCtrl.text.trim().isEmpty) {
+      showAppToast('กรุณากรอกหัวเรื่องหรือชื่อโครงการก่อน ให้ AI มีข้อมูลพอเขียนเหตุผลได้', isError: true);
+      return;
+    }
+    final apiKey = await GeminiService.instance.getApiKey();
+    if (apiKey == null) {
+      showAppToast('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน', isError: true);
+      return;
+    }
+
+    setState(() => _generatingReason = true);
+    try {
+      final prompt = '''
+คุณเป็นเจ้าหน้าที่พัสดุโรงเรียนไทย จงเขียน "เหตุผลความจำเป็น" สำหรับการจัดซื้อจัดจ้างนี้
+ให้กระชับ 1-2 บรรทัด เหมาะสมตามระเบียบพัสดุราชการ ตอบเป็นข้อความเหตุผลอย่างเดียว
+ห้ามมีคำนำ คำอธิบาย หรือเครื่องหมายคำพูดครอบ
+
+ข้อมูลที่มี:
+ประเภทงาน: ${_orderType ?? 'ไม่ระบุ'}
+หัวเรื่อง: ${_procurementSubjectCtrl.text.trim().isEmpty ? 'ไม่ระบุ' : _procurementSubjectCtrl.text.trim()}
+ชื่อโครงการ: ${_projectNameCtrl.text.trim().isEmpty ? 'ไม่ระบุ' : _projectNameCtrl.text.trim()}
+ชื่อกิจกรรม: ${_activityNameCtrl.text.trim().isEmpty ? 'ไม่ระบุ' : _activityNameCtrl.text.trim()}
+''';
+      final result = await GeminiService.instance.generateText(prompt);
+      if (!mounted) return;
+      final reason = result.trim();
+      setState(() {
+        _purposeReasonCtrl.text = reason;
+        _generatingReason = false;
+      });
+      widget.onChanged((d) => d.copyWith(purposeReason: reason));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _generatingReason = false);
+      showAppToast('AI เขียนเหตุผลไม่สำเร็จ: $e', isError: true);
+    }
   }
 
   // เลือกแผนงบ -> auto-fill project/activity/allocated/remaining/egp มาให้ทันที
@@ -620,7 +661,23 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               onChanged: (v) => widget.onChanged((d) => d.copyWith(activityName: v)),
             ),
             const SizedBox(height: 24),
-            _sectionTitle(colors, 'เหตุผลความจำเป็น'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _sectionTitle(colors, 'เหตุผลความจำเป็น'),
+                TextButton.icon(
+                  onPressed: _generatingReason ? null : _generateReason,
+                  icon: _generatingReason
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                        )
+                      : const Icon(Icons.auto_awesome, size: 16),
+                  label: Text(_generatingReason ? 'กำลังเขียน...' : '✨ ช่วยเขียนเหตุผล'),
+                ),
+              ],
+            ),
             TextFormField(
               controller: _purposeReasonCtrl,
               decoration: _inputDecoration('เหตุผลความจำเป็น'),

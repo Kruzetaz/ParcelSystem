@@ -133,6 +133,14 @@ class DocumentGenerator {
     return v.toStringAsFixed(2);
   }
 
+  /// ใช้ซ้ำได้จาก generator อื่น (เช่น TorDocumentGenerator) — เทมเพลตแต่ละอัน
+  /// ใช้แค่ placeholder บางส่วนจาก map นี้ ตัวที่ไม่มีในเทมเพลตจะถูกข้ามเฉยๆ
+  static Map<String, String> buildFieldMap(
+    ProcurementOrder o,
+    SchoolSettings s,
+  ) =>
+      _buildFieldMap(o, s);
+
   static Map<String, String> _buildFieldMap(
     ProcurementOrder o,
     SchoolSettings s,

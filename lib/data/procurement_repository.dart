@@ -3,6 +3,18 @@ import '../models/budget.dart';
 import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
+import '../models/tor_document.dart';
+import '../models/tor_template.dart';
+import '../models/contract.dart';
+import '../models/guarantee.dart';
+import '../models/inspection.dart';
+import '../models/fixed_asset.dart';
+import '../models/asset_event.dart';
+import '../models/material_item.dart';
+import '../models/annual_count.dart';
+import '../models/disposal.dart';
+import '../models/audit_log_entry.dart';
+import '../services/audit_service.dart';
 import 'database.dart';
 
 class ProcurementRepository {
@@ -14,7 +26,9 @@ class ProcurementRepository {
 
   Future<int> insertBudget(Budget budget) async {
     final db = await _db.database;
-    return db.insert('budgets', budget.toMap());
+    final id = await db.insert('budgets', budget.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'แผนงบประมาณ', description: budget.projectName ?? 'แผนงบ #$id');
+    return id;
   }
 
   Future<void> updateBudget(Budget budget) async {
@@ -25,6 +39,7 @@ class ProcurementRepository {
       where: 'id = ?',
       whereArgs: [budget.id],
     );
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'แผนงบประมาณ', description: budget.projectName ?? 'แผนงบ #${budget.id}');
   }
 
   Future<List<Budget>> getAllBudgets({String? fiscalYear}) async {
@@ -48,6 +63,299 @@ class ProcurementRepository {
   Future<void> deleteBudget(int id) async {
     final db = await _db.database;
     await db.delete('budgets', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'แผนงบประมาณ', description: 'แผนงบ #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // TOR / ข้อมูลคุณลักษณะเฉพาะ
+  // ─────────────────────────────────────────
+
+  Future<int> insertTorDocument(TorDocument doc) async {
+    final db = await _db.database;
+    final id = await db.insert('tor_documents', doc.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'TOR/คุณลักษณะเฉพาะ', description: doc.title);
+    return id;
+  }
+
+  Future<void> updateTorDocument(TorDocument doc) async {
+    final db = await _db.database;
+    await db.update(
+      'tor_documents',
+      doc.toMap(),
+      where: 'id = ?',
+      whereArgs: [doc.id],
+    );
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'TOR/คุณลักษณะเฉพาะ', description: doc.title);
+  }
+
+  Future<List<TorDocument>> getAllTorDocuments() async {
+    final db = await _db.database;
+    final rows = await db.query('tor_documents', orderBy: 'id DESC');
+    return rows.map(TorDocument.fromMap).toList();
+  }
+
+  Future<void> deleteTorDocument(int id) async {
+    final db = await _db.database;
+    await db.delete('tor_documents', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'TOR/คุณลักษณะเฉพาะ', description: 'TOR #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // TOR TEMPLATES (สเปกมาตรฐานที่บันทึกไว้ใช้ซ้ำ)
+  // ─────────────────────────────────────────
+
+  Future<int> insertTorTemplate(TorTemplate template) async {
+    final db = await _db.database;
+    return db.insert('tor_templates', template.toMap());
+  }
+
+  Future<List<TorTemplate>> getAllTorTemplates() async {
+    final db = await _db.database;
+    final rows = await db.query('tor_templates', orderBy: 'id DESC');
+    return rows.map(TorTemplate.fromMap).toList();
+  }
+
+  Future<void> deleteTorTemplate(int id) async {
+    final db = await _db.database;
+    await db.delete('tor_templates', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ─────────────────────────────────────────
+  // CONTRACTS (บริหารสัญญา/ใบสั่งซื้อ/สั่งจ้าง)
+  // ─────────────────────────────────────────
+
+  Future<int> insertContract(Contract contract) async {
+    final db = await _db.database;
+    final id = await db.insert('contracts', contract.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'บริหารสัญญา', description: contract.contractNumber ?? 'สัญญา #$id');
+    return id;
+  }
+
+  Future<void> updateContract(Contract contract) async {
+    final db = await _db.database;
+    await db.update(
+      'contracts',
+      contract.toMap(),
+      where: 'id = ?',
+      whereArgs: [contract.id],
+    );
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'บริหารสัญญา', description: contract.contractNumber ?? 'สัญญา #${contract.id}');
+  }
+
+  Future<List<Contract>> getAllContracts() async {
+    final db = await _db.database;
+    final rows = await db.query('contracts', orderBy: 'id DESC');
+    return rows.map(Contract.fromMap).toList();
+  }
+
+  Future<void> deleteContract(int id) async {
+    final db = await _db.database;
+    await db.delete('contracts', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'บริหารสัญญา', description: 'สัญญา #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // GUARANTEES (ทะเบียนหลักประกัน)
+  // ─────────────────────────────────────────
+
+  Future<int> insertGuarantee(Guarantee g) async {
+    final db = await _db.database;
+    final id = await db.insert('guarantees', g.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'หลักประกัน', description: g.counterpartyName ?? 'หลักประกัน #$id');
+    return id;
+  }
+
+  Future<void> updateGuarantee(Guarantee g) async {
+    final db = await _db.database;
+    await db.update('guarantees', g.toMap(), where: 'id = ?', whereArgs: [g.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'หลักประกัน', description: g.counterpartyName ?? 'หลักประกัน #${g.id}');
+  }
+
+  Future<List<Guarantee>> getAllGuarantees() async {
+    final db = await _db.database;
+    final rows = await db.query('guarantees', orderBy: 'id DESC');
+    return rows.map(Guarantee.fromMap).toList();
+  }
+
+  Future<void> deleteGuarantee(int id) async {
+    final db = await _db.database;
+    await db.delete('guarantees', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'หลักประกัน', description: 'หลักประกัน #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // INSPECTIONS (ตรวจรับพัสดุ)
+  // ─────────────────────────────────────────
+
+  Future<int> insertInspection(Inspection i) async {
+    final db = await _db.database;
+    final id = await db.insert('inspections', i.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'ตรวจรับพัสดุ', description: i.inspectionNumber ?? 'ตรวจรับ #$id');
+    return id;
+  }
+
+  Future<void> updateInspection(Inspection i) async {
+    final db = await _db.database;
+    await db.update('inspections', i.toMap(), where: 'id = ?', whereArgs: [i.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ตรวจรับพัสดุ', description: i.inspectionNumber ?? 'ตรวจรับ #${i.id}');
+  }
+
+  Future<List<Inspection>> getAllInspections() async {
+    final db = await _db.database;
+    final rows = await db.query('inspections', orderBy: 'id DESC');
+    return rows.map(Inspection.fromMap).toList();
+  }
+
+  Future<void> deleteInspection(int id) async {
+    final db = await _db.database;
+    await db.delete('inspections', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'ตรวจรับพัสดุ', description: 'ตรวจรับ #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // FIXED ASSETS (ทะเบียนครุภัณฑ์)
+  // ─────────────────────────────────────────
+
+  Future<int> insertFixedAsset(FixedAsset a) async {
+    final db = await _db.database;
+    final id = await db.insert('fixed_assets', a.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'ทะเบียนครุภัณฑ์', description: a.name);
+    return id;
+  }
+
+  Future<void> updateFixedAsset(FixedAsset a) async {
+    final db = await _db.database;
+    await db.update('fixed_assets', a.toMap(), where: 'id = ?', whereArgs: [a.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ทะเบียนครุภัณฑ์', description: a.name);
+  }
+
+  Future<List<FixedAsset>> getAllFixedAssets() async {
+    final db = await _db.database;
+    final rows = await db.query('fixed_assets', orderBy: 'id DESC');
+    return rows.map(FixedAsset.fromMap).toList();
+  }
+
+  Future<void> deleteFixedAsset(int id) async {
+    final db = await _db.database;
+    await db.delete('fixed_assets', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'ทะเบียนครุภัณฑ์', description: 'ครุภัณฑ์ #$id');
+  }
+
+  Future<int> insertAssetEvent(AssetEvent e) async {
+    final db = await _db.database;
+    return db.insert('asset_events', e.toMap());
+  }
+
+  Future<List<AssetEvent>> getAssetEvents(int assetId) async {
+    final db = await _db.database;
+    final rows = await db.query('asset_events', where: 'asset_id = ?', whereArgs: [assetId], orderBy: 'id DESC');
+    return rows.map(AssetEvent.fromMap).toList();
+  }
+
+  // ─────────────────────────────────────────
+  // MATERIALS (วัสดุ/คลังพัสดุ)
+  // ─────────────────────────────────────────
+
+  Future<int> insertMaterial(MaterialItem m) async {
+    final db = await _db.database;
+    final id = await db.insert('materials', m.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'วัสดุ/คลังพัสดุ', description: m.name);
+    return id;
+  }
+
+  Future<void> updateMaterial(MaterialItem m) async {
+    final db = await _db.database;
+    await db.update('materials', m.toMap(), where: 'id = ?', whereArgs: [m.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'วัสดุ/คลังพัสดุ', description: m.name);
+  }
+
+  Future<List<MaterialItem>> getAllMaterials() async {
+    final db = await _db.database;
+    final rows = await db.query('materials', orderBy: 'id DESC');
+    return rows.map(MaterialItem.fromMap).toList();
+  }
+
+  Future<void> deleteMaterial(int id) async {
+    final db = await _db.database;
+    await db.delete('materials', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'วัสดุ/คลังพัสดุ', description: 'วัสดุ #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // ANNUAL COUNTS (ตรวจนับพัสดุประจำปี)
+  // ─────────────────────────────────────────
+
+  Future<int> insertAnnualCount(AnnualCount a) async {
+    final db = await _db.database;
+    final id = await db.insert('annual_counts', a.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'ตรวจนับพัสดุประจำปี', description: 'ปี ${a.fiscalYear}');
+    return id;
+  }
+
+  Future<void> updateAnnualCount(AnnualCount a) async {
+    final db = await _db.database;
+    await db.update('annual_counts', a.toMap(), where: 'id = ?', whereArgs: [a.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ตรวจนับพัสดุประจำปี', description: 'ปี ${a.fiscalYear}');
+  }
+
+  Future<List<AnnualCount>> getAllAnnualCounts() async {
+    final db = await _db.database;
+    final rows = await db.query('annual_counts', orderBy: 'id DESC');
+    return rows.map(AnnualCount.fromMap).toList();
+  }
+
+  Future<void> deleteAnnualCount(int id) async {
+    final db = await _db.database;
+    await db.delete('annual_counts', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'ตรวจนับพัสดุประจำปี', description: 'บันทึก #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // DISPOSALS (จำหน่ายพัสดุ)
+  // ─────────────────────────────────────────
+
+  Future<int> insertDisposal(Disposal d) async {
+    final db = await _db.database;
+    final id = await db.insert('disposals', d.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'จำหน่ายพัสดุ', description: d.itemName ?? 'จำหน่าย #$id');
+    return id;
+  }
+
+  Future<void> updateDisposal(Disposal d) async {
+    final db = await _db.database;
+    await db.update('disposals', d.toMap(), where: 'id = ?', whereArgs: [d.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'จำหน่ายพัสดุ', description: d.itemName ?? 'จำหน่าย #${d.id}');
+  }
+
+  Future<List<Disposal>> getAllDisposals() async {
+    final db = await _db.database;
+    final rows = await db.query('disposals', orderBy: 'id DESC');
+    return rows.map(Disposal.fromMap).toList();
+  }
+
+  Future<void> deleteDisposal(int id) async {
+    final db = await _db.database;
+    await db.delete('disposals', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'จำหน่ายพัสดุ', description: 'จำหน่าย #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // AUDIT LOG
+  // ─────────────────────────────────────────
+
+  Future<List<AuditLogEntry>> getAuditLog({int limit = 200}) async {
+    final db = await _db.database;
+    final rows = await db.query('audit_log', orderBy: 'id DESC', limit: limit);
+    return rows.map(AuditLogEntry.fromMap).toList();
+  }
+
+  Future<int> countAllAssetsAndMaterials() async {
+    final db = await _db.database;
+    final assets = await db.rawQuery('SELECT COUNT(*) as c FROM fixed_assets');
+    final materials = await db.rawQuery('SELECT COUNT(*) as c FROM materials');
+    final assetCount = (assets.first['c'] as int?) ?? 0;
+    final materialCount = (materials.first['c'] as int?) ?? 0;
+    return assetCount + materialCount;
   }
 
   // ─────────────────────────────────────────
@@ -57,7 +365,9 @@ class ProcurementRepository {
   /// บันทึกออร์เดอร์ใหม่ คืนค่า id ที่ SQLite generate ให้ (ใช้ผูก items ต่อ)
   Future<int> insertOrder(ProcurementOrder order) async {
     final db = await _db.database;
-    return db.insert('procurement_orders', order.toMap());
+    final id = await db.insert('procurement_orders', order.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'จัดซื้อจัดจ้าง', description: order.projectName ?? 'เอกสาร #$id');
+    return id;
   }
 
   Future<void> updateOrder(ProcurementOrder order) async {
@@ -68,6 +378,7 @@ class ProcurementRepository {
       where: 'id = ?',
       whereArgs: [order.id],
     );
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'จัดซื้อจัดจ้าง', description: order.projectName ?? 'เอกสาร #${order.id}');
   }
 
   /// ดึงออร์เดอร์ทั้งหมด (สำหรับ Dashboard) เรียงล่าสุดขึ้นก่อน
@@ -106,6 +417,7 @@ class ProcurementRepository {
   Future<void> deleteOrder(int id) async {
     final db = await _db.database;
     await db.delete('procurement_orders', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'จัดซื้อจัดจ้าง', description: 'เอกสาร #$id');
   }
 
   // ─────────────────────────────────────────
@@ -190,6 +502,68 @@ class ProcurementRepository {
       }
 
       return orderId;
+    }).then((orderId) async {
+      final db2 = await _db.database;
+      final isNewOrder = order.id == null;
+      await AuditService.instance.log(
+        db2,
+        action: isNewOrder ? 'สร้าง' : 'แก้ไข',
+        tableLabel: 'จัดซื้อจัดจ้าง',
+        description: order.projectName ?? 'เอกสาร #$orderId',
+      );
+      // auto-create TOR ที่ผูกกับเอกสารนี้ไว้เลย ถ้ายังไม่เคยมี — เช็คแบบนี้แทนที่
+      // จะเช็คแค่ isNewOrder เพราะเอกสารที่เคยบันทึกไว้ก่อนฟีเจอร์นี้จะมีอยู่ (id
+      // ไม่ null) แต่ก็ยังไม่เคยมี TOR ผูกไว้เหมือนกัน — กด "บันทึก" ซ้ำครั้งไหน
+      // ก็ควรจะสร้าง TOR ให้ถ้ายังไม่มี ไม่ใช่แค่ตอนสร้างใหม่ครั้งแรกเท่านั้น
+      final existingTor = await db2.query('tor_documents', where: 'order_id = ?', whereArgs: [orderId], limit: 1);
+      if (existingTor.isEmpty) {
+        final now = DateTime.now();
+        const thaiMonths = [
+          '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+          'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+        ];
+        final createdDate = '${now.day} ${thaiMonths[now.month]} ${now.year + 543}';
+        // "รายละเอียดคุณลักษณะเฉพาะ" เริ่มต้น — ใช้ข้อความเดียวกับที่กรอกไว้แล้ว
+        // ในหน้าสร้างโครงการ (หัวเรื่อง + เหตุผลความจำเป็น) แทนการเว้นว่างไว้
+        // ผู้ใช้ยังแก้ไขต่อได้เองที่หน้า TOR
+        final specParts = <String>[
+          if ((order.procurementSubject ?? '').isNotEmpty) 'จัด${order.procurementSubject}',
+          if ((order.purposeReason ?? '').isNotEmpty) 'เหตุผลความจำเป็น: ${order.purposeReason}',
+        ];
+        final id = await db2.insert('tor_documents', TorDocument(
+          documentNumber: order.procurementNumber,
+          title: order.projectName ?? 'ไม่ระบุชื่อโครงการ',
+          category: order.orderType == 'จ้าง' ? 'จ้าง' : null,
+          estimatedAmount: order.allocatedAmount ?? order.currentOrderPrice,
+          createdDate: createdDate,
+          status: 'ร่าง',
+          specificationText: specParts.isEmpty ? null : specParts.join('\n\n'),
+          orderId: orderId,
+        ).toMap());
+        await AuditService.instance.log(db2, action: 'สร้าง', tableLabel: 'TOR/คุณลักษณะเฉพาะ', description: '${order.projectName ?? "ไม่ระบุชื่อโครงการ"} (สร้างอัตโนมัติ) #$id');
+      } else {
+        // TOR ผูกไว้อยู่แล้ว (อาจสร้างไว้ตั้งแต่ก่อนจะมี field พวกนี้) — เติมเฉพาะ
+        // ช่องที่ยังว่างอยู่ให้ ไม่แตะช่องที่ผู้ใช้กรอก/แก้ไขเองไปแล้ว
+        final existing = TorDocument.fromMap(existingTor.first);
+        final specParts = <String>[
+          if ((order.procurementSubject ?? '').isNotEmpty) 'จัด${order.procurementSubject}',
+          if ((order.purposeReason ?? '').isNotEmpty) 'เหตุผลความจำเป็น: ${order.purposeReason}',
+        ];
+        final updates = <String, Object?>{};
+        if ((existing.documentNumber ?? '').isEmpty && (order.procurementNumber ?? '').isNotEmpty) {
+          updates['document_number'] = order.procurementNumber;
+        }
+        if ((existing.specificationText ?? '').isEmpty && specParts.isNotEmpty) {
+          updates['specification_text'] = specParts.join('\n\n');
+        }
+        if (existing.estimatedAmount == null && (order.allocatedAmount ?? order.currentOrderPrice) != null) {
+          updates['estimated_amount'] = order.allocatedAmount ?? order.currentOrderPrice;
+        }
+        if (updates.isNotEmpty) {
+          await db2.update('tor_documents', updates, where: 'id = ?', whereArgs: [existing.id]);
+        }
+      }
+      return orderId;
     });
   }
 
@@ -213,5 +587,6 @@ class ProcurementRepository {
       settings.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ข้อมูลโรงเรียน', description: settings.schoolName ?? 'ตั้งค่าโรงเรียน');
   }
 }
