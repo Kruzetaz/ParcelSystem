@@ -321,7 +321,7 @@ class _AppShellState extends State<AppShell> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: colors.onPrimary.withOpacity(0.12),
+        color: colors.onPrimary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -353,9 +353,9 @@ class _AppShellState extends State<AppShell> {
       constraints: const BoxConstraints(maxWidth: 240),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: colors.onPrimary.withOpacity(0.12),
+        color: colors.onPrimary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.onPrimary.withOpacity(0.3)),
+        border: Border.all(color: colors.onPrimary.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -378,7 +378,7 @@ class _AppShellState extends State<AppShell> {
                     addressParts.join(' '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: colors.onPrimary.withOpacity(0.75), fontSize: 10.5),
+                    style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.75), fontSize: 10.5),
                   ),
               ],
             ),
@@ -417,9 +417,9 @@ class _AppShellState extends State<AppShell> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: colors.onPrimary.withOpacity(0.15),
+                          color: colors.onPrimary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: colors.onPrimary.withOpacity(0.4)),
+                          border: Border.all(color: colors.onPrimary.withValues(alpha: 0.4)),
                         ),
                         child: Text(
                           'v1.0',
@@ -432,7 +432,7 @@ class _AppShellState extends State<AppShell> {
                     'พัฒนาโดย Kru.Zetaz',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: colors.onPrimary.withOpacity(0.7)),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: colors.onPrimary.withValues(alpha: 0.7)),
                   ),
                 ],
               ),

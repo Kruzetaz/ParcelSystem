@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/contract.dart';
 import '../models/procurement_order.dart';
+import '../services/procurement_document_generator.dart';
+import '../services/toast_service.dart';
 
 const _contractTypes = ['สัญญาซื้อขาย', 'สัญญาจ้าง', 'ใบสั่งซื้อ', 'ใบสั่งจ้าง'];
 const _contractStatuses = ['กำลังดำเนินการ', 'ครบกำหนดแล้ว', 'ยกเลิก'];
@@ -27,6 +29,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
   List<Contract> _contracts = [];
   Map<int, ProcurementOrder> _ordersById = {};
   bool _loading = true;
+  int? _exportingId;
 
   @override
   void initState() {
@@ -76,6 +79,36 @@ class _ContractsScreenState extends State<ContractsScreen> {
     if (confirmed == true && c.id != null) {
       await _repo.deleteContract(c.id!);
       _load();
+    }
+  }
+
+  Future<void> _exportWord(Contract c, ProcurementDocumentType type) async {
+    final order = c.orderId != null ? _ordersById[c.orderId] : null;
+    if (order == null) {
+      showAppToast('สัญญานี้ไม่ได้ผูกกับรายการจัดซื้อจัดจ้าง จึงออกเอกสารไม่ได้', isError: true);
+      return;
+    }
+    final school = await _repo.getSchoolSettings();
+    if (school == null) {
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      return;
+    }
+    setState(() => _exportingId = c.id);
+    try {
+      final items = await _repo.getItems(order.id!);
+      await ProcurementDocumentGenerator.generateAndOpen(
+        type: type,
+        order: order,
+        school: school,
+        items: items,
+      );
+      if (!mounted) return;
+      showAppToast('สร้างเอกสารแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('สร้างเอกสารไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _exportingId = null);
     }
   }
 
@@ -195,7 +228,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: colors.primary.withOpacity(0.1),
+                            color: colors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(c.contractType!,
@@ -206,7 +239,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.12),
+                          color: statusColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(c.status,
@@ -239,6 +272,37 @@ class _ContractsScreenState extends State<ContractsScreen> {
               if (c.contractAmount != null)
                 Text('${c.contractAmount!.toStringAsFixed(2)} บาท',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.primary)),
+              if (linkedOrder != null) ...[
+                const SizedBox(width: 4),
+                (_exportingId == c.id)
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : PopupMenuButton<ProcurementDocumentType>(
+                        icon: Icon(Icons.description_outlined, color: colors.primary),
+                        tooltip: 'ออกเอกสาร Word',
+                        onSelected: _exportingId != null ? null : (type) => _exportWord(c, type),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: ProcurementDocumentType.contractOrderReport,
+                            child: Text('รายงานขอซื้อ/ขอจ้าง'),
+                          ),
+                          PopupMenuItem(
+                            value: ProcurementDocumentType.contractAnnouncement,
+                            child: Text('ประกาศผู้ชนะการเสนอราคา'),
+                          ),
+                          PopupMenuItem(
+                            value: ProcurementDocumentType.quotation,
+                            child: Text('ใบเสนอราคา'),
+                          ),
+                          PopupMenuItem(
+                            value: ProcurementDocumentType.deliveryNote,
+                            child: Text('ใบส่งมอบงาน'),
+                          ),
+                        ],
+                      ),
+              ],
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),

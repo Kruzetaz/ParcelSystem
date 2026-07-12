@@ -223,7 +223,7 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                       if (g.guaranteeType != null) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: colors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                          decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                           child: Text(g.guaranteeType!, style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
                         ),
                         const SizedBox(width: 8),
@@ -231,7 +231,7 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: (isHeld ? Colors.orange : Colors.green).withOpacity(0.12),
+                          color: (isHeld ? Colors.orange : Colors.green).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(g.status,

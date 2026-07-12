@@ -392,7 +392,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                           if (rows.length > 1) ...[
                             const SizedBox(width: 6),
                             Text('· ${rows.length} รายการย่อย',
-                              style: TextStyle(fontSize: 11.5, color: colors.onPrimaryContainer.withOpacity(0.7))),
+                              style: TextStyle(fontSize: 11.5, color: colors.onPrimaryContainer.withValues(alpha: 0.7))),
                           ],
                         ]),
                         const SizedBox(height: 2),
@@ -405,11 +405,11 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('คงเหลือรวม', style: TextStyle(fontSize: 10.5, color: colors.onPrimaryContainer.withOpacity(0.8))),
+                      Text('คงเหลือรวม', style: TextStyle(fontSize: 10.5, color: colors.onPrimaryContainer.withValues(alpha: 0.8))),
                       Text('${totalRemaining.toStringAsFixed(2)} บาท',
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.onPrimaryContainer)),
                       Text('จาก ${totalAllocated.toStringAsFixed(2)} บาท',
-                        style: TextStyle(fontSize: 10.5, color: colors.onPrimaryContainer.withOpacity(0.8))),
+                        style: TextStyle(fontSize: 10.5, color: colors.onPrimaryContainer.withValues(alpha: 0.8))),
                     ],
                   ),
                 ],

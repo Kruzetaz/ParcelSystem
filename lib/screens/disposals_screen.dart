@@ -163,7 +163,7 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
                       if (asset?.assetNumber != null) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: colors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                          decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                           child: Text(asset!.assetNumber!, style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
                         ),
                         const SizedBox(width: 8),
@@ -175,7 +175,7 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: (isCommitted ? Colors.green : Colors.orange).withOpacity(0.12),
+                          color: (isCommitted ? Colors.green : Colors.orange).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(d.status, style: TextStyle(fontSize: 11.5, color: isCommitted ? Colors.green : Colors.orange, fontWeight: FontWeight.w600)),

@@ -134,7 +134,7 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.15),
+                    color: Colors.amber.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.amber.shade700),
                   ),

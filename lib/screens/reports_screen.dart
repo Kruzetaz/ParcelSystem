@@ -240,10 +240,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: scoreColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: scoreColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
             child: Row(
               children: [
-                CircularProgressIndicator(value: overallScore, color: scoreColor, backgroundColor: scoreColor.withOpacity(0.2), strokeWidth: 6),
+                CircularProgressIndicator(value: overallScore, color: scoreColor, backgroundColor: scoreColor.withValues(alpha: 0.2), strokeWidth: 6),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -260,7 +260,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.amber.withOpacity(0.12), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.shade700)),
+            decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.shade700)),
             child: Row(
               children: [
                 Icon(Icons.info_outline, color: Colors.amber.shade800, size: 18),
@@ -320,7 +320,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           dense: true,
           leading: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
             child: Text(e.action, style: TextStyle(fontSize: 11.5, color: color, fontWeight: FontWeight.w600)),
           ),
           title: Text('${e.tableLabel}: ${e.description}', style: const TextStyle(fontSize: 13.5)),

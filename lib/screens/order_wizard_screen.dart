@@ -262,7 +262,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
             isScrollable: true,
             indicatorColor: colors.onPrimary,
             labelColor: colors.onPrimary,
-            unselectedLabelColor: colors.onPrimary.withOpacity(0.7),
+            unselectedLabelColor: colors.onPrimary.withValues(alpha: 0.7),
             tabs: const [
               Tab(text: '1. โรงเรียน/งบประมาณ'),
               Tab(text: '2. ผู้ปฏิบัติงาน'),
@@ -584,7 +584,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                     child: LinearProgressIndicator(),
                   )
                 : DropdownButtonFormField<Budget>(
-                    value: selectedBudget,
+                    initialValue: selectedBudget,
                     decoration: _inputDecoration('แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ)'),
                     isExpanded: true,
                     items: _budgets
@@ -602,7 +602,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             const SizedBox(height: 24),
             _sectionTitle(colors, 'ประเภทเอกสาร'),
             DropdownButtonFormField<String>(
-              value: _orderType,
+              initialValue: _orderType,
               decoration: _inputDecoration('จัดซื้อ หรือ จัดจ้าง'),
               items: const [
                 DropdownMenuItem(value: 'ซื้อ', child: Text('จัดซื้อ')),
@@ -1262,7 +1262,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: currentDocType,
+                    initialValue: currentDocType,
                     decoration: _inputDecoration('ใช้เอกสารอะไรตรวจรับ'),
                     items: _docTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocType: v)),
@@ -1702,7 +1702,7 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
               headerForegroundColor: colors.onPrimary,
               todayForegroundColor: WidgetStateProperty.all(colors.tertiary),
               todayBorder: BorderSide(color: colors.tertiary, width: 1.4),
-              dayOverlayColor: WidgetStateProperty.all(colors.tertiary.withOpacity(0.12)),
+              dayOverlayColor: WidgetStateProperty.all(colors.tertiary.withValues(alpha: 0.12)),
             ),
           ),
           child: child!,

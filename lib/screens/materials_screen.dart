@@ -6,7 +6,20 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/material_item.dart';
+import '../models/procurement_item.dart';
+import '../models/procurement_order.dart';
+import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
+
+const _thaiMonths = [
+  '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+];
+
+String _todayThai() {
+  final now = DateTime.now();
+  return '${now.day} ${_thaiMonths[now.month]} ${now.year + 543}';
+}
 
 enum _MaterialViewMode { table, grid }
 
@@ -110,6 +123,44 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     if (!mounted) return;
     showAppToast(isIn ? 'รับเข้า $qty ${m.unit ?? ""} แล้ว' : 'เบิกจ่าย $qty ${m.unit ?? ""} แล้ว');
     _load();
+    if (!isIn) await _offerRequisitionDoc(m, qty);
+  }
+
+  Future<void> _offerRequisitionDoc(MaterialItem m, double qty) async {
+    if (!mounted) return;
+    final wantsDoc = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ออกเอกสารใบเบิกพัสดุ'),
+        content: Text('ต้องการออกเอกสารใบเบิกพัสดุสำหรับ "${m.name}" จำนวน $qty ${m.unit ?? ""} นี้หรือไม่?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ไม่ต้อง')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ออกเอกสาร')),
+        ],
+      ),
+    );
+    if (wantsDoc != true) return;
+    final school = await _repo.getSchoolSettings();
+    if (!mounted) return;
+    if (school == null) {
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      return;
+    }
+    try {
+      await ProcurementDocumentGenerator.generateAndOpen(
+        type: ProcurementDocumentType.requisition,
+        order: ProcurementOrder(dateShipping: _todayThai()),
+        school: school,
+        items: [
+          ProcurementItem(itemName: m.name, quantity: qty, unit: m.unit, unitPrice: m.unitPrice ?? 0),
+        ],
+      );
+      if (!mounted) return;
+      showAppToast('สร้างเอกสารแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('สร้างเอกสารไม่สำเร็จ: $e', isError: true);
+    }
   }
 
   @override
@@ -179,7 +230,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     Widget card(String label, String value, Color color) => Expanded(
           child: Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -299,7 +350,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                     if (m.category != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: colors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                         child: Text(m.category!, style: TextStyle(fontSize: 10, color: colors.primary)),
                       ),
                   ],

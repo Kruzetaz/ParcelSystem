@@ -163,14 +163,14 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: colors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                    decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                     child: Text('ปี ${a.fiscalYear}', style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: (isDone ? Colors.green : Colors.orange).withOpacity(0.12),
+                      color: (isDone ? Colors.green : Colors.orange).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(a.status, style: TextStyle(fontSize: 11.5, color: isDone ? Colors.green : Colors.orange, fontWeight: FontWeight.w600)),
@@ -179,7 +179,7 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+                      decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
                       child: Text('พบชำรุด/สูญหาย ${a.damagedLostItems}', style: const TextStyle(fontSize: 11.5, color: Colors.redAccent, fontWeight: FontWeight.w600)),
                     ),
                   ],

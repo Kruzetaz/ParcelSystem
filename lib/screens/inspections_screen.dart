@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/inspection.dart';
 import '../models/procurement_order.dart';
+import '../services/procurement_document_generator.dart';
+import '../services/toast_service.dart';
 
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -41,6 +43,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
   List<Inspection> _inspections = [];
   Map<int, ProcurementOrder> _ordersById = {};
   bool _loading = true;
+  int? _exportingId;
 
   @override
   void initState() {
@@ -166,6 +169,36 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
     }
   }
 
+  Future<void> _exportDisbursementMemo(Inspection i) async {
+    final order = i.orderId != null ? _ordersById[i.orderId] : null;
+    if (order == null) {
+      showAppToast('รายการตรวจรับนี้ไม่ได้ผูกกับรายการจัดซื้อจัดจ้าง จึงออกเอกสารไม่ได้', isError: true);
+      return;
+    }
+    final school = await _repo.getSchoolSettings();
+    if (school == null) {
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      return;
+    }
+    setState(() => _exportingId = i.id);
+    try {
+      final items = await _repo.getItems(order.id!);
+      await ProcurementDocumentGenerator.generateAndOpen(
+        type: ProcurementDocumentType.disbursementMemo,
+        order: order,
+        school: school,
+        items: items,
+      );
+      if (!mounted) return;
+      showAppToast('สร้างเอกสารแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('สร้างเอกสารไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _exportingId = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -228,7 +261,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
     Widget card(String label, int count, Color color) => Expanded(
           child: Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -273,7 +306,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                     Row(children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: resultColor.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(color: resultColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
                         child: Text(i.result ?? 'รอตรวจรับ',
                           style: TextStyle(fontSize: 11.5, color: resultColor, fontWeight: FontWeight.w600)),
                       ),
@@ -281,7 +314,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+                          decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
                           child: const Text('ส่งมอบล่าช้า', style: TextStyle(fontSize: 11.5, color: Colors.redAccent, fontWeight: FontWeight.w600)),
                         ),
                       ],
@@ -309,6 +342,15 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                 TextButton(
                   onPressed: () => _calculatePenalty(i),
                   child: const Text('คำนวณค่าปรับ', style: TextStyle(fontSize: 12)),
+                ),
+              if (order != null)
+                IconButton(
+                  icon: _exportingId == i.id
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.description_outlined),
+                  tooltip: 'ออกเอกสารบันทึกขออนุมัติเบิกจ่าย',
+                  color: colors.primary,
+                  onPressed: _exportingId != null ? null : () => _exportDisbursementMemo(i),
                 ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),

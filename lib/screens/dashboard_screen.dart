@@ -233,7 +233,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: colors.primary.withOpacity(0.3),
+            color: colors.primary.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -267,7 +267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 4),
               Text(
                 fiscalYear == null ? 'ยังไม่มีข้อมูลปีงบประมาณ' : 'ปีงบประมาณ $fiscalYear',
-                style: TextStyle(color: colors.onPrimary.withOpacity(0.6), fontSize: 12.5),
+                style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 12.5),
               ),
             ],
           );
@@ -344,7 +344,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(color: colors.onPrimary.withOpacity(0.6), fontSize: 11.5),
+          style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 11.5),
         ),
       ],
     );
@@ -355,7 +355,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: 1,
       height: 32,
       margin: const EdgeInsets.symmetric(horizontal: 18),
-      color: colors.onPrimary.withOpacity(0.15),
+      color: colors.onPrimary.withValues(alpha: 0.15),
     );
   }
 
@@ -396,7 +396,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -461,7 +461,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: colors.primary.withOpacity(0.06),
+      color: colors.primary.withValues(alpha: 0.06),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -596,7 +596,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         side: BorderSide(color: selected ? colors.primary : colors.outlineVariant),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: selected ? 2 : 0,
-        shadowColor: colors.primary.withOpacity(0.3),
+        shadowColor: colors.primary.withValues(alpha: 0.3),
       );
     }
 
@@ -617,7 +617,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -716,7 +716,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -858,10 +858,10 @@ class _KpiCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: highlight ? Border.all(color: colors.tertiary.withOpacity(0.4), width: 1.2) : null,
+        border: highlight ? Border.all(color: colors.tertiary.withValues(alpha: 0.4), width: 1.2) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -875,7 +875,7 @@ class _KpiCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(icon, size: 18, color: iconColor),
@@ -930,7 +930,7 @@ class _ProgressRingPainter extends CustomPainter {
     final radius = (size.width - strokeWidth) / 2;
 
     final trackPaint = Paint()
-      ..color = trackColor.withOpacity(0.18)
+      ..color = trackColor.withValues(alpha: 0.18)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
 

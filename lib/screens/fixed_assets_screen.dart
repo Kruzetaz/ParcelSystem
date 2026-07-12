@@ -152,7 +152,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     Widget card(String label, String value, Color color) => Expanded(
           child: Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -247,7 +247,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
         final selected = a.id == _selectedId;
         return ListTile(
           selected: selected,
-          selectedTileColor: colors.primaryContainer.withOpacity(0.4),
+          selectedTileColor: colors.primaryContainer.withValues(alpha: 0.4),
           leading: _thumbnail(a, colors, size: 40),
           title: Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text('${a.assetNumber ?? "-"} · ${a.location ?? "-"}', maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -321,7 +321,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     };
     return Container(
       padding: EdgeInsets.symmetric(horizontal: small ? 5 : 8, vertical: 2),
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
       child: Text(status, style: TextStyle(fontSize: small ? 10 : 11.5, color: color, fontWeight: FontWeight.w600)),
     );
   }
