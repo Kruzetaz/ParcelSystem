@@ -17,7 +17,8 @@ flutter clean
 flutter pub get
 flutter build macos --release
 
-APP_PATH="build/macos/Build/Products/Release/ban_pa_lao_procurement.app"
+APP_PATH="build/macos/Build/Products/Release/ParcelSystem v.2.app"
+APP_BINARY="$APP_PATH/Contents/MacOS/ParcelSystem v.2"
 
 if [ -d "$APP_PATH" ]; then
   echo ""
@@ -27,8 +28,12 @@ if [ -d "$APP_PATH" ]; then
   echo "เสร็จแล้ว! เปิดแอปได้จาก:"
   echo "$PROJECT_DIR/$APP_PATH"
   echo ""
+  echo "หมายเหตุ: เครื่องรุ่นนี้ (macOS ใหม่) มีบั๊กจอดำถ้าเปิดผ่าน Finder/ดับเบิลคลิก"
+  echo "โดยตรง สคริปต์นี้เลยเปิดแอปด้วยวิธีรัน executable ตรงๆ แทน ซึ่งไม่เจอบั๊กนี้"
+  echo ""
   read -p "กด Enter เพื่อเปิดแอปทันที (หรือปิดหน้าต่างนี้ถ้าไม่ต้องการ)..."
-  open "$APP_PATH"
+  "$APP_BINARY" &
+  disown
 else
   echo ""
   echo "Build ไม่สำเร็จ — ดู error ด้านบนเพื่อหาสาเหตุ"

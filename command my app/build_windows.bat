@@ -5,7 +5,7 @@ REM แล้วสร้าง shortcut ไปวางที่ Desktop ให
 
 REM แก้ path นี้ให้ตรงกับตำแหน่งโปรเจกต์จริงในเครื่องคุณ
 set PROJECT_DIR=C:\Users\Powernet\Desktop\ParcelSystem
-set EXE_NAME=ban_pa_lao_procurement.exe
+set EXE_NAME=ParcelSystem v.2.exe
 
 cd /d "%PROJECT_DIR%"
 if errorlevel 1 (

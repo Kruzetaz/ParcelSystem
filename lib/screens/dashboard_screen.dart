@@ -14,6 +14,7 @@ import '../models/procurement_order.dart';
 import '../models/budget.dart';
 import '../models/school_settings.dart';
 import 'app_sidebar.dart' show AppMode;
+import '../services/toast_service.dart';
 
 enum _OrderFilter { all, draft, completed }
 
@@ -92,8 +93,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (confirmed == true && order.id != null) {
-      await _repo.deleteOrder(order.id!);
-      _load();
+      try {
+        await _repo.deleteOrder(order.id!);
+        if (!mounted) return;
+        _load();
+      } catch (e) {
+        if (!mounted) return;
+        showAppToast('ลบเอกสารไม่สำเร็จ: $e', isError: true);
+      }
     }
   }
 

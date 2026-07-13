@@ -414,9 +414,17 @@ class ProcurementRepository {
   }
 
   /// ลบออร์เดอร์ (items จะถูกลบอัตโนมัติจาก ON DELETE CASCADE)
+  /// สัญญา/รายการตรวจรับ/TOR ที่เคยผูกไว้กับเอกสารนี้จะถูก "เลิกผูก" (order_id
+  /// เป็น NULL) ก่อนลบเสมอ — ไม่งั้น FOREIGN KEY constraint จะบล็อกการลบเงียบๆ
+  /// (throw error โดยไม่มีอะไรแจ้งผู้ใช้ ทำให้ดูเหมือนกดลบแล้วไม่มีอะไรเกิดขึ้น)
   Future<void> deleteOrder(int id) async {
     final db = await _db.database;
-    await db.delete('procurement_orders', where: 'id = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      await txn.update('contracts', {'order_id': null}, where: 'order_id = ?', whereArgs: [id]);
+      await txn.update('inspections', {'order_id': null}, where: 'order_id = ?', whereArgs: [id]);
+      await txn.update('tor_documents', {'order_id': null}, where: 'order_id = ?', whereArgs: [id]);
+      await txn.delete('procurement_orders', where: 'id = ?', whereArgs: [id]);
+    });
     await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'จัดซื้อจัดจ้าง', description: 'เอกสาร #$id');
   }
 

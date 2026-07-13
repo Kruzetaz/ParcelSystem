@@ -118,13 +118,13 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           size: 24,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 40),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'ParcelSystem- ระบบจัดซื้อจัดจ้าง',
+                              'ParcelSystem- ระบบเจ้าหน้าที่พัสดุ-จัดซื้อจัดจ้าง',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -132,7 +132,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                               ),
                             ),
                             Text(
-                              'v1.0.0 · พัฒนาโดย Kru.ZetaZ',
+                              'v2.0.1 · พัฒนาโดย Kru.ZetaZ',
                               style: TextStyle(color: Colors.grey, fontSize: 12),
                             ),
                           ],

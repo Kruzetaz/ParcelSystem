@@ -407,7 +407,7 @@ class _AppShellState extends State<AppShell> {
                     children: [
                       Flexible(
                         child: Text(
-                          'ระบบจัดซื้อจัดจ้าง',
+                          'ระบบเจ้าหน้าที่พัสดุ-จัดซื้อจัดจ้าง',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.onPrimary),
@@ -422,7 +422,7 @@ class _AppShellState extends State<AppShell> {
                           border: Border.all(color: colors.onPrimary.withValues(alpha: 0.4)),
                         ),
                         child: Text(
-                          'v1.0',
+                          'v2.0.1',
                           style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.onPrimary),
                         ),
                       ),
