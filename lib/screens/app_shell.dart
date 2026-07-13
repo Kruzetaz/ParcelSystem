@@ -33,6 +33,7 @@ import '../data/procurement_repository.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup_service.dart';
 import '../services/theme_controller.dart';
+import '../services/toast_service.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -197,17 +198,10 @@ class _AppShellState extends State<AppShell> {
     try {
       final path = await BackupService.instance.backup();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('สำรองข้อมูลสำเร็จ\n$path'),
-        backgroundColor: Colors.green.shade700,
-        duration: const Duration(seconds: 5),
-      ));
+      showAppToast('สำรองข้อมูลสำเร็จ\n$path');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('สำรองข้อมูลไม่สำเร็จ: $e'),
-        backgroundColor: Colors.redAccent,
-      ));
+      showAppToast('สำรองข้อมูลไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -243,18 +237,12 @@ class _AppShellState extends State<AppShell> {
     try {
       await BackupService.instance.restore(result.files.single.path!);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('คืนข้อมูลสำเร็จ กำลังโหลดข้อมูลใหม่...'),
-        backgroundColor: Colors.green.shade700,
-      ));
+      showAppToast('คืนข้อมูลสำเร็จ กำลังโหลดข้อมูลใหม่...');
       // reload dashboard
       setState(() { _mode = AppMode.dashboard; });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('คืนข้อมูลไม่สำเร็จ: $e'),
-        backgroundColor: Colors.redAccent,
-      ));
+      showAppToast('คืนข้อมูลไม่สำเร็จ: $e', isError: true);
     }
   }
 

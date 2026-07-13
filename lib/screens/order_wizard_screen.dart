@@ -203,15 +203,11 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       _clearDirty();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกเอกสารสำเร็จ')),
-      );
+      showAppToast('บันทึกเอกสารสำเร็จ');
       widget.onSaved();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('บันทึกไม่สำเร็จ: $e')),
-      );
+      showAppToast('บันทึกไม่สำเร็จ: $e', isError: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -235,14 +231,10 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('สร้างเอกสาร Word สำเร็จ กำลังเปิดไฟล์...')),
-      );
+      showAppToast('สร้างเอกสาร Word สำเร็จ กำลังเปิดไฟล์...');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('สร้างเอกสารไม่สำเร็จ: $e')),
-      );
+      showAppToast('สร้างเอกสารไม่สำเร็จ: $e', isError: true);
     } finally {
       if (mounted) setState(() => _generatingDoc = false);
     }
@@ -467,7 +459,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+        showAppToast('เกิดข้อผิดพลาด: $e', isError: true);
         setState(() => _loadingBudgets = false);
       }
     }

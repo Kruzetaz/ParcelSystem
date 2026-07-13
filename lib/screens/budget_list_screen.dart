@@ -879,7 +879,12 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
       activityName: _activityName.text.trim().isEmpty ? null : _activityName.text.trim(),
       egpNumber: _egpNumber.text.trim().isEmpty ? null : _egpNumber.text.trim(),
       allocatedAmount: allocated,
-      remainingAmount: widget.existing?.remainingAmount ?? allocated,
+      // เดิมตอนแก้ไขจะคงค่า remainingAmount เก่าไว้เสมอ ไม่ว่าจะแก้วงเงินที่ได้รับ
+      // จัดสรรเป็นเท่าไหร่ก็ตาม ทำให้ "คงเหลือรวม" ในตารางไม่ตรงกับยอดที่เพิ่งแก้ —
+      // ทั้งระบบไม่มีจุดไหนหักลด remainingAmount ตามการใช้จ่ายจริงเลย (ไม่มีฟีเจอร์
+      // ผูกงบกับออร์เดอร์แล้วหักอัตโนมัติ) จึงให้ remainingAmount = allocatedAmount
+      // เสมอทุกครั้งที่บันทึก กันไม่ให้สองค่านี้เพี้ยนไปจากกัน
+      remainingAmount: allocated,
       responsiblePerson: _responsiblePerson.text.trim().isEmpty ? null : _responsiblePerson.text.trim(),
     );
     if (widget.existing == null) {

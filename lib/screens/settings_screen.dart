@@ -108,14 +108,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
       await _repo.saveSchoolSettings(settings);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกข้อมูลโรงเรียนสำเร็จ')),
-      );
+      showAppToast('บันทึกข้อมูลโรงเรียนสำเร็จ');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('บันทึกไม่สำเร็จ: $e')),
-      );
+      showAppToast('บันทึกไม่สำเร็จ: $e', isError: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
