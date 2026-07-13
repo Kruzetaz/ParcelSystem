@@ -3,6 +3,17 @@
 // ใช้สำหรับ Auto-Population: เลือกโครงการย่อยแล้วดึงงบคงเหลือ/egp/ผู้รับผิดชอบ
 // มากรอกในฟอร์ม procurement_orders อัตโนมัติ
 
+/// 5 กลุ่มงานมาตรฐานของโรงเรียน — ใช้ร่วมกันทั้งฟอร์มกรอกมือ, ตัวกรอง, และตัว import
+/// จากไฟล์ (budget_list_screen.dart / budget_import_service.dart / budget_import_dialog.dart)
+/// รวมไว้ที่เดียวกันไม่ให้ 3 ที่หลุดไม่ตรงกัน
+const budgetDepartmentGroups = [
+  'งบกลุ่มบริหารงานวิชาการ',
+  'งบกลุ่มบริหารงานงบประมาณ',
+  'งบกลุ่มบริหารงานบุคคล',
+  'งบกลุ่มบริหารงานบริหารทั่วไป',
+  'งบกิจกรรมพัฒนาผู้เรียน',
+];
+
 class Budget {
   final int? id;
   final String fiscalYear;

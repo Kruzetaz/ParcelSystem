@@ -16,6 +16,9 @@ import '../widgets/budget_import_dialog.dart';
 
 enum _BudgetViewMode { card, table }
 
+/// วิธีจัดการรายการที่ซ้ำกันตอน import จากไฟล์
+enum _DuplicateResolution { replace, keepBoth, skip }
+
 class BudgetListScreen extends StatefulWidget {
   const BudgetListScreen({super.key});
   @override
@@ -85,8 +88,42 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       ),
     );
     if (confirmed == true && budget.id != null) {
-      await _repo.deleteBudget(budget.id!);
+      try {
+        await _repo.deleteBudget(budget.id!);
+        if (!mounted) return;
+        _load();
+      } catch (e) {
+        if (!mounted) return;
+        showAppToast('ลบแผนงบไม่สำเร็จ: $e', isError: true);
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันการลบทั้งหมด'),
+        content: Text('ต้องการลบแผนงบประมาณทั้งหมด ${_budgets.length} รายการใช่หรือไม่?\nการลบนี้ไม่สามารถย้อนกลับได้'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ลบทั้งหมด'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _repo.deleteAllBudgets();
+      if (!mounted) return;
+      showAppToast('ลบแผนงบประมาณทั้งหมดแล้ว');
       _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('ลบแผนงบไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -111,11 +148,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
       final confirmed = await showBudgetImportPreviewDialog(context, parsed);
       if (confirmed != null && confirmed.isNotEmpty) {
-        for (final b in confirmed) {
-          await _repo.insertBudget(b);
-        }
-        showAppToast('นำเข้า ${confirmed.length} แผนงบประมาณแล้ว');
-        _load();
+        await _saveImportedBudgets(confirmed);
       }
     } catch (e) {
       if (!mounted) return;
@@ -124,12 +157,110 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     }
   }
 
+  /// ถือว่าซ้ำกันถ้าปีงบประมาณ + ชื่อโครงการ + กิจกรรม ตรงกันเป๊ะ (ตัดช่องว่างหัวท้าย)
+  Budget? _findDuplicate(Budget b) {
+    for (final existing in _budgets) {
+      if (existing.fiscalYear.trim() == b.fiscalYear.trim() &&
+          (existing.projectName ?? '').trim() == (b.projectName ?? '').trim() &&
+          (existing.activityName ?? '').trim() == (b.activityName ?? '').trim()) {
+        return existing;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _saveImportedBudgets(List<Budget> incoming) async {
+    final duplicates = <MapEntry<Budget, Budget>>[]; // (ของใหม่, ของเดิมที่ซ้ำ)
+    final freshOnes = <Budget>[];
+    for (final b in incoming) {
+      final existing = _findDuplicate(b);
+      if (existing != null) {
+        duplicates.add(MapEntry(b, existing));
+      } else {
+        freshOnes.add(b);
+      }
+    }
+
+    var resolution = _DuplicateResolution.keepBoth;
+    if (duplicates.isNotEmpty) {
+      if (!mounted) return;
+      final chosen = await _askDuplicateResolution(duplicates.length);
+      if (chosen == null) return; // ผู้ใช้กดยกเลิก — ไม่บันทึกอะไรเลย
+      resolution = chosen;
+    }
+
+    var savedCount = 0;
+    for (final b in freshOnes) {
+      await _repo.insertBudget(b);
+      savedCount++;
+    }
+    for (final entry in duplicates) {
+      switch (resolution) {
+        case _DuplicateResolution.replace:
+          await _repo.updateBudget(entry.key.copyWith(id: entry.value.id));
+          savedCount++;
+        case _DuplicateResolution.keepBoth:
+          await _repo.insertBudget(entry.key);
+          savedCount++;
+        case _DuplicateResolution.skip:
+          break;
+      }
+    }
+
+    if (!mounted) return;
+    showAppToast('นำเข้า $savedCount แผนงบประมาณแล้ว'
+        '${duplicates.isNotEmpty && resolution == _DuplicateResolution.skip ? ' (ข้ามรายการซ้ำ ${duplicates.length} รายการ)' : ''}');
+    _load();
+  }
+
+  Future<_DuplicateResolution?> _askDuplicateResolution(int count) {
+    return showDialog<_DuplicateResolution>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('พบรายการซ้ำ'),
+        content: Text(
+          'พบ $count รายการที่ปีงบประมาณ/ชื่อโครงการ/กิจกรรม ตรงกับที่มีอยู่แล้วในระบบ\n'
+          'ต้องการจัดการรายการที่ซ้ำอย่างไร?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('ยกเลิกทั้งหมด'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, _DuplicateResolution.skip),
+            child: const Text('ข้ามรายการซ้ำ'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(ctx, _DuplicateResolution.keepBoth),
+            child: const Text('เก็บไว้ทั้งคู่'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, _DuplicateResolution.replace),
+            child: const Text('แทนที่ของเดิม'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────
   // การกรอง + จัดกลุ่ม
   // ─────────────────────────────────────────
 
-  List<String> get _departmentOptions =>
-      _budgets.map((b) => b.groupName).whereType<String>().where((s) => s.isNotEmpty).toSet().toList()..sort();
+  /// ตัวเลือกฝ่าย/แผนงาน — ใช้ 5 กลุ่มมาตรฐานเป็นหลัก + รวมค่าเก่าที่เคยกรอกไว้
+  /// แบบข้อความอิสระก่อนเปลี่ยนเป็น dropdown (กันไม่ให้ข้อมูลเก่าหายไปจากตัวกรอง)
+  List<String> get _departmentOptions {
+    final legacy = _budgets
+        .map((b) => b.groupName)
+        .whereType<String>()
+        .where((s) => s.isNotEmpty && !budgetDepartmentGroups.contains(s))
+        .toSet()
+        .toList()
+      ..sort();
+    return [...budgetDepartmentGroups, ...legacy];
+  }
 
   List<String> get _projectOptions => _budgets
       .where((b) => _selectedDepartment == null || b.groupName == _selectedDepartment)
@@ -185,12 +316,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _buildFilterBar(colors),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildFilterBar(colors)),
-                      const SizedBox(width: 12),
                       _buildViewToggle(colors),
-                      const SizedBox(width: 12),
+                      const Spacer(),
                       OutlinedButton.icon(
                         onPressed: _importing ? null : _importFromFile,
                         icon: _importing
@@ -201,6 +332,13 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                               )
                             : const Icon(Icons.folder_open_outlined),
                         label: Text(_importing ? 'กำลังนำเข้า...' : '📂 Import จากไฟล์'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _budgets.isEmpty ? null : _confirmDeleteAll,
+                        style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+                        icon: const Icon(Icons.delete_sweep_outlined),
+                        label: const Text('ลบแผนงบทั้งหมด'),
                       ),
                     ],
                   ),
@@ -260,7 +398,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     return Row(
       children: [
         Expanded(
-          flex: 3,
+          flex: 2,
           child: TextField(
             controller: _searchCtrl,
             decoration: const InputDecoration(
@@ -272,7 +410,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          flex: 2,
+          flex: 4,
           child: _buildDropdown(
             colors: colors,
             hint: 'ฝ่าย/แผนงาน (ทั้งหมด)',
@@ -289,7 +427,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          flex: 2,
+          flex: 3,
           child: _buildDropdown(
             colors: colors,
             hint: 'โครงการ (ทั้งหมด)',
@@ -585,7 +723,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
   final _repo = ProcurementRepository();
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _fiscalYear;
-  late final TextEditingController _groupName;
+  String? _groupName;
   late final TextEditingController _projectName;
   late final TextEditingController _activityName;
   late final TextEditingController _egpNumber;
@@ -598,7 +736,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     super.initState();
     final b = widget.existing;
     _fiscalYear = TextEditingController(text: b?.fiscalYear ?? '');
-    _groupName = TextEditingController(text: b?.groupName ?? '');
+    _groupName = (b?.groupName != null && b!.groupName!.isNotEmpty) ? b.groupName : null;
     _projectName = TextEditingController(text: b?.projectName ?? '');
     _activityName = TextEditingController(text: b?.activityName ?? '');
     _egpNumber = TextEditingController(text: b?.egpNumber ?? '');
@@ -608,7 +746,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
 
   @override
   void dispose() {
-    for (final c in [_fiscalYear, _groupName, _projectName, _activityName, _egpNumber, _allocatedAmount, _responsiblePerson]) {
+    for (final c in [_fiscalYear, _projectName, _activityName, _egpNumber, _allocatedAmount, _responsiblePerson]) {
       c.dispose();
     }
     super.dispose();
@@ -621,7 +759,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     final b = Budget(
       id: widget.existing?.id,
       fiscalYear: _fiscalYear.text.trim(),
-      groupName: _groupName.text.trim().isEmpty ? null : _groupName.text.trim(),
+      groupName: _groupName,
       projectName: _projectName.text.trim().isEmpty ? null : _projectName.text.trim(),
       activityName: _activityName.text.trim().isEmpty ? null : _activityName.text.trim(),
       egpNumber: _egpNumber.text.trim().isEmpty ? null : _egpNumber.text.trim(),
@@ -653,7 +791,24 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _field(_fiscalYear, 'ปีงบประมาณ *', required: true, hint: 'เช่น 2568'),
-                _field(_groupName, 'ฝ่าย/แผนงาน', hint: 'เช่น ฝ่ายบริหารงานทั่วไป'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: _groupName,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'ฝ่าย/แผนงาน', border: OutlineInputBorder(), isDense: true,
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
+                      ...budgetDepartmentGroups.map((g) => DropdownMenuItem(
+                            value: g,
+                            child: Text(g, overflow: TextOverflow.ellipsis),
+                          )),
+                    ],
+                    onChanged: (v) => setState(() => _groupName = v),
+                  ),
+                ),
                 _field(_projectName, 'ชื่อโครงการ (โครงการหลัก)'),
                 _field(_activityName, 'กิจกรรม/โครงการย่อย'),
                 _field(_egpNumber, 'เลขที่ e-GP'),

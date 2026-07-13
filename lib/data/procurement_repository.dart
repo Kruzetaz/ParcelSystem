@@ -60,10 +60,26 @@ class ProcurementRepository {
     return Budget.fromMap(rows.first);
   }
 
+  /// ลบแผนงบ 1 รายการ — เอกสารจัดซื้อจัดจ้างที่เคยผูกกับแผนงบนี้ (budget_id) จะถูก
+  /// เลิกผูกก่อนลบเสมอ ไม่งั้น FOREIGN KEY constraint จะบล็อกการลบเงียบๆ
   Future<void> deleteBudget(int id) async {
     final db = await _db.database;
-    await db.delete('budgets', where: 'id = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      await txn.update('procurement_orders', {'budget_id': null}, where: 'budget_id = ?', whereArgs: [id]);
+      await txn.delete('budgets', where: 'id = ?', whereArgs: [id]);
+    });
     await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'แผนงบประมาณ', description: 'แผนงบ #$id');
+  }
+
+  /// ลบแผนงบทั้งหมดในครั้งเดียว — เลิกผูกเอกสารจัดซื้อจัดจ้างทุกใบที่เกี่ยวข้องก่อนลบ
+  /// เช่นเดียวกับ deleteBudget
+  Future<void> deleteAllBudgets() async {
+    final db = await _db.database;
+    await db.transaction((txn) async {
+      await txn.update('procurement_orders', {'budget_id': null});
+      await txn.delete('budgets');
+    });
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'แผนงบประมาณ', description: 'ลบแผนงบประมาณทั้งหมด');
   }
 
   // ─────────────────────────────────────────

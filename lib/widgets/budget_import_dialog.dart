@@ -6,12 +6,14 @@ import '../models/budget.dart';
 
 class _EditableBudget {
   final TextEditingController fiscalYear;
+  String? groupName;
   final TextEditingController projectName;
   final TextEditingController activityName;
   final TextEditingController allocatedAmount;
 
   _EditableBudget(Budget b)
       : fiscalYear = TextEditingController(text: b.fiscalYear),
+        groupName = budgetDepartmentGroups.contains(b.groupName) ? b.groupName : null,
         projectName = TextEditingController(text: b.projectName ?? ''),
         activityName = TextEditingController(text: b.activityName ?? ''),
         allocatedAmount = TextEditingController(text: b.allocatedAmount?.toStringAsFixed(2) ?? '');
@@ -25,6 +27,7 @@ class _EditableBudget {
 
   Budget toBudget() => Budget(
         fiscalYear: fiscalYear.text.trim(),
+        groupName: groupName,
         projectName: projectName.text.trim().isEmpty ? null : projectName.text.trim(),
         activityName: activityName.text.trim().isEmpty ? null : activityName.text.trim(),
         allocatedAmount: double.tryParse(allocatedAmount.text.trim()),
@@ -150,55 +153,79 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
   Widget _buildRow(ColorScheme colors, int index) {
     final row = _rows[index];
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 70,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
-                controller: row.fiscalYear,
-                decoration: const InputDecoration(isDense: true, hintText: 'ปีงบ'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 70,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: TextField(
+                    controller: row.fiscalYear,
+                    decoration: const InputDecoration(isDense: true, hintText: 'ปีงบ'),
+                  ),
+                ),
               ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
-                controller: row.projectName,
-                decoration: const InputDecoration(isDense: true, hintText: 'ชื่อโครงการ'),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: TextField(
+                    controller: row.projectName,
+                    decoration: const InputDecoration(isDense: true, hintText: 'ชื่อโครงการ'),
+                  ),
+                ),
               ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
-                controller: row.activityName,
-                decoration: const InputDecoration(isDense: true, hintText: 'กิจกรรม'),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: TextField(
+                    controller: row.activityName,
+                    decoration: const InputDecoration(isDense: true, hintText: 'กิจกรรม'),
+                  ),
+                ),
               ),
-            ),
-          ),
-          SizedBox(
-            width: 110,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
-                controller: row.allocatedAmount,
-                textAlign: TextAlign.right,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(isDense: true, hintText: 'วงเงิน'),
+              SizedBox(
+                width: 110,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: TextField(
+                    controller: row.allocatedAmount,
+                    textAlign: TextAlign.right,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(isDense: true, hintText: 'วงเงิน'),
+                  ),
+                ),
               ),
-            ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                onPressed: () => _removeAt(index),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-            onPressed: () => _removeAt(index),
+          Padding(
+            padding: const EdgeInsets.only(left: 78, right: 40),
+            child: DropdownButtonFormField<String?>(
+              initialValue: row.groupName,
+              isDense: true,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                isDense: true, hintText: 'ฝ่าย/แผนงาน (ไม่ระบุ)',
+                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                border: InputBorder.none,
+              ),
+              style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+              items: [
+                const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุฝ่าย/แผนงาน)')),
+                ...budgetDepartmentGroups.map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis))),
+              ],
+              onChanged: (v) => setState(() => row.groupName = v),
+            ),
           ),
         ],
       ),
