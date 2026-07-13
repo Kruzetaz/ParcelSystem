@@ -10,6 +10,7 @@ class ProcurementOrder {
   final int? budgetId;
   final String? fiscalYear;
   final String? orderType; // 'ซื้อ' | 'จ้าง'
+  final String? procurementMethod; // เช่น 'เฉพาะเจาะจง ไม่เกิน 5,000 บาท', 'ว.804 ไม่เกิน 50,000 บาท'
 
   final String? procurementNumber; // {{procurement_number}}
   final String? orderNumber; // {{order_number}}
@@ -92,6 +93,7 @@ class ProcurementOrder {
     this.budgetId,
     this.fiscalYear,
     this.orderType,
+    this.procurementMethod,
     this.procurementNumber,
     this.orderNumber,
     this.projectName,
@@ -160,6 +162,7 @@ class ProcurementOrder {
         'budget_id': budgetId,
         'fiscal_year': fiscalYear,
         'order_type': orderType,
+        'procurement_method': procurementMethod,
         'procurement_number': procurementNumber,
         'order_number': orderNumber,
         'project_name': projectName,
@@ -228,6 +231,7 @@ class ProcurementOrder {
         budgetId: m['budget_id'] as int?,
         fiscalYear: m['fiscal_year'] as String?,
         orderType: m['order_type'] as String?,
+        procurementMethod: m['procurement_method'] as String?,
         procurementNumber: m['procurement_number'] as String?,
         orderNumber: m['order_number'] as String?,
         projectName: m['project_name'] as String?,
@@ -296,6 +300,7 @@ class ProcurementOrder {
     int? budgetId,
     String? fiscalYear,
     String? orderType,
+    String? procurementMethod,
     String? procurementNumber,
     String? orderNumber,
     String? projectName,
@@ -363,6 +368,7 @@ class ProcurementOrder {
       budgetId: budgetId ?? this.budgetId,
       fiscalYear: fiscalYear ?? this.fiscalYear,
       orderType: orderType ?? this.orderType,
+      procurementMethod: procurementMethod ?? this.procurementMethod,
       procurementNumber: procurementNumber ?? this.procurementNumber,
       orderNumber: orderNumber ?? this.orderNumber,
       projectName: projectName ?? this.projectName,
@@ -426,4 +432,15 @@ class ProcurementOrder {
       currentStatus: currentStatus ?? this.currentStatus,
     );
   }
+}
+
+/// 4 ระดับวงเงินตามระเบียบกระทรวงการคลังว่าด้วยการจัดซื้อจัดจ้างและการบริหารพัสดุ
+/// ภาครัฐ พ.ศ. 2560 + หนังสือเวียน ว.804 — ใช้แนะนำวิธีจัดซื้อจัดจ้างให้อัตโนมัติ
+/// ใน Easy Wizard (คำแนะนำเบื้องต้นเท่านั้น ผู้ใช้ควรตรวจสอบระเบียบจริงอีกครั้ง
+/// ก่อนใช้อ้างอิงในเอกสารราชการ)
+String procurementMethodForAmount(double amount) {
+  if (amount <= 5000) return 'เฉพาะเจาะจง (ไม่เกิน 5,000 บาท)';
+  if (amount <= 50000) return 'เฉพาะเจาะจงตาม ว.804 (ไม่เกิน 50,000 บาท)';
+  if (amount <= 500000) return 'เฉพาะเจาะจง';
+  return 'ประกาศเชิญชวนทั่วไป (e-bidding)';
 }

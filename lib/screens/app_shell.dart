@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import 'app_sidebar.dart';
 import 'dashboard_screen.dart';
 import 'order_wizard_screen.dart';
+import 'easy_wizard_screen.dart';
+import 'document_hub_screen.dart';
 import 'budget_list_screen.dart';
 import 'tor_screen.dart';
 import 'contracts_screen.dart';
@@ -119,6 +121,12 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _onDashboardEditOrder(ProcurementOrder order) {
+    _requestModeChange(AppMode.newOrder, editingOrder: order);
+  }
+
+  // Easy Wizard สร้างร่างเอกสารเสร็จแล้ว → พาไปหน้า "สร้างใหม่" (wizard เต็ม)
+  // ให้กรอกรายละเอียดที่เหลือต่อทันที
+  void _onEasyWizardCreated(ProcurementOrder order) {
     _requestModeChange(AppMode.newOrder, editingOrder: order);
   }
 
@@ -287,6 +295,8 @@ class _AppShellState extends State<AppShell> {
           onDirtyChanged: _onWizardDirtyChanged,
           onSaved: _onWizardSaved,
         );
+      case AppMode.easyWizard:
+        return EasyWizardScreen(onCreated: _onEasyWizardCreated);
       case AppMode.budgets:
         return const BudgetListScreen();
       case AppMode.tor:
@@ -297,6 +307,8 @@ class _AppShellState extends State<AppShell> {
         return const GuaranteesScreen();
       case AppMode.inspections:
         return const InspectionsScreen();
+      case AppMode.documentHub:
+        return const DocumentHubScreen();
       case AppMode.fixedAssets:
         return const FixedAssetsScreen();
       case AppMode.materials:

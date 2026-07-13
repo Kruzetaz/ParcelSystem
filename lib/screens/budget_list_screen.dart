@@ -37,6 +37,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   String? _selectedDepartment; // null = ทั้งหมด — ใช้ค่าจาก groupName
   String? _selectedProject; // null = ทั้งหมด — ใช้ค่าจาก projectName
 
+  // โหมด "กำหนดฝ่าย/แผนงานหลายโครงการพร้อมกัน" — เลือกได้ทีละโครงการ (ทุกรายการ
+  // ย่อย/กิจกรรมในโครงการนั้นจะได้ฝ่ายเดียวกัน) กันไม่ให้ต้องไล่แก้ทีละโครงการเอง
+  bool _bulkAssignMode = false;
+  final Set<String> _selectedProjectKeys = {};
+  bool _applyingBulkAssign = false;
+
   @override
   void initState() {
     super.initState();
@@ -125,6 +131,97 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       if (!mounted) return;
       showAppToast('ลบแผนงบไม่สำเร็จ: $e', isError: true);
     }
+  }
+
+  void _toggleBulkAssignMode() {
+    setState(() {
+      _bulkAssignMode = !_bulkAssignMode;
+      _selectedProjectKeys.clear();
+    });
+  }
+
+  void _toggleProjectSelection(String projectKey) {
+    setState(() {
+      if (_selectedProjectKeys.contains(projectKey)) {
+        _selectedProjectKeys.remove(projectKey);
+      } else {
+        _selectedProjectKeys.add(projectKey);
+      }
+    });
+  }
+
+  Future<void> _applyBulkAssign(String group) async {
+    setState(() => _applyingBulkAssign = true);
+    try {
+      var updatedCount = 0;
+      for (final entry in _groupedByProject) {
+        if (!_selectedProjectKeys.contains(entry.key)) continue;
+        for (final b in entry.value) {
+          if (b.id == null || b.groupName == group) continue;
+          await _repo.updateBudget(b.copyWith(groupName: group));
+          updatedCount++;
+        }
+      }
+      if (!mounted) return;
+      showAppToast('กำหนดฝ่าย/แผนงานให้ $updatedCount รายการแล้ว');
+      setState(() {
+        _bulkAssignMode = false;
+        _selectedProjectKeys.clear();
+      });
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('กำหนดฝ่าย/แผนงานไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _applyingBulkAssign = false);
+    }
+  }
+
+  Widget _buildBulkAssignBar(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.checklist_outlined, color: colors.onPrimaryContainer, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _selectedProjectKeys.isEmpty
+                  ? 'เลือกโครงการที่ต้องการกำหนดฝ่าย/แผนงาน (ติ๊กที่หัวการ์ดแต่ละโครงการ)'
+                  : 'เลือกแล้ว ${_selectedProjectKeys.length} โครงการ — ทุกรายการย่อยในโครงการนั้นจะได้ฝ่ายเดียวกัน',
+              style: TextStyle(color: colors.onPrimaryContainer, fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 12),
+          PopupMenuButton<String>(
+            enabled: _selectedProjectKeys.isNotEmpty && !_applyingBulkAssign,
+            onSelected: _applyBulkAssign,
+            itemBuilder: (_) => budgetDepartmentGroups
+                .map((g) => PopupMenuItem(value: g, child: Text(g)))
+                .toList(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_applyingBulkAssign)
+                    SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                  else
+                    Icon(Icons.arrow_drop_down, color: colors.onPrimary),
+                  const SizedBox(width: 6),
+                  Text('กำหนดฝ่าย/แผนงาน', style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _importFromFile() async {
@@ -335,6 +432,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       ),
                       const SizedBox(width: 12),
                       OutlinedButton.icon(
+                        onPressed: _budgets.isEmpty ? null : _toggleBulkAssignMode,
+                        icon: Icon(_bulkAssignMode ? Icons.close : Icons.edit_note_outlined),
+                        label: Text(_bulkAssignMode ? 'ยกเลิกเลือก' : 'กำหนดฝ่ายหลายโครงการ'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
                         onPressed: _budgets.isEmpty ? null : _confirmDeleteAll,
                         style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
                         icon: const Icon(Icons.delete_sweep_outlined),
@@ -342,6 +445,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       ),
                     ],
                   ),
+                  if (_bulkAssignMode) ...[
+                    const SizedBox(height: 12),
+                    _buildBulkAssignBar(colors),
+                  ],
                   const SizedBox(height: 16),
                   Expanded(
                     child: _loading
@@ -508,6 +615,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               ),
               child: Row(
                 children: [
+                  if (_bulkAssignMode)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Checkbox(
+                        value: _selectedProjectKeys.contains(group.key),
+                        onChanged: (_) => _toggleProjectSelection(group.key),
+                      ),
+                    ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

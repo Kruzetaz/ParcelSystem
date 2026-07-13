@@ -5,8 +5,15 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/guarantee.dart';
+import '../models/contract.dart';
 
 const _guaranteeTypes = ['หลักประกันซอง', 'หลักประกันสัญญา', 'เงินสด', 'หนังสือค้ำประกันธนาคาร'];
+
+// ตามระเบียบกระทรวงการคลังว่าด้วยการจัดซื้อจัดจ้างฯ พ.ศ. 2560 ข้อ 168 + มาตรา 97 —
+// สัญญาวงเงิน ≥ 100,000 บาท ต้องวางหลักประกันสัญญา (เกณฑ์ทั่วไป 5% ของวงเงิน)
+// เป็นคำแนะนำเบื้องต้นเท่านั้น ไม่ใช่การรับรองความถูกต้องทางกฎหมาย
+const _guaranteeRequiredThreshold = 100000.0;
+const _guaranteeRate = 0.05;
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
@@ -23,6 +30,7 @@ class GuaranteesScreen extends StatefulWidget {
 class _GuaranteesScreenState extends State<GuaranteesScreen> {
   final _repo = ProcurementRepository();
   List<Guarantee> _guarantees = [];
+  List<Contract> _contracts = [];
   bool _loading = true;
   String? _selectedType; // null = ทั้งหมด
 
@@ -35,11 +43,25 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final list = await _repo.getAllGuarantees();
+    final contracts = await _repo.getAllContracts();
     if (!mounted) return;
     setState(() {
       _guarantees = list;
+      _contracts = contracts;
       _loading = false;
     });
+  }
+
+  /// สัญญาที่วงเงินถึงเกณฑ์ต้องวางหลักประกัน แต่ยังไม่มีหลักประกันอ้างอิงมาที่
+  /// สัญญานั้น (ผ่าน contract_id) — แจ้งเตือนให้ผู้ใช้ไปบันทึกให้ครบ
+  List<Contract> get _contractsMissingGuarantee {
+    final coveredContractIds = _guarantees.map((g) => g.contractId).whereType<int>().toSet();
+    return _contracts
+        .where((c) =>
+            c.id != null &&
+            !coveredContractIds.contains(c.id) &&
+            (c.contractAmount ?? 0) >= _guaranteeRequiredThreshold)
+        .toList();
   }
 
   List<Guarantee> get _filtered =>
@@ -47,11 +69,11 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
 
   double get _totalHeld => _guarantees.where((g) => g.status == 'ถืออยู่').fold(0, (s, g) => s + (g.amount ?? 0));
 
-  Future<void> _openForm({Guarantee? existing}) async {
+  Future<void> _openForm({Guarantee? existing, Contract? prefillContract}) async {
     final saved = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _GuaranteeFormDialog(existing: existing),
+      builder: (_) => _GuaranteeFormDialog(existing: existing, prefillContract: prefillContract),
     );
     if (saved == true) _load();
   }
@@ -115,6 +137,10 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildSummaryBar(colors),
+                        if (_contractsMissingGuarantee.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _buildMissingGuaranteeBanner(colors),
+                        ],
                         const SizedBox(height: 16),
                         _buildFilterChips(colors),
                         const SizedBox(height: 12),
@@ -172,6 +198,69 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMissingGuaranteeBanner(ColorScheme colors) {
+    final contracts = _contractsMissingGuarantee;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.shade700),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_outlined, color: Colors.amber.shade800, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'พบ ${contracts.length} สัญญาที่วงเงินถึงเกณฑ์ต้องวางหลักประกัน แต่ยังไม่ได้บันทึก',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'ตามระเบียบฯ สัญญาวงเงิน ≥ ${_guaranteeRequiredThreshold.toStringAsFixed(0)} บาท ทั่วไปต้องวางหลักประกัน '
+            '(ประมาณ ${(_guaranteeRate * 100).toStringAsFixed(0)}% ของวงเงิน) — เป็นคำแนะนำเบื้องต้นเท่านั้น '
+            'โปรดตรวจสอบเงื่อนไขในสัญญาจริงอีกครั้ง',
+            style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          for (final c in contracts.take(5))
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${c.contractNumber ?? "(ไม่มีเลขที่)"} — ${c.vendorName ?? "-"} '
+                      '(${(c.contractAmount ?? 0).toStringAsFixed(2)} บาท)',
+                      style: const TextStyle(fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () => _openForm(prefillContract: c),
+                    child: const Text('ไปบันทึก', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          if (contracts.length > 5)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('และอีก ${contracts.length - 5} รายการ', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+            ),
         ],
       ),
     );
@@ -280,7 +369,10 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
 
 class _GuaranteeFormDialog extends StatefulWidget {
   final Guarantee? existing;
-  const _GuaranteeFormDialog({this.existing});
+  // ส่งมาจากปุ่ม "ไปบันทึก" ในแบนเนอร์แจ้งเตือนสัญญาที่ยังไม่มีหลักประกัน —
+  // ใช้ prefill ชื่อคู่สัญญา/วงเงิน/ผูกกับสัญญานั้นให้อัตโนมัติ (แก้ไขต่อได้)
+  final Contract? prefillContract;
+  const _GuaranteeFormDialog({this.existing, this.prefillContract});
   @override
   State<_GuaranteeFormDialog> createState() => _GuaranteeFormDialogState();
 }
@@ -292,17 +384,31 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
   String? _guaranteeType;
   String? _startDate;
   String? _expiryDate;
+  int? _contractId;
+  List<Contract> _contracts = [];
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     final g = widget.existing;
-    _counterpartyCtrl = TextEditingController(text: g?.counterpartyName ?? '');
-    _amountCtrl = TextEditingController(text: g?.amount?.toStringAsFixed(2) ?? '');
-    _guaranteeType = g?.guaranteeType;
+    final prefill = widget.prefillContract;
+    _counterpartyCtrl = TextEditingController(text: g?.counterpartyName ?? prefill?.vendorName ?? '');
+    _amountCtrl = TextEditingController(
+      text: g?.amount?.toStringAsFixed(2) ??
+          (prefill != null ? ((prefill.contractAmount ?? 0) * _guaranteeRate).toStringAsFixed(2) : ''),
+    );
+    _guaranteeType = g?.guaranteeType ?? (prefill != null ? 'หลักประกันสัญญา' : null);
     _startDate = g?.startDate;
     _expiryDate = g?.expiryDate;
+    _contractId = g?.contractId ?? prefill?.id;
+    _loadContracts();
+  }
+
+  Future<void> _loadContracts() async {
+    final list = await _repo.getAllContracts();
+    if (!mounted) return;
+    setState(() => _contracts = list);
   }
 
   @override
@@ -347,6 +453,7 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
       amount: double.tryParse(_amountCtrl.text.trim()),
       startDate: _startDate,
       expiryDate: _expiryDate,
+      contractId: _contractId,
       status: widget.existing?.status ?? 'ถืออยู่',
       returnedDate: widget.existing?.returnedDate,
     );
@@ -381,6 +488,25 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                     ..._guaranteeTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))),
                   ],
                   onChanged: (v) => setState(() => _guaranteeType = v),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: DropdownButtonFormField<int?>(
+                  initialValue: _contractId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'ผูกกับสัญญา', border: OutlineInputBorder(), isDense: true),
+                  items: [
+                    const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับสัญญา)')),
+                    ..._contracts.where((c) => c.id != null).map((c) => DropdownMenuItem<int?>(
+                          value: c.id,
+                          child: Text(
+                            '${c.contractNumber ?? "เอกสาร #${c.id}"} — ${c.vendorName ?? "-"}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )),
+                  ],
+                  onChanged: (v) => setState(() => _contractId = v),
                 ),
               ),
               Padding(

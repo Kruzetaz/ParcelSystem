@@ -24,7 +24,7 @@ const _sidebarLabelWidth = 130.0;
 const _sidebarAnimDuration = Duration(milliseconds: 220);
 const _sidebarAnimCurve = Curves.easeInOut;
 
-enum AppMode { dashboard, newOrder, budgets, tor, contracts, guarantees, inspections, fixedAssets, materials, annualCount, disposals, reports, settings, aiSettings }
+enum AppMode { dashboard, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, documentHub, fixedAssets, materials, annualCount, disposals, reports, settings, aiSettings }
 
 class AppSidebar extends StatelessWidget {
   final AppMode currentMode;
@@ -65,23 +65,34 @@ class AppSidebar extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildSectionHeader(colors, 'ภาพรวม', first: true),
                     _buildItem(colors, AppMode.dashboard, Icons.dashboard_outlined, 'หน้าหลัก'),
+
+                    _buildSectionHeader(colors, 'สร้างเอกสาร'),
                     _buildItem(colors, AppMode.newOrder, Icons.add_circle_outline, 'สร้างใหม่'),
+                    _buildItem(colors, AppMode.easyWizard, Icons.auto_awesome_outlined, 'Easy Wizard'),
+
+                    _buildSectionHeader(colors, 'กระบวนการจัดซื้อจัดจ้าง'),
                     _buildItem(colors, AppMode.budgets, Icons.account_balance_wallet_outlined, 'แผนงบประมาณ'),
                     _buildItem(colors, AppMode.tor, Icons.description_outlined, 'TOR/คุณลักษณะ'),
                     _buildItem(colors, AppMode.contracts, Icons.article_outlined, 'บริหารสัญญา'),
                     _buildItem(colors, AppMode.guarantees, Icons.shield_outlined, 'หลักประกัน'),
                     _buildItem(colors, AppMode.inspections, Icons.fact_check_outlined, 'ตรวจรับพัสดุ'),
+                    _buildItem(colors, AppMode.documentHub, Icons.file_copy_outlined, 'สร้างเอกสารราชการ'),
+
+                    _buildSectionHeader(colors, 'ทรัพย์สินและพัสดุ'),
                     _buildItem(colors, AppMode.fixedAssets, Icons.inventory_2_outlined, 'ทะเบียนครุภัณฑ์'),
                     _buildItem(colors, AppMode.materials, Icons.inventory_outlined, 'วัสดุ/คลังพัสดุ'),
                     _buildItem(colors, AppMode.annualCount, Icons.checklist_outlined, 'ตรวจนับประจำปี'),
                     _buildItem(colors, AppMode.disposals, Icons.delete_sweep_outlined, 'จำหน่ายพัสดุ'),
+
+                    _buildSectionHeader(colors, 'รายงานและตรวจสอบ'),
                     _buildItem(colors, AppMode.reports, Icons.bar_chart_outlined, 'รายงาน/สตง.'),
                   ],
                 ),
               ),
             ),
-            Divider(height: 1, color: colors.outlineVariant),
+            _buildSectionHeader(colors, 'ตั้งค่า'),
             _buildItem(colors, AppMode.aiSettings, Icons.auto_awesome_outlined, 'ตั้งค่า AI'),
             _buildItem(colors, AppMode.settings, Icons.settings_outlined, 'ตั้งค่าโรงเรียน'),
             const SizedBox(height: 16),
@@ -137,6 +148,27 @@ class AppSidebar extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// หัวข้อคั่นหมวดหมู่เมนู — ตอนขยายโชว์เป็นข้อความตัวเล็ก, ตอนพับเหลือแค่
+  /// เส้นแบ่งบางๆ (ไม่มีที่พอใส่ข้อความ) กัน sidebar ยาวๆ ดูเป็น list เดียวรวด
+  Widget _buildSectionHeader(ColorScheme colors, String label, {bool first = false}) {
+    return Padding(
+      padding: EdgeInsets.only(top: first ? 0 : 14, bottom: 6, left: 16, right: 16),
+      child: expanded
+          ? Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.onSurfaceVariant.withValues(alpha: 0.7),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
+            )
+          : Divider(height: 1, color: colors.outlineVariant),
     );
   }
 

@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 19;
+  static const int _version = 20;
 
   Database? _db;
 
@@ -299,6 +299,13 @@ class AppDatabase {
             await db.execute('ALTER TABLE tor_documents ADD COLUMN order_id INTEGER');
           } catch (_) {}
         }
+        if (oldVersion < 20) {
+          // เก็บ "วิธีจัดซื้อจัดจ้าง" จริงลงฐานข้อมูล (เดิมไม่มีฟิลด์นี้เลย) —
+          // ใช้กับฟีเจอร์ Easy Wizard ที่แนะนำวิธีให้อัตโนมัติจากวงเงิน
+          try {
+            await db.execute('ALTER TABLE procurement_orders ADD COLUMN procurement_method TEXT');
+          } catch (_) {}
+        }
       },
     );
   }
@@ -326,6 +333,7 @@ class AppDatabase {
         budget_id INTEGER,
         fiscal_year TEXT,
         order_type TEXT CHECK(order_type IN ('ซื้อ', 'จ้าง')),
+        procurement_method TEXT, -- เช่น 'เฉพาะเจาะจง ไม่เกิน 5,000 บาท', 'ว.804 ไม่เกิน 50,000 บาท'
 
         -- เลขที่เอกสาร (คนละความหมายกัน อย่าทับกัน)
         procurement_number TEXT,   -- {{procurement_number}} เลขที่หนังสือพัสดุ/ใบสั่งซื้อ

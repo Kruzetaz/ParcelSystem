@@ -16,7 +16,14 @@ import '../models/school_settings.dart';
 import 'app_sidebar.dart' show AppMode;
 import '../services/toast_service.dart';
 
-enum _OrderFilter { all, draft, completed }
+enum _OrderFilter { all, draft, completed, underFiveK, w804UnderFiftyK, missingEgp }
+
+/// แจ้งเตือนแบบคลิกนำทางได้บน Dashboard — เก็บแค่ข้อความ + ตัวกรองที่จะสลับไป
+class _DashboardAlert {
+  final String message;
+  final _OrderFilter filter;
+  const _DashboardAlert({required this.message, required this.filter});
+}
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onCreateNew;
@@ -119,6 +126,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double get _totalRemainingBudget =>
       _budgets.fold(0.0, (sum, b) => sum + (b.remainingAmount ?? 0));
 
+  double get _totalAllocatedBudget =>
+      _budgets.fold(0.0, (sum, b) => sum + (b.allocatedAmount ?? 0));
+
   /// ปีงบประมาณล่าสุด หา mode (ปีที่มีเอกสารเยอะสุด) ถ้าเสมอกันเลือกปีมากสุด
   String? get _currentFiscalYear {
     if (_orders.isEmpty) return null;
@@ -147,9 +157,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return _orders.where((o) => o.currentStatus != 'COMPLETED').toList();
       case _OrderFilter.completed:
         return _orders.where((o) => o.currentStatus == 'COMPLETED').toList();
+      // วิธีเฉพาะเจาะจง วงเงินไม่เกิน 5,000 บาท — ขั้นตอนแบบย่อที่สุดตามระเบียบ
+      case _OrderFilter.underFiveK:
+        return _orders.where((o) => (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000).toList();
+      // หนังสือเวียน ว.804 — วงเงินเกิน 5,000 แต่ไม่เกิน 50,000 บาท
+      case _OrderFilter.w804UnderFiftyK:
+        return _orders
+            .where((o) => (o.currentOrderPrice ?? 0) > 5000 && o.currentOrderPrice! <= 50000)
+            .toList();
+      case _OrderFilter.missingEgp:
+        return _orders.where((o) => o.egpProjectId == null || o.egpProjectId!.trim().isEmpty).toList();
       case _OrderFilter.all:
         return _orders;
     }
+  }
+
+  int get _missingEgpCount =>
+      _orders.where((o) => o.egpProjectId == null || o.egpProjectId!.trim().isEmpty).length;
+
+  /// รายการแจ้งเตือนแบบคลิกนำทางได้ทั้งหมด — แยกออกมาเป็นลิสต์เพื่อจัดวางเป็น
+  /// กริด 3 คอลัมน์ต่อแถวได้ (ถ้ามีมากกว่า 3 รายการจะขึ้นแถวใหม่ต่อด้านล่าง)
+  List<_DashboardAlert> get _alerts {
+    final list = <_DashboardAlert>[];
+    if (_missingEgpCount > 0) {
+      list.add(_DashboardAlert(
+        message: 'พบรายการไม่มีเลขที่ e-GP จำนวน $_missingEgpCount รายการ',
+        filter: _OrderFilter.missingEgp,
+      ));
+    }
+    if (_draftCount > 0) {
+      list.add(_DashboardAlert(
+        message: 'มีเอกสารร่างที่ยังไม่เสร็จ $_draftCount รายการ',
+        filter: _OrderFilter.draft,
+      ));
+    }
+    return list;
   }
 
   @override
@@ -170,6 +212,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildHeroBanner(colors),
+                      if (_alerts.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _buildAlertGrid(colors),
+                      ],
                       const SizedBox(height: 20),
                       _buildKpiRow(colors),
                       const SizedBox(height: 24),
@@ -276,23 +322,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 fiscalYear == null ? 'ยังไม่มีข้อมูลปีงบประมาณ' : 'ปีงบประมาณ $fiscalYear',
                 style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 12.5),
               ),
+              if (_totalAllocatedBudget > 0) ...[
+                const SizedBox(height: 16),
+                _buildBudgetUsageBar(colors),
+              ],
             ],
           );
 
-          final statsRow = Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _heroStat(colors, '$total', 'เอกสารทั้งหมด'),
-              _heroStatDivider(colors),
-              _heroStat(colors, '$_draftCount', 'ร่าง', valueColor: Colors.grey.shade300),
-              _heroStatDivider(colors),
-              _heroStat(colors, '$_completedCount', 'เสร็จแล้ว', valueColor: Colors.green.shade300),
-              _heroStatDivider(colors),
-              _heroStat(colors, _formatBaht(_totalSpent), 'ยอดใช้จ่าย', valueColor: Colors.amber.shade300),
-            ],
-          );
-
+          // ตัวเลขสรุป (เอกสารทั้งหมด/ร่าง/เสร็จแล้ว/ยอดใช้จ่าย) ถูกตัดออกจากแบนเนอร์นี้
+          // แล้ว เพราะซ้ำกับการ์ด KPI 4 ใบด้านล่างทุกตัว — เหลือแค่วงแหวน % ที่เป็น
+          // ข้อมูลเดียวที่ไม่มีที่อื่นแสดงซ้ำ
           final ring = _buildProgressRing(colors, ratio);
+          final missingSchoolInfo = _school?.schoolName?.isNotEmpty != true;
+
+          final actionButton = missingSchoolInfo
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: OutlinedButton.icon(
+                    onPressed: () => widget.onNavigate(AppMode.settings),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.onPrimary,
+                      side: BorderSide(color: colors.onPrimary.withValues(alpha: 0.5)),
+                    ),
+                    icon: const Icon(Icons.arrow_forward, size: 16),
+                    label: const Text('ไปกรอกข้อมูลโรงเรียน'),
+                  ),
+                )
+              : const SizedBox.shrink();
 
           if (isNarrow) {
             return Column(
@@ -304,11 +360,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ring,
                   ],
                 ),
-                const SizedBox(height: 20),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: statsRow,
-                ),
+                actionButton,
               ],
             );
           }
@@ -321,8 +373,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     schoolBlock,
-                    const SizedBox(height: 20),
-                    statsRow,
+                    actionButton,
                   ],
                 ),
               ),
@@ -335,34 +386,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _heroStat(ColorScheme colors, String value, String label, {Color? valueColor}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            color: valueColor ?? colors.onPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
+  /// แถบยอดใช้จ่ายเทียบกับงบประมาณที่ได้รับจัดสรรทั้งหมด (ข้อมูลใหม่ที่ไม่มี
+  /// แสดงซ้ำที่ไหนในหน้านี้ — การ์ด KPI ด้านล่างมีแค่ตัวเลข "งบคงเหลือ" เฉยๆ
+  /// ไม่มีแถบเทียบสัดส่วนแบบนี้) เติมพื้นที่ว่างใน hero banner ให้ดูมีเนื้อหาขึ้น
+  Widget _buildBudgetUsageBar(ColorScheme colors) {
+    final allocated = _totalAllocatedBudget;
+    final spent = _totalSpent;
+    final ratio = allocated > 0 ? (spent / allocated).clamp(0.0, 1.0) : 0.0;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 340),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('ใช้จ่ายจากงบประมาณ', style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.75), fontSize: 11.5)),
+              Text('${(ratio * 100).toStringAsFixed(0)}%',
+                style: TextStyle(color: colors.onPrimary, fontSize: 11.5, fontWeight: FontWeight.w600)),
+            ],
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 11.5),
-        ),
-      ],
-    );
-  }
-
-  Widget _heroStatDivider(ColorScheme colors) {
-    return Container(
-      width: 1,
-      height: 32,
-      margin: const EdgeInsets.symmetric(horizontal: 18),
-      color: colors.onPrimary.withValues(alpha: 0.15),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 8,
+              backgroundColor: colors.onPrimary.withValues(alpha: 0.15),
+              color: colors.tertiary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_formatBaht(spent)}  จาก  ${_formatBaht(allocated)}',
+            style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 11),
+          ),
+        ],
+      ),
     );
   }
 
@@ -583,6 +643,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '$buf บาท';
   }
 
+  /// จัดแจ้งเตือนทั้งหมดเป็นกริด 3 คอลัมน์ต่อแถว — ถ้ามีมากกว่า 3 รายการจะขึ้น
+  /// แถวใหม่ต่อด้านล่างอัตโนมัติ (ไม่ใช่ GridView เพราะจำนวนรายการมีน้อยและไม่
+  /// scroll เอง ใช้ Wrap ง่ายกว่าและคำนวณความสูงตามเนื้อหาจริงให้เอง)
+  Widget _buildAlertGrid(ColorScheme colors) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 12.0;
+        const columns = 3;
+        final tileWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final alert in _alerts)
+              SizedBox(width: tileWidth, child: _buildAlertTile(colors, alert)),
+          ],
+        );
+      },
+    );
+  }
+
+  /// แจ้งเตือนแบบคลิกนำทางได้ 1 ใบ — กดแล้วสลับไปตัวกรองที่กำหนดไว้ทันที
+  Widget _buildAlertTile(ColorScheme colors, _DashboardAlert alert) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => setState(() => _filter = alert.filter),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.redAccent.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_outlined, color: Colors.redAccent, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  alert.message,
+                  style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600, fontSize: 12.5),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_forward, color: Colors.redAccent, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────
   // FILTER TABS
   // ─────────────────────────────────────────
@@ -607,13 +723,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
         chip('ทั้งหมด', _OrderFilter.all),
-        const SizedBox(width: 8),
         chip('ร่าง', _OrderFilter.draft),
-        const SizedBox(width: 8),
         chip('เสร็จแล้ว', _OrderFilter.completed),
+        chip('เฉพาะเจาะจง ≤5,000 บาท', _OrderFilter.underFiveK),
+        chip('ว.804 ≤50,000 บาท', _OrderFilter.w804UnderFiftyK),
+        chip('ไม่มีเลข e-GP', _OrderFilter.missingEgp),
       ],
     );
   }
@@ -760,6 +879,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             [
                               if (order.procurementNumber?.isNotEmpty == true) order.procurementNumber,
                               if (order.vendorName?.isNotEmpty == true) order.vendorName,
+                              if (order.procurementMethod?.isNotEmpty == true) order.procurementMethod,
                             ].join('  •  '),
                             style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
                             maxLines: 1,
