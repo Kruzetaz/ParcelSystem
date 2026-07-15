@@ -1,10 +1,11 @@
 @echo off
+chcp 65001 >nul
 REM build_windows.bat
 REM ดับเบิลคลิกไฟล์นี้เพื่อ build เวอร์ชัน Release ใหม่ทั้งหมด (pub get + build)
 REM แล้วสร้าง shortcut ไปวางที่ Desktop ให้อัตโนมัติ เปิดใช้งานได้เลยไม่ต้องงมหา
 
 REM แก้ path นี้ให้ตรงกับตำแหน่งโปรเจกต์จริงในเครื่องคุณ
-set PROJECT_DIR=C:\Users\Powernet\Desktop\ParcelSystem
+set PROJECT_DIR=C:\Dev\ParcelSystem
 set EXE_NAME=ParcelSystem v.2.exe
 
 cd /d "%PROJECT_DIR%"
