@@ -16,6 +16,11 @@ add_executable(${BINARY_NAME} WIN32
   "runner.exe.manifest"
 )
 
+# ตั้งชื่อไฟล์ .exe ที่ผลิตจริงให้ตรงกับ build_windows.bat/run_dev_windows.bat
+# (แยกจากชื่อ target ภายในของ CMake ซึ่งยังคงเป็น BINARY_NAME เดิม เพื่อเลี่ยง
+# ปัญหาถ้าใส่ space ตรง target name โดยตรงกับ Visual Studio generator)
+set_target_properties(${BINARY_NAME} PROPERTIES OUTPUT_NAME "ParcelSystem v.2.1")
+
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
