@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
+import '../utils/app_folder_name.dart';
 import 'docx_template_service.dart';
 import 'document_generator.dart';
 
@@ -86,7 +87,8 @@ class ProcurementDocumentGenerator {
     );
 
     final docsDir = await getApplicationDocumentsDirectory();
-    final outputDir = '${docsDir.path}/BanPaLao_Documents';
+    final folderName = await getSchoolDocumentsFolderName();
+    final outputDir = '${docsDir.path}/$folderName';
 
     return DocxTemplateService.saveOutput(
       docxBytes: resultBytes,

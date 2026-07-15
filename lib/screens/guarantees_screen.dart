@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/guarantee.dart';
 import '../models/contract.dart';
+import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
+import '../widgets/thai_date_picker.dart';
 
 const _guaranteeTypes = ['หลักประกันซอง', 'หลักประกันสัญญา', 'เงินสด', 'หนังสือค้ำประกันธนาคาร'];
 
@@ -106,7 +109,7 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('คืนหลักประกัน'),
         content: Text('ยืนยันคืนหลักประกันของ "${g.counterpartyName ?? "-"}" '
-            '(${g.amount?.toStringAsFixed(2) ?? "-"} บาท) ใช่หรือไม่?'),
+            '(${g.amount != null ? formatBaht(g.amount) : "-"} บาท) ใช่หรือไม่?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
           FilledButton(
@@ -124,59 +127,69 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildSummaryBar(colors),
-                        if (_contractsMissingGuarantee.isNotEmpty) ...[
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าหลักประกันสัญญา',
+      icon: Icons.shield_outlined,
+      steps: const [
+        'ตามระเบียบพัสดุ ปกติสัญญาที่มีวงเงินตั้งแต่ 100,000 บาทขึ้นไป ต้องมีหลักประกันสัญญา (คำแนะนำเบื้องต้น — ให้ตรวจสอบเงื่อนไขในสัญญาจริงอีกครั้งเสมอ)',
+        'อัตราที่ระบบแนะนำอัตโนมัติคือ 5% ของวงเงินสัญญา ก็เป็นเกณฑ์ทั่วไปเท่านั้น สัญญาบางประเภทอาจกำหนดอัตราอื่น',
+        'ถ้ามีสัญญาที่วงเงินถึงเกณฑ์แต่ยังไม่มีหลักประกัน ระบบจะขึ้นแบนเนอร์แจ้งเตือนไว้ด้านบน กด "ไปบันทึก" เพื่อกรอกได้ทันที',
+        'กด "เพิ่มหลักประกัน" มุมขวาล่างเพื่อบันทึกเองได้ทุกเมื่อ ไม่จำเป็นต้องรอแบนเนอร์แจ้งเตือน',
+      ],
+      child: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSummaryBar(colors),
+                          if (_contractsMissingGuarantee.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _buildMissingGuaranteeBanner(colors),
+                          ],
                           const SizedBox(height: 16),
-                          _buildMissingGuaranteeBanner(colors),
-                        ],
-                        const SizedBox(height: 16),
-                        _buildFilterChips(colors),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: _filtered.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    _guarantees.isEmpty ? 'ยังไม่มีหลักประกัน\nกด "เพิ่มหลักประกัน" เพื่อเริ่มต้น' : 'ไม่พบรายการในประเภทนี้',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                          _buildFilterChips(colors),
+                          const SizedBox(height: 12),
+                          Expanded(
+                            child: _filtered.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      _guarantees.isEmpty ? 'ยังไม่มีหลักประกัน\nกด "เพิ่มหลักประกัน" เพื่อเริ่มต้น' : 'ไม่พบรายการในประเภทนี้',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: _filtered.length,
+                                    padding: const EdgeInsets.only(bottom: 80),
+                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                    itemBuilder: (_, i) => _buildCard(colors, _filtered[i]),
                                   ),
-                                )
-                              : ListView.separated(
-                                  itemCount: _filtered.length,
-                                  padding: const EdgeInsets.only(bottom: 80),
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (_, i) => _buildCard(colors, _filtered[i]),
-                                ),
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            onPressed: () => _openForm(),
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เพิ่มหลักประกัน'),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              onPressed: () => _openForm(),
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่มหลักประกัน'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -193,7 +206,7 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('ยอดหลักประกันที่ถืออยู่ในปัจจุบัน', style: TextStyle(fontSize: 12, color: colors.onPrimaryContainer)),
-                Text('${_totalHeld.toStringAsFixed(2)} บาท',
+                Text('${formatBaht(_totalHeld)} บาท',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colors.onPrimaryContainer)),
               ],
             ),
@@ -243,7 +256,7 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                   Expanded(
                     child: Text(
                       '${c.contractNumber ?? "(ไม่มีเลขที่)"} — ${c.vendorName ?? "-"} '
-                      '(${(c.contractAmount ?? 0).toStringAsFixed(2)} บาท)',
+                      '(${formatBaht(c.contractAmount ?? 0)} บาท)',
                       style: const TextStyle(fontSize: 13),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -345,7 +358,7 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   if (g.amount != null)
-                    Text('${g.amount!.toStringAsFixed(2)} บาท',
+                    Text('${formatBaht(g.amount)} บาท',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.primary)),
                   if (isHeld)
                     TextButton(
@@ -421,18 +434,14 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
   Future<void> _pickDate({required bool isStart}) async {
     final colors = Theme.of(context).colorScheme;
     final initial = DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await pickThaiDate(
       context: context,
       initialDate: initial,
       firstDate: DateTime(initial.year - 10),
       lastDate: DateTime(initial.year + 10),
       helpText: isStart ? 'วันที่เริ่มค้ำประกัน' : 'วันที่หมดอายุการค้ำประกัน',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: colors.primary, onPrimary: colors.onPrimary, onSurface: colors.primary),
-        ),
-        child: child!,
-      ),
+      primaryColor: colors.primary,
+      onPrimaryColor: colors.onPrimary,
     );
     if (picked == null) return;
     setState(() {

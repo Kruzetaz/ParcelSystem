@@ -1,5 +1,5 @@
 // backup_service.dart
-// Backup: zip procurement.db → ~/Documents/BanPaLao_Documents/backup_YYYYMMDD_HHmm.zip
+// Backup: zip procurement.db → ~/Documents/<ชื่อโรงเรียน>_Documents/backup_YYYYMMDD_HHmm.zip
 // Restore: เลือกไฟล์ .zip → แตกไฟล์ → ทับ DB เดิม → ปิด connection (เปิดใหม่อัตโนมัติตอน query ครั้งถัดไป)
 
 import 'dart:io';
@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../data/database.dart';
+import '../utils/app_folder_name.dart';
 
 class BackupService {
   BackupService._();
@@ -35,7 +36,8 @@ class BackupService {
     try {
       // 3. เตรียมโฟลเดอร์ปลายทาง
       final docsDir = await getApplicationDocumentsDirectory();
-      final outputDir = Directory(p.join(docsDir.path, 'BanPaLao_Documents'));
+      final folderName = await getSchoolDocumentsFolderName();
+      final outputDir = Directory(p.join(docsDir.path, folderName));
       if (!outputDir.existsSync()) outputDir.createSync(recursive: true);
 
       // 4. ตั้งชื่อไฟล์ตาม timestamp

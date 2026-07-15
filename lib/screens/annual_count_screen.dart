@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/annual_count.dart';
+import '../widgets/thai_date_picker.dart';
 
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -254,18 +255,14 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
   Future<void> _pickStartDate() async {
     final colors = Theme.of(context).colorScheme;
     final initial = DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await pickThaiDate(
       context: context,
       initialDate: initial,
       firstDate: DateTime(initial.year - 5),
       lastDate: DateTime(initial.year + 1),
       helpText: 'วันที่เริ่มตรวจ',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: colors.primary, onPrimary: colors.onPrimary, onSurface: colors.primary),
-        ),
-        child: child!,
-      ),
+      primaryColor: colors.primary,
+      onPrimaryColor: colors.onPrimary,
     );
     if (picked == null) return;
     setState(() => _startDate = _formatThai(picked));

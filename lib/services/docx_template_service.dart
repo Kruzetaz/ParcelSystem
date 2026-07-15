@@ -20,6 +20,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import '../models/procurement_item.dart';
+import '../utils/money_format.dart';
 
 /// แทน 1 แถวสินค้าที่จะ clone ลงตาราง
 class ProcurementItemData {
@@ -55,7 +56,7 @@ class ProcurementItemData {
   }
 
   Map<String, String> toPlaceholderMap({String Function(double)? money}) {
-    final fmt = money ?? (double v) => v.toStringAsFixed(2);
+    final fmt = money ?? (double v) => formatBaht(v);
     return {
       'idx': idx.toString(),
       'item_name': itemName,

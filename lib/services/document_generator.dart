@@ -24,6 +24,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
+import '../utils/app_folder_name.dart';
 import 'docx_template_service.dart';
 
 class DocumentGeneratorException implements Exception {
@@ -76,9 +77,10 @@ class DocumentGenerator {
       items: itemDataList,
     );
 
-    // STEP 5: บันทึกไฟล์ลงโฟลเดอร์ Documents/BanPaLao_Documents
+    // STEP 5: บันทึกไฟล์ลงโฟลเดอร์ Documents/<ชื่อโรงเรียน>_Documents
     final docsDir = await getApplicationDocumentsDirectory();
-    final outputDir = '${docsDir.path}/BanPaLao_Documents';
+    final folderName = await getSchoolDocumentsFolderName();
+    final outputDir = '${docsDir.path}/$folderName';
 
     return DocxTemplateService.saveOutput(
       docxBytes: resultBytes,

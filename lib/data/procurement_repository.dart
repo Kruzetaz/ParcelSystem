@@ -48,7 +48,7 @@ class ProcurementRepository {
       'budgets',
       where: fiscalYear != null ? 'fiscal_year = ?' : null,
       whereArgs: fiscalYear != null ? [fiscalYear] : null,
-      orderBy: 'id DESC',
+      orderBy: 'id ASC',
     );
     return rows.map(Budget.fromMap).toList();
   }

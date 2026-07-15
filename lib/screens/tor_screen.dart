@@ -9,6 +9,8 @@ import '../models/tor_document.dart';
 import '../models/tor_template.dart';
 import '../services/tor_document_generator.dart';
 import '../services/toast_service.dart';
+import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
 
 const _torCategories = ['ครุภัณฑ์', 'วัสดุ', 'จ้าง'];
 const _torStatuses = ['ร่าง', 'อนุมัติ'];
@@ -114,49 +116,59 @@ class _TorScreenState extends State<TorScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _docs.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.description_outlined, size: 64, color: colors.onSurfaceVariant),
-                              const SizedBox(height: 12),
-                              Text('ยังไม่มี TOR / ข้อมูลคุณลักษณะเฉพาะ\nกด "เพิ่ม TOR" เพื่อเริ่มต้น',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
-                            ],
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้า TOR/คุณลักษณะ',
+      icon: Icons.description_outlined,
+      steps: const [
+        'TOR (Terms of Reference) คือเอกสารกำหนดขอบเขตของงาน/คุณลักษณะเฉพาะของพัสดุ ก่อนเริ่มกระบวนการจัดซื้อจัดจ้างจริง',
+        'ใช้ระบุรายละเอียด สเปก และเงื่อนไขที่ผู้ขาย/ผู้รับจ้างต้องทำตาม เพื่อให้การจัดซื้อโปร่งใสและตรวจสอบได้',
+        'กด "เพิ่ม TOR" มุมขวาล่างเพื่อเริ่มสร้าง แล้วเลือก "ผู้จัดทำ" และรายการพัสดุที่เกี่ยวข้อง',
+        'หลังบันทึกแล้ว สามารถสร้างเอกสาร TOR เป็นไฟล์ Word ได้ทันที หรือไปสร้างที่หน้า "สร้างเอกสารราชการ" ทีหลังก็ได้',
+      ],
+      child: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _docs.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.description_outlined, size: 64, color: colors.onSurfaceVariant),
+                                const SizedBox(height: 12),
+                                Text('ยังไม่มี TOR / ข้อมูลคุณลักษณะเฉพาะ\nกด "เพิ่ม TOR" เพื่อเริ่มต้น',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: _docs.length,
+                            padding: const EdgeInsets.only(bottom: 80),
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (_, i) => _buildCard(colors, _docs[i]),
                           ),
-                        )
-                      : ListView.separated(
-                          itemCount: _docs.length,
-                          padding: const EdgeInsets.only(bottom: 80),
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (_, i) => _buildCard(colors, _docs[i]),
-                        ),
+              ),
             ),
           ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            onPressed: () => _openForm(),
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เพิ่ม TOR'),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              onPressed: () => _openForm(),
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่ม TOR'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -231,7 +243,7 @@ class _TorScreenState extends State<TorScreen> {
                 ),
               ),
               if (doc.estimatedAmount != null) ...[
-                Text('${doc.estimatedAmount!.toStringAsFixed(2)} บาท',
+                Text('${formatBaht(doc.estimatedAmount)} บาท',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.primary)),
                 const SizedBox(width: 8),
               ],

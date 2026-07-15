@@ -16,6 +16,8 @@ import '../data/procurement_repository.dart';
 import '../models/procurement_item.dart';
 import '../models/procurement_order.dart';
 import '../services/toast_service.dart';
+import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
 
 class EasyWizardScreen extends StatefulWidget {
   final void Function(ProcurementOrder order) onCreated;
@@ -110,22 +112,32 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeroBanner(colors),
-              const SizedBox(height: 20),
-              _buildStepIndicator(colors),
-              const SizedBox(height: 24),
-              Expanded(child: SingleChildScrollView(child: _buildStepBody(colors))),
-              const SizedBox(height: 16),
-              _buildNavButtons(colors),
-            ],
+    return GuideFabOverlay(
+      title: 'วิธีใช้ Easy Wizard',
+      icon: Icons.auto_awesome,
+      steps: const [
+        'ตอบ 3-4 คำถามง่ายๆ (รายการ, วงเงิน, ผู้ขาย) ระบบจะแนะนำ "วิธีจัดซื้อจัดจ้าง" ที่เหมาะสมให้อัตโนมัติจากวงเงินรวม',
+        'เกณฑ์ที่ใช้แนะนำ: ไม่เกิน 5,000 บาท = เฉพาะเจาะจง, ไม่เกิน 50,000 บาท = เฉพาะเจาะจงตาม ว.804, ไม่เกิน 500,000 บาท = เฉพาะเจาะจง, เกินกว่านั้น = e-bidding',
+        'คำแนะนำนี้เป็นเกณฑ์วงเงินทั่วไปเท่านั้น ไม่ใช่การรับรองทางกฎหมาย ควรตรวจสอบระเบียบพัสดุที่ใช้บังคับจริงอีกครั้งก่อนดำเนินการ',
+        'พอกด "สร้าง" เสร็จ ระบบจะพาไปหน้า "สร้างใหม่" (wizard เต็ม) ให้กรอกรายละเอียดที่เหลือต่อทันที',
+      ],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeroBanner(colors),
+                const SizedBox(height: 20),
+                _buildStepIndicator(colors),
+                const SizedBox(height: 24),
+                Expanded(child: SingleChildScrollView(child: _buildStepBody(colors))),
+                const SizedBox(height: 16),
+                _buildNavButtons(colors),
+              ],
+            ),
           ),
         ),
       ),
@@ -300,7 +312,7 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
             children: [
               Text('วงเงินรวม', style: TextStyle(color: colors.onPrimaryContainer, fontSize: 13)),
               const SizedBox(height: 4),
-              Text('${_total.toStringAsFixed(2)} บาท',
+              Text('${formatBaht(_total)} บาท',
                 style: TextStyle(color: colors.onPrimaryContainer, fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text('($_quantity x $_unitPrice บาท)', style: TextStyle(color: colors.onPrimaryContainer, fontSize: 11.5)),
@@ -383,8 +395,8 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
               row('ประเภท', _orderType == 'ซื้อ' ? 'จัดซื้อวัสดุ/ครุภัณฑ์' : 'จัดจ้าง/ซ่อม/บริการ'),
               row('รายการ/งาน', _itemNameCtrl.text.trim()),
               row('จำนวน', '$_quantity ${_unitCtrl.text.trim()}'),
-              row('ราคาต่อหน่วย', '${_unitPrice.toStringAsFixed(2)} บาท'),
-              row('วงเงินรวม', '${_total.toStringAsFixed(2)} บาท'),
+              row('ราคาต่อหน่วย', '${formatBaht(_unitPrice)} บาท'),
+              row('วงเงินรวม', '${formatBaht(_total)} บาท'),
               row('วิธีจัดซื้อจัดจ้าง', _method),
               row('ผู้ขาย/ผู้รับจ้าง', _vendorNameCtrl.text.trim()),
             ],

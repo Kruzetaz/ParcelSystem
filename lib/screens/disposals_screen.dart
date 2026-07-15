@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/disposal.dart';
 import '../models/fixed_asset.dart';
+import '../widgets/thai_date_picker.dart';
 
 const _disposalMethods = ['ขายทอดตลาด', 'โอนให้หน่วยงานอื่น', 'ทำลาย'];
 const _thaiMonths = [
@@ -240,18 +241,14 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
   Future<void> _pickDate() async {
     final colors = Theme.of(context).colorScheme;
     final initial = DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await pickThaiDate(
       context: context,
       initialDate: initial,
       firstDate: DateTime(initial.year - 10),
       lastDate: DateTime(initial.year + 1),
       helpText: 'วันที่อนุมัติจำหน่าย',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: colors.primary, onPrimary: colors.onPrimary, onSurface: colors.primary),
-        ),
-        child: child!,
-      ),
+      primaryColor: colors.primary,
+      onPrimaryColor: colors.onPrimary,
     );
     if (picked == null) return;
     setState(() => _approvedDate = _formatThai(picked));

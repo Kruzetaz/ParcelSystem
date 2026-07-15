@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/procurement_item.dart';
+import '../utils/money_format.dart';
 
 /// แถวหนึ่งในตาราง — ผูก TextEditingController ของแต่ละ field ไว้ในตัวเดียว
 /// เพื่อไม่ให้ cursor กระโดดตอนพิมพ์ (ปัญหาคลาสสิกของ dynamic form ใน Flutter)
@@ -209,7 +210,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
             children: [
               const Text('รวมทั้งสิ้น: ', style: TextStyle(fontWeight: FontWeight.bold)),
               Text(
-                '${_grandTotal.toStringAsFixed(2)} บาท',
+                '${formatBaht(_grandTotal)} บาท',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -229,7 +230,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          SizedBox(width: 32, child: Text('ลำดับ', style: style)),
+          SizedBox(width: 46, child: Text('ลำดับ', style: style, softWrap: false, overflow: TextOverflow.visible)),
           Expanded(flex: 4, child: Text('ชื่อรายการ', style: style)),
           SizedBox(width: 90, child: Text('จำนวน', style: style)),
           SizedBox(width: 80, child: Text('หน่วย', style: style)),
@@ -249,7 +250,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 32,
+            width: 46,
             child: Text('${index + 1}', style: TextStyle(color: colors.onSurfaceVariant)),
           ),
           Expanded(
@@ -319,7 +320,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
           SizedBox(
             width: 120,
             child: Text(
-              row.itemName.text.trim().isEmpty ? '-' : row.total.toStringAsFixed(2),
+              row.itemName.text.trim().isEmpty ? '-' : formatBaht(row.total),
               textAlign: TextAlign.right,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),

@@ -10,6 +10,7 @@ import '../models/procurement_item.dart';
 import '../models/procurement_order.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
+import '../utils/money_format.dart';
 
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -245,7 +246,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       children: [
         card('รายการวัสดุทั้งหมด', '${_materials.length} รายการ', colors.primary),
         const SizedBox(width: 12),
-        card('มูลค่าคงคลังรวม', '${_totalValue.toStringAsFixed(2)} บาท', Colors.amber.shade800),
+        card('มูลค่าคงคลังรวม', '${formatBaht(_totalValue)} บาท', Colors.amber.shade800),
         const SizedBox(width: 12),
         card('ใกล้หมด (≤5)', '$_lowStockCount รายการ', Colors.redAccent),
       ],
@@ -303,7 +304,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
               child: Text('${m.remaining.toStringAsFixed(0)} ${m.unit ?? ""}',
                 textAlign: TextAlign.right, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: lowStock ? Colors.redAccent : null)),
             ),
-            SizedBox(width: 100, child: Text(m.totalValue.toStringAsFixed(2), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
+            SizedBox(width: 100, child: Text(formatBaht(m.totalValue), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
             SizedBox(
               width: 140,
               child: Row(
@@ -360,7 +361,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 const Spacer(),
                 Text('คงเหลือ ${m.remaining.toStringAsFixed(0)} ${m.unit ?? ""}',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: lowStock ? Colors.redAccent : colors.primary)),
-                Text('${m.totalValue.toStringAsFixed(2)} บาท', style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant)),
+                Text('${formatBaht(m.totalValue)} บาท', style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant)),
                 const SizedBox(height: 6),
                 Row(
                   children: [

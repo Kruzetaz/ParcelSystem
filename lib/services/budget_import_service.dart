@@ -33,11 +33,12 @@ final _budgetImportPrompt = '''
 - project_name: ชื่อโครงการ/รายการ (string)
 - activity_name: กิจกรรมย่อย (string, ถ้าไม่มีให้เว้นว่าง)
 - allocated_amount: วงเงินงบประมาณ (ตัวเลขล้วน ไม่มีคอมมา ไม่มีหน่วย)
+- responsible_person: ชื่อผู้รับผิดชอบโครงการ/กิจกรรมนี้ ถ้าเอกสารระบุไว้ (string, ถ้าไม่มีให้เว้นว่าง)
 
 ห้ามดึงแถว "รวมงบกลุ่ม..." หรือแถวสรุปยอดรวมท้ายตารางออกมาเป็นรายการ — ดึงเฉพาะรายการ
 โครงการ/กิจกรรมจริงเท่านั้น
 
-ตัวอย่าง: [{"fiscal_year":"2568","group_name":"งบกลุ่มบริหารงานบริหารทั่วไป","project_name":"จัดซื้อวัสดุสำนักงาน","activity_name":"งานธุรการ","allocated_amount":50000}]
+ตัวอย่าง: [{"fiscal_year":"2568","group_name":"งบกลุ่มบริหารงานบริหารทั่วไป","project_name":"จัดซื้อวัสดุสำนักงาน","activity_name":"งานธุรการ","allocated_amount":50000,"responsible_person":"นางสาวจริยา ยะคำป้อ"}]
 ''';
 
 class BudgetImportException implements Exception {
@@ -82,6 +83,7 @@ class BudgetImportService {
     'projectName': ['โครงการ', 'รายการ'],
     'activityName': ['กิจกรรม'],
     'allocatedAmount': ['วงเงิน', 'งบประมาณ', 'จำนวนเงิน', 'งบ'],
+    'responsiblePerson': ['ผู้รับผิดชอบ'],
   };
   static const _requiredKeys = ['projectName', 'allocatedAmount'];
 
@@ -174,6 +176,7 @@ class BudgetImportService {
         projectName: projectName.isEmpty ? null : projectName,
         activityName: cellText(columnIndex['activityName']).let((s) => s.isEmpty ? null : s),
         allocatedAmount: double.tryParse(amountText),
+        responsiblePerson: cellText(columnIndex['responsiblePerson']).let((s) => s.isEmpty ? null : s),
       ));
     }
     return budgets;
@@ -261,6 +264,9 @@ class BudgetImportService {
             ? null
             : json['activity_name'] as String?,
         allocatedAmount: amount is num ? amount.toDouble() : double.tryParse('$amount'),
+        responsiblePerson: (json['responsible_person'] as String?)?.trim().isEmpty == true
+            ? null
+            : json['responsible_person'] as String?,
       );
     }).where((b) => b.fiscalYear.isNotEmpty || b.projectName != null).toList();
   }

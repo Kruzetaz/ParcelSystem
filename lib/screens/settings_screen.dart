@@ -7,6 +7,7 @@ import '../data/procurement_repository.dart';
 import '../models/school_settings.dart';
 import '../services/current_user_service.dart';
 import '../services/toast_service.dart';
+import '../widgets/guide_panel.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -127,13 +128,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final colors = Theme.of(context).colorScheme;
     return _loading
         ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Column(
-                  children: [
+        : GuideFabOverlay(
+            title: 'ตั้งค่าโรงเรียนไว้ทำไม',
+            icon: Icons.school_outlined,
+            steps: const [
+              'ข้อมูลทั้งหมดในหน้านี้ถูกใช้เติมลงในเอกสารราชการทุกใบที่สร้างโดยอัตโนมัติ ไม่ต้องพิมพ์ซ้ำทีละใบ',
+              'แนะนำให้กรอกให้ครบก่อนเริ่มสร้างคำสั่งซื้อ/สั่งจ้างใบแรก จะได้ไม่ต้องย้อนมาแก้เอกสารที่สร้างไปแล้ว',
+              'ชื่อผู้ใช้งาน (ด้านบน) ใช้แค่ประทับชื่อในประวัติการใช้งาน (Audit Trail) เท่านั้น ไม่ใช่รหัสผ่านหรือบัญชีเข้าระบบ',
+              'ชื่อผู้อำนวยการ/เจ้าหน้าที่พัสดุ/หัวหน้าเจ้าหน้าที่พัสดุ/เจ้าหน้าที่การเงิน จะไปเป็นค่าเริ่มต้นในทุกเอกสาร แก้ที่นี่ที่เดียวจบ',
+              'ชื่อโรงเรียนที่กรอกในนี้ยังใช้เป็นชื่อโฟลเดอร์เก็บไฟล์เอกสาร/รูป/ไฟล์ backup ของระบบด้วย',
+            ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Column(
+                    children: [
                     Card(
                       elevation: 1,
                       child: Padding(
@@ -312,6 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
+            ),
             ),
           );
   }

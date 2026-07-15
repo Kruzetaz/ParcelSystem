@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../services/gemini_service.dart';
 import '../services/toast_service.dart';
+import '../widgets/guide_panel.dart';
 
 class AiSettingsScreen extends StatefulWidget {
   const AiSettingsScreen({super.key});
@@ -62,18 +63,28 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     final colors = Theme.of(context).colorScheme;
     if (_loading) return const Center(child: CircularProgressIndicator());
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Card(
-            elevation: 1,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    return GuideFabOverlay(
+      title: 'วิธีขอ Gemini API Key (ฟรี)',
+      icon: Icons.vpn_key_outlined,
+      steps: const [
+        'เปิดเว็บ aistudio.google.com/apikey ด้วยบัญชี Google ของคุณ (สมัครฟรี ไม่มีค่าใช้จ่าย)',
+        'กดปุ่ม "Create API Key" แล้วเลือกโปรเจกต์ที่มีอยู่ หรือสร้างโปรเจกต์ใหม่ถ้ายังไม่มี',
+        'คัดลอกคีย์ที่ได้ (ขึ้นต้นด้วย AIza...) มาวางในช่อง "Gemini API Key" ด้านซ้าย',
+        'กด "ทดสอบการเชื่อมต่อ" เพื่อเช็กว่าคีย์ใช้งานได้จริงก่อน ถ้าผ่านระบบจะบันทึกคีย์ให้อัตโนมัติ',
+        'คีย์นี้ใช้ได้ฟรีในโควตาที่ Google กำหนด ถ้าใช้งานหนักเกินโควตา ระบบจะแจ้งเตือนตอนทดสอบ/ใช้งาน',
+      ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Card(
+              elevation: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   Row(
                     children: [
                       Icon(Icons.auto_awesome, color: colors.primary, size: 22),
@@ -143,6 +154,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

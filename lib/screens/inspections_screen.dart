@@ -12,6 +12,9 @@ import '../data/procurement_repository.dart';
 import '../models/inspection.dart';
 import '../models/procurement_order.dart';
 import '../services/procurement_document_generator.dart';
+import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
+import '../widgets/thai_date_picker.dart';
 import '../services/toast_service.dart';
 
 const _thaiMonths = [
@@ -137,9 +140,9 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('ล่าช้า $daysLate วัน'),
-            Text('วงเงิน ${baseAmount.toStringAsFixed(2)} บาท × อัตราค่าปรับ $penaltyRate% ต่อวัน'),
+            Text('วงเงิน ${formatBaht(baseAmount)} บาท × อัตราค่าปรับ $penaltyRate% ต่อวัน'),
             const SizedBox(height: 8),
-            Text('≈ ${estimated.toStringAsFixed(2)} บาท',
+            Text('≈ ${formatBaht(estimated)} บาท',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             Text(
@@ -202,58 +205,68 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildSummaryCards(colors),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: _inspections.isEmpty
-                              ? Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.fact_check_outlined, size: 64, color: colors.onSurfaceVariant),
-                                      const SizedBox(height: 12),
-                                      Text('ยังไม่มีรายการตรวจรับ\nกด "เพิ่มรายการตรวจรับ" เพื่อเริ่มต้น',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
-                                    ],
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าตรวจรับพัสดุ',
+      icon: Icons.fact_check_outlined,
+      steps: const [
+        'บันทึกผลการตรวจรับพัสดุ/งานจ้าง เทียบกับวันครบกำหนดส่งมอบตามสัญญา/ใบสั่งซื้อ',
+        'ถ้าส่งมอบเกินกำหนด ระบบจะคำนวณ "ค่าปรับโดยประมาณ" ให้อัตโนมัติ — เป็นแค่ตัวเลขประมาณการเท่านั้น ให้ตรวจสอบอัตราค่าปรับที่แท้จริงจากสัญญาก่อนใช้ยืนยันทุกครั้ง',
+        'เลือกประเภทเอกสารตรวจรับให้ตรงกับลักษณะงาน (พัสดุ/งานจ้าง/งานก่อสร้าง) และกรอกเลขที่เอกสารให้ครบ',
+        'กด "เพิ่มรายการตรวจรับ" มุมขวาล่างเพื่อเริ่มบันทึกรายการใหม่',
+      ],
+      child: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSummaryCards(colors),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: _inspections.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.fact_check_outlined, size: 64, color: colors.onSurfaceVariant),
+                                        const SizedBox(height: 12),
+                                        Text('ยังไม่มีรายการตรวจรับ\nกด "เพิ่มรายการตรวจรับ" เพื่อเริ่มต้น',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: _inspections.length,
+                                    padding: const EdgeInsets.only(bottom: 80),
+                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                    itemBuilder: (_, i) => _buildCard(colors, _inspections[i]),
                                   ),
-                                )
-                              : ListView.separated(
-                                  itemCount: _inspections.length,
-                                  padding: const EdgeInsets.only(bottom: 80),
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (_, i) => _buildCard(colors, _inspections[i]),
-                                ),
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            onPressed: () => _openForm(),
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เพิ่มรายการตรวจรับ'),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              onPressed: () => _openForm(),
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่มรายการตรวจรับ'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -332,7 +345,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                       style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
                     if (i.penaltyAmount != null) ...[
                       const SizedBox(height: 2),
-                      Text('ค่าปรับโดยประมาณ: ${i.penaltyAmount!.toStringAsFixed(2)} บาท',
+                      Text('ค่าปรับโดยประมาณ: ${formatBaht(i.penaltyAmount)} บาท',
                         style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w600)),
                     ],
                   ],
@@ -402,18 +415,14 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
   Future<void> _pickDate({required bool isDue}) async {
     final colors = Theme.of(context).colorScheme;
     final initial = DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await pickThaiDate(
       context: context,
       initialDate: initial,
       firstDate: DateTime(initial.year - 10),
       lastDate: DateTime(initial.year + 10),
       helpText: isDue ? 'วันที่ครบกำหนด' : 'วันที่ส่งมอบจริง',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: colors.primary, onPrimary: colors.onPrimary, onSurface: colors.primary),
-        ),
-        child: child!,
-      ),
+      primaryColor: colors.primary,
+      onPrimaryColor: colors.onPrimary,
     );
     if (picked == null) return;
     setState(() {

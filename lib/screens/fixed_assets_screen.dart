@@ -12,6 +12,10 @@ import '../data/procurement_repository.dart';
 import '../models/asset_event.dart';
 import '../models/fixed_asset.dart';
 import '../services/toast_service.dart';
+import '../utils/app_folder_name.dart';
+import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
+import '../widgets/thai_date_picker.dart';
 
 enum _AssetViewMode { table, grid }
 
@@ -24,7 +28,8 @@ String _formatThai(DateTime d) => '${d.day} ${_thaiMonths[d.month]} ${d.year + 5
 
 Future<String> _copyPhotoLocally(String sourcePath) async {
   final docsDir = await getApplicationDocumentsDirectory();
-  final assetsDir = Directory(p.join(docsDir.path, 'BanPaLao_Documents', 'AssetPhotos'));
+  final folderName = await getSchoolDocumentsFolderName();
+  final assetsDir = Directory(p.join(docsDir.path, folderName, 'AssetPhotos'));
   if (!assetsDir.existsSync()) assetsDir.createSync(recursive: true);
   final ext = p.extension(sourcePath);
   final destPath = p.join(assetsDir.path, 'asset_${DateTime.now().microsecondsSinceEpoch}$ext');
@@ -107,44 +112,54 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildSummaryCards(colors),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildListPane(colors)),
-                          if (_selected != null) ...[
-                            const SizedBox(width: 16),
-                            SizedBox(width: 360, child: _buildDetailPane(colors, _selected!)),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            onPressed: () => _openForm(),
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เพิ่มครุภัณฑ์'),
-          ),
-        ),
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าทะเบียนครุภัณฑ์',
+      icon: Icons.inventory_2_outlined,
+      steps: const [
+        'สลับมุมมองตาราง/กริดรูปภาพได้ที่ปุ่มมุมขวาของรายการ — มุมมองกริดเหมาะกับตอนต้องดูรูปครุภัณฑ์ประกอบ',
+        'กดที่รายการในตารางเพื่อเปิดแผงรายละเอียดด้านขวา ดูประวัติการใช้งาน/ซ่อมบำรุงของครุภัณฑ์ชิ้นนั้น',
+        'รูปถ่ายครุภัณฑ์ที่แนบไว้ เก็บเป็นไฟล์ในเครื่องนี้เท่านั้น ไม่ได้อัปโหลดขึ้น cloud ที่ใดทั้งสิ้น',
+        'กด "เพิ่มครุภัณฑ์" มุมขวาล่างเพื่อลงทะเบียนรายการใหม่',
       ],
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildSummaryCards(colors),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _buildListPane(colors)),
+                            if (_selected != null) ...[
+                              const SizedBox(width: 16),
+                              SizedBox(width: 360, child: _buildDetailPane(colors, _selected!)),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              onPressed: () => _openForm(),
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่มครุภัณฑ์'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -171,7 +186,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
         const SizedBox(width: 12),
         card('รอจำหน่าย', '${_countByStatus('รอจำหน่าย')} รายการ', Colors.orange),
         const SizedBox(width: 12),
-        card('มูลค่ารวมทั้งหมด', '${_totalValue.toStringAsFixed(2)} บาท', colors.primary),
+        card('มูลค่ารวมทั้งหมด', '${formatBaht(_totalValue)} บาท', colors.primary),
       ],
     );
   }
@@ -350,8 +365,8 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
             const SizedBox(height: 8),
             _detailRow(colors, 'เลขครุภัณฑ์', a.assetNumber ?? '-'),
             _detailRow(colors, 'จำนวน', '${a.quantity}'),
-            _detailRow(colors, 'ราคาต่อหน่วย', '${a.unitPrice?.toStringAsFixed(2) ?? "-"} บาท'),
-            _detailRow(colors, 'มูลค่ารวม', '${a.totalValue.toStringAsFixed(2)} บาท'),
+            _detailRow(colors, 'ราคาต่อหน่วย', '${a.unitPrice != null ? formatBaht(a.unitPrice) : "-"} บาท'),
+            _detailRow(colors, 'มูลค่ารวม', '${formatBaht(a.totalValue)} บาท'),
             _detailRow(colors, 'สถานที่จัดวาง', a.location ?? '-'),
             _detailRow(colors, 'วันที่ได้มา', a.acquiredDate ?? '-'),
             const SizedBox(height: 12),
@@ -555,18 +570,14 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
   Future<void> _pickAcquiredDate() async {
     final colors = Theme.of(context).colorScheme;
     final initial = DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await pickThaiDate(
       context: context,
       initialDate: initial,
       firstDate: DateTime(initial.year - 20),
       lastDate: DateTime(initial.year + 1),
       helpText: 'วันที่ได้มา',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: colors.primary, onPrimary: colors.onPrimary, onSurface: colors.primary),
-        ),
-        child: child!,
-      ),
+      primaryColor: colors.primary,
+      onPrimaryColor: colors.onPrimary,
     );
     if (picked == null) return;
     setState(() => _acquiredDate = _formatThai(picked));

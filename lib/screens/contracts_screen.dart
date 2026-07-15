@@ -7,6 +7,8 @@ import '../data/procurement_repository.dart';
 import '../models/contract.dart';
 import '../models/procurement_order.dart';
 import '../services/procurement_document_generator.dart';
+import '../utils/money_format.dart';
+import '../widgets/thai_date_picker.dart';
 import '../services/toast_service.dart';
 
 const _contractTypes = ['สัญญาซื้อขาย', 'สัญญาจ้าง', 'ใบสั่งซื้อ', 'ใบสั่งจ้าง'];
@@ -188,7 +190,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('มูลค่าสัญญารวมทั้งหมด', style: TextStyle(fontSize: 12, color: colors.onPrimaryContainer)),
-                Text('${_totalContractValue.toStringAsFixed(2)} บาท (${_contracts.length} สัญญา)',
+                Text('${formatBaht(_totalContractValue)} บาท (${_contracts.length} สัญญา)',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colors.onPrimaryContainer)),
               ],
             ),
@@ -270,7 +272,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                 ),
               ),
               if (c.contractAmount != null)
-                Text('${c.contractAmount!.toStringAsFixed(2)} บาท',
+                Text('${formatBaht(c.contractAmount)} บาท',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.primary)),
               if (linkedOrder != null) ...[
                 const SizedBox(width: 4),
@@ -369,18 +371,14 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
   Future<void> _pickDate({required bool isStart}) async {
     final colors = Theme.of(context).colorScheme;
     final initial = DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await pickThaiDate(
       context: context,
       initialDate: initial,
       firstDate: DateTime(initial.year - 10),
       lastDate: DateTime(initial.year + 10),
       helpText: isStart ? 'วันที่เริ่มสัญญา' : 'วันที่สิ้นสุดสัญญา',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: colors.primary, onPrimary: colors.onPrimary, onSurface: colors.primary),
-        ),
-        child: child!,
-      ),
+      primaryColor: colors.primary,
+      onPrimaryColor: colors.onPrimary,
     );
     if (picked == null) return;
     setState(() {

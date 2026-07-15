@@ -22,8 +22,11 @@ import '../services/document_generator.dart';
 import '../services/gemini_service.dart';
 import '../services/toast_service.dart';
 import '../utils/calc_engine.dart';
+import '../utils/money_format.dart';
 import '../widgets/items_table_editor.dart';
+import '../widgets/guide_panel.dart';
 import '../widgets/receipt_ocr_dialog.dart';
+import '../widgets/thai_date_picker.dart';
 import 'settings_screen.dart';
 
 class OrderWizardScreen extends StatefulWidget {
@@ -90,8 +93,48 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
   }
 
   void _updateDraft(ProcurementOrder Function(ProcurementOrder) update) {
-    setState(() => _draft = update(_draft));
+    setState(() {
+      final prev = _draft;
+      var next = update(prev);
+      // วันครบกำหนดส่งมอบ = วันที่ลงนามสัญญา/ใบสั่งซื้อ + ระยะเวลาส่งมอบ (วัน)
+      // คำนวณอัตโนมัติเฉพาะตอนที่ 2 ค่านี้เปลี่ยน — ถ้าผู้ใช้เคยเลือกวันครบกำหนด
+      // เองด้วยมือ (ผ่าน date picker) โดยไม่ได้แตะ 2 ค่านี้ จะไม่ถูกเขียนทับ
+      final signedChanged = next.dateContractSigned != prev.dateContractSigned;
+      final shippingChanged = next.shippingDays != prev.shippingDays;
+      if (signedChanged || shippingChanged) {
+        final autoDeadline =
+            _calcDeadlineThai(next.dateContractSigned, next.shippingDays);
+        if (autoDeadline != null) next = next.copyWith(dateDeadline: autoDeadline);
+      }
+      _draft = next;
+    });
     _markDirty();
+  }
+
+  static const _thaiMonthNames = [
+    '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  ];
+
+  /// รับวันที่ลงนามสัญญา (dd/MM/yyyy พ.ศ.) + จำนวนวันส่งมอบ คืนวันครบกำหนด
+  /// เป็นสตริงรูปแบบเดียวกัน หรือ null ถ้าข้อมูลไม่ครบ/แปลงไม่ได้
+  static String? _calcDeadlineThai(String? signedText, int? shippingDays) {
+    if (signedText == null || signedText.isEmpty || shippingDays == null) return null;
+    final parts = signedText.split('/');
+    if (parts.length != 3) return null;
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final buddhistYear = int.tryParse(parts[2]);
+    if (day == null || month == null || buddhistYear == null) return null;
+    late final DateTime signedDate;
+    try {
+      signedDate = DateTime(buddhistYear - 543, month, day);
+    } catch (_) {
+      return null;
+    }
+    final deadline = signedDate.add(Duration(days: shippingDays));
+    final y = deadline.year + 543;
+    return '${deadline.day} ${_thaiMonthNames[deadline.month]} $y';
   }
 
   /// ตั้งค่า dirty เป็น true และแจ้ง shell (ถ้ายังไม่ dirty อยู่แล้ว)
@@ -718,7 +761,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     return TextFormField(
       key: ValueKey('$label-$value'),
       readOnly: true,
-      initialValue: value == null ? '-' : '${value.toStringAsFixed(2)} บาท',
+      initialValue: value == null ? '-' : '${formatBaht(value)} บาท',
       decoration: _inputDecoration(label),
     );
   }
@@ -1321,7 +1364,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: TextFormField(
                     controller: _shippingDaysCtrl,
-                    decoration: _inputDecoration('ระยะเวลาส่งมอบ (วัน)'),
+                    decoration: _inputDecoration('ระยะเวลาส่งมอบ (วัน)').copyWith(
+                      helperText: 'ระบบจะคำนวณ "วันครบกำหนดส่งมอบ" ในแท็บ 5 ให้อัตโนมัติ',
+                      helperMaxLines: 2,
+                    ),
                     keyboardType: TextInputType.number,
                     onChanged: (v) => widget.onChanged(
                       (d) => d.copyWith(shippingDays: int.tryParse(v)),
@@ -1509,10 +1555,19 @@ class _Tab4ItemsState extends State<_Tab4Items> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+    return GuideFabOverlay(
+      title: 'วิธีกรอกรายการพัสดุ + ใช้ AI ช่วย',
+      icon: Icons.auto_awesome,
+      steps: const [
+        'กรอกเองทีละแถวได้เลย: ชื่อรายการ, จำนวน, หน่วยนับ, ราคาต่อหน่วย — ระบบคำนวณยอดรวมแต่ละแถวและยอดรวมทั้งหมดให้อัตโนมัติ',
+        'หรือกดปุ่ม "📷 อ่านจากใบเสร็จ" มุมขวาบน แล้วเลือกรูปถ่าย/ไฟล์ใบเสร็จ ให้ AI อ่านและแยกรายการให้ทันที',
+        'รองรับไฟล์ .jpg .png .heic (รูปจาก iPhone/Mac) และ .pdf',
+        'AI จะแสดงรายการที่อ่านได้ให้ตรวจสอบความถูกต้องก่อน กดยืนยันแล้วค่อยนำเข้าจริง ไม่เพิ่มอัตโนมัติทันที',
+        'ถ้ายังไม่ได้ตั้งค่า Gemini API Key จะมีข้อความแจ้งให้ไปตั้งค่าที่หน้า "ตั้งค่า AI" ก่อน',
+      ],
+      corner: Alignment.bottomRight,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1583,7 +1638,7 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
       setValue: (d, v) => d.copyWith(dateMemoUsed: v),
     ),
     _DateFieldSpec(
-      label: 'วันที่จัดทำใบสั่งซื้อ/สั่งจ้าง',
+      label: 'รายงานขอซื้อ/ขอจ้าง',
       getValue: (d) => d.dateOrderCreated ?? '',
       setValue: (d, v) => d.copyWith(dateOrderCreated: v),
     ),
@@ -1635,6 +1690,20 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
   }
 
   @override
+  void didUpdateWidget(covariant _Tab5Timeline oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // ซิงก์ค่ากลับเข้า controller เมื่อ draft เปลี่ยนจากภายนอก (เช่น วันครบกำหนด
+    // ส่งมอบที่คำนวณอัตโนมัติจาก Tab 3) — ปลอดภัยเพราะทุกช่องในแท็บนี้เป็น
+    // readOnly (แก้ผ่าน date picker เท่านั้น) ไม่มีการพิมพ์อิสระที่จะโดนเขียนทับ
+    for (var i = 0; i < _fields.length; i++) {
+      final newValue = _fields[i].getValue(widget.draft);
+      if (_controllers[i].text != newValue) {
+        _controllers[i].text = newValue;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     for (final c in _controllers) {
       c.dispose();
@@ -1668,38 +1737,14 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
   Future<void> _pickDate(int index) async {
     final colors = Theme.of(context).colorScheme;
     final initial = _parseThaiDate(_controllers[index].text) ?? DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await pickThaiDate(
       context: context,
       initialDate: initial,
       firstDate: DateTime(initial.year - 10),
       lastDate: DateTime(initial.year + 10),
       helpText: _fields[index].label,
-      // ครอบธีมสีให้ตรงกับสีหลักของแอป (teal/tertiary) แทนสีน้ำเงิน Material default
-      // — ยังใช้ showDatePicker ของ Flutter เดิม แค่เปลี่ยนสีผ่าน Theme/บ
-      // DatePickerThemeData ไม่ได้เขียนปฏิทินเองใหม่ทั้งหมด
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: colors.primary, // หัวปฏิทิน + วันที่ที่เลือกอยู่
-              onPrimary: colors.onPrimary,
-              onSurface: colors.primary, // ตัวเลขวันที่ปกติ
-              secondary: colors.tertiary,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: colors.primary),
-            ),
-            datePickerTheme: DatePickerThemeData(
-              headerBackgroundColor: colors.primary,
-              headerForegroundColor: colors.onPrimary,
-              todayForegroundColor: WidgetStateProperty.all(colors.tertiary),
-              todayBorder: BorderSide(color: colors.tertiary, width: 1.4),
-              dayOverlayColor: WidgetStateProperty.all(colors.tertiary.withValues(alpha: 0.12)),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      primaryColor: colors.primary,
+      onPrimaryColor: colors.onPrimary,
     );
     if (picked == null) return;
     final formatted = _formatThaiDate(picked);
@@ -1738,7 +1783,26 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
                         controller: _controllers[i],
                         readOnly: true,
                         decoration: _inputDecoration(_fields[i].label).copyWith(
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: CircleAvatar(
+                              radius: 11,
+                              backgroundColor: colors.primary,
+                              child: Text(
+                                '${i + 1}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.onPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
                           suffixIcon: const Icon(Icons.calendar_today, size: 20),
+                          helperText: _fields[i].label == 'วันครบกำหนดส่งมอบ'
+                              ? 'คำนวณอัตโนมัติจากวันที่ลงนามสัญญา + ระยะเวลาส่งมอบ (แตะเพื่อแก้เองได้)'
+                              : null,
+                          helperMaxLines: 2,
                         ),
                         onTap: () => _pickDate(i),
                       ),
@@ -1747,7 +1811,70 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
               );
             },
           ),
+          const SizedBox(height: 32),
+          _buildGuideCard(colors),
           const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  static const _guideItems = [
+    'บันทึกขออนุมัติใช้เงินจากผู้บริหารก่อนเริ่มกระบวนการจัดซื้อจัดจ้าง',
+    'จัดทำรายงานขอซื้อ/ขอจ้างเสนอผู้มีอำนาจอนุมัติ',
+    'ประกาศเชิญชวน (กรณีเป็นวิธีประกาศเชิญชวนทั่วไป/e-bidding)',
+    'ผู้ขาย/ผู้รับจ้างเสนอราคา',
+    'ลงนามในสัญญาหรือใบสั่งซื้อ/สั่งจ้าง',
+    'กำหนดวันครบกำหนดส่งมอบตามที่ระบุในสัญญา',
+    'ผู้ขาย/ผู้รับจ้างส่งมอบพัสดุจริง',
+    'คณะกรรมการตรวจรับพัสดุดำเนินการตรวจรับ',
+    'เบิกจ่ายเงินให้ผู้ขาย/ผู้รับจ้างหลังตรวจรับผ่านแล้ว',
+  ];
+
+  Widget _buildGuideCard(ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: colors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'คำแนะนำลำดับการกรอกวันที่ (ตัวเลขตรงกับช่องด้านบน)',
+                style: TextStyle(fontWeight: FontWeight.bold, color: colors.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          for (int i = 0; i < _guideItems.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 10,
+                    backgroundColor: colors.primary,
+                    child: Text(
+                      '${i + 1}',
+                      style: TextStyle(fontSize: 11, color: colors.onPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(_guideItems[i], style: const TextStyle(fontSize: 13)),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

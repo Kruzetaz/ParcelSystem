@@ -14,6 +14,7 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/audit_log_entry.dart';
+import '../utils/money_format.dart';
 
 enum _ReportTab { monthly, readiness, auditTrail }
 
@@ -176,7 +177,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('ยอดใช้จ่ายสะสมทั้งปี', style: TextStyle(fontSize: 12, color: colors.onPrimaryContainer)),
-                    Text('${grandTotal.toStringAsFixed(2)} บาท',
+                    Text('${formatBaht(grandTotal)} บาท',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.onPrimaryContainer)),
                   ],
                 ),
@@ -217,7 +218,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           const SizedBox(width: 10),
-          SizedBox(width: 100, child: Text('${total.toStringAsFixed(2)} บาท', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
+          SizedBox(width: 100, child: Text('${formatBaht(total)} บาท', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
           SizedBox(width: 60, child: Text('${row['count']} รายการ', textAlign: TextAlign.right, style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant))),
         ],
       ),

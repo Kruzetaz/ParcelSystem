@@ -13,11 +13,17 @@ import '../models/budget.dart';
 import '../services/budget_import_service.dart';
 import '../services/toast_service.dart';
 import '../widgets/budget_import_dialog.dart';
+import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
 
 enum _BudgetViewMode { card, table }
 
 /// วิธีจัดการรายการที่ซ้ำกันตอน import จากไฟล์
 enum _DuplicateResolution { replace, keepBoth, skip }
+
+/// โหมด "กำหนดค่าหลายโครงการพร้อมกัน" — เลือกได้ว่าจะกำหนดฝ่าย/แผนงาน
+/// หรือผู้รับผิดชอบ (none = ปิดโหมดนี้อยู่)
+enum _BulkAssignField { none, department, responsiblePerson }
 
 class BudgetListScreen extends StatefulWidget {
   const BudgetListScreen({super.key});
@@ -37,10 +43,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   String? _selectedDepartment; // null = ทั้งหมด — ใช้ค่าจาก groupName
   String? _selectedProject; // null = ทั้งหมด — ใช้ค่าจาก projectName
 
-  // โหมด "กำหนดฝ่าย/แผนงานหลายโครงการพร้อมกัน" — เลือกได้ทีละโครงการ (ทุกรายการ
-  // ย่อย/กิจกรรมในโครงการนั้นจะได้ฝ่ายเดียวกัน) กันไม่ให้ต้องไล่แก้ทีละโครงการเอง
-  bool _bulkAssignMode = false;
-  final Set<String> _selectedProjectKeys = {};
+  // โหมด "กำหนดค่าหลายโครงการพร้อมกัน" — ใช้ enum เดียวสลับระหว่างกำหนด
+  // "ฝ่าย/แผนงาน" (เลือกได้แค่ระดับโครงการ — ทุกกิจกรรมย่อยได้ค่าเดียวกันเสมอ)
+  // กับ "ผู้รับผิดชอบ" (เลือกได้ละเอียดถึงระดับกิจกรรมย่อยแต่ละรายการ เพราะ
+  // แต่ละกิจกรรมในโครงการเดียวกันอาจมีคนรับผิดชอบคนละคน)
+  _BulkAssignField _bulkAssignField = _BulkAssignField.none;
+  final Set<String> _selectedProjectKeys = {}; // ใช้กับโหมดฝ่าย/แผนงาน
+  final Set<int> _selectedBudgetIds = {}; // ใช้กับโหมดผู้รับผิดชอบ (รายกิจกรรม)
+  final _bulkPersonCtrl = TextEditingController();
   bool _applyingBulkAssign = false;
 
   @override
@@ -55,6 +65,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _bulkPersonCtrl.dispose();
     super.dispose();
   }
 
@@ -133,13 +144,16 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     }
   }
 
-  void _toggleBulkAssignMode() {
+  void _toggleBulkAssignMode(_BulkAssignField field) {
     setState(() {
-      _bulkAssignMode = !_bulkAssignMode;
+      _bulkAssignField = _bulkAssignField == field ? _BulkAssignField.none : field;
       _selectedProjectKeys.clear();
+      _selectedBudgetIds.clear();
+      _bulkPersonCtrl.clear();
     });
   }
 
+  /// ใช้กับโหมด "ฝ่าย/แผนงาน" — เลือกได้แค่ระดับทั้งโครงการ
   void _toggleProjectSelection(String projectKey) {
     setState(() {
       if (_selectedProjectKeys.contains(projectKey)) {
@@ -150,7 +164,32 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     });
   }
 
-  Future<void> _applyBulkAssign(String group) async {
+  /// ใช้กับโหมด "ผู้รับผิดชอบ" — ติ๊กที่หัวการ์ด = เลือก/ยกเลิกทุกกิจกรรมย่อยในโครงการนั้นพร้อมกัน
+  void _toggleProjectAllBudgets(List<Budget> rows) {
+    final ids = rows.map((b) => b.id).whereType<int>().toSet();
+    final allSelected = ids.every(_selectedBudgetIds.contains);
+    setState(() {
+      if (allSelected) {
+        _selectedBudgetIds.removeAll(ids);
+      } else {
+        _selectedBudgetIds.addAll(ids);
+      }
+    });
+  }
+
+  /// ใช้กับโหมด "ผู้รับผิดชอบ" — ติ๊กแต่ละกิจกรรมย่อยแยกทีละรายการ
+  void _toggleBudgetSelection(int id) {
+    setState(() {
+      if (_selectedBudgetIds.contains(id)) {
+        _selectedBudgetIds.remove(id);
+      } else {
+        _selectedBudgetIds.add(id);
+      }
+    });
+  }
+
+  /// กำหนดฝ่าย/แผนงาน (จากรายการคงที่) ให้ทุกโครงการที่เลือกไว้ (ระดับทั้งโครงการ)
+  Future<void> _applyBulkAssignDepartment(String group) async {
     setState(() => _applyingBulkAssign = true);
     try {
       var updatedCount = 0;
@@ -165,7 +204,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       if (!mounted) return;
       showAppToast('กำหนดฝ่าย/แผนงานให้ $updatedCount รายการแล้ว');
       setState(() {
-        _bulkAssignMode = false;
+        _bulkAssignField = _BulkAssignField.none;
         _selectedProjectKeys.clear();
       });
       _load();
@@ -177,48 +216,121 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     }
   }
 
+  /// กำหนดผู้รับผิดชอบ (ชื่อที่พิมพ์ไว้ในช่องของแถบด้านบน) ให้ทุกกิจกรรมย่อยที่ติ๊กเลือกไว้
+  Future<void> _applyBulkAssignResponsiblePerson() async {
+    final person = _bulkPersonCtrl.text.trim();
+    if (person.isEmpty) {
+      showAppToast('กรุณากรอกชื่อผู้รับผิดชอบก่อน', isError: true);
+      return;
+    }
+    if (_selectedBudgetIds.isEmpty) {
+      showAppToast('กรุณาติ๊กเลือกอย่างน้อย 1 กิจกรรม', isError: true);
+      return;
+    }
+    setState(() => _applyingBulkAssign = true);
+    try {
+      var updatedCount = 0;
+      for (final b in _budgets) {
+        if (b.id == null || !_selectedBudgetIds.contains(b.id) || b.responsiblePerson == person) continue;
+        await _repo.updateBudget(b.copyWith(responsiblePerson: person));
+        updatedCount++;
+      }
+      if (!mounted) return;
+      showAppToast('กำหนดผู้รับผิดชอบให้ $updatedCount รายการแล้ว');
+      setState(() {
+        _bulkAssignField = _BulkAssignField.none;
+        _selectedBudgetIds.clear();
+        _bulkPersonCtrl.clear();
+      });
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('กำหนดผู้รับผิดชอบไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _applyingBulkAssign = false);
+    }
+  }
+
   Widget _buildBulkAssignBar(ColorScheme colors) {
+    final isDepartment = _bulkAssignField == _BulkAssignField.department;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: colors.primaryContainer,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.checklist_outlined, color: colors.onPrimaryContainer, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _selectedProjectKeys.isEmpty
-                  ? 'เลือกโครงการที่ต้องการกำหนดฝ่าย/แผนงาน (ติ๊กที่หัวการ์ดแต่ละโครงการ)'
-                  : 'เลือกแล้ว ${_selectedProjectKeys.length} โครงการ — ทุกรายการย่อยในโครงการนั้นจะได้ฝ่ายเดียวกัน',
-              style: TextStyle(color: colors.onPrimaryContainer, fontSize: 13),
-            ),
-          ),
-          const SizedBox(width: 12),
-          PopupMenuButton<String>(
-            enabled: _selectedProjectKeys.isNotEmpty && !_applyingBulkAssign,
-            onSelected: _applyBulkAssign,
-            itemBuilder: (_) => budgetDepartmentGroups
-                .map((g) => PopupMenuItem(value: g, child: Text(g)))
-                .toList(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(8)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_applyingBulkAssign)
-                    SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
-                  else
-                    Icon(Icons.arrow_drop_down, color: colors.onPrimary),
-                  const SizedBox(width: 6),
-                  Text('กำหนดฝ่าย/แผนงาน', style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w600)),
-                ],
+          Row(
+            children: [
+              Icon(Icons.checklist_outlined, color: colors.onPrimaryContainer, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isDepartment
+                      ? (_selectedProjectKeys.isEmpty
+                          ? 'เลือกโครงการที่ต้องการกำหนดฝ่าย/แผนงาน (ติ๊กที่หัวการ์ดแต่ละโครงการ)'
+                          : 'เลือกแล้ว ${_selectedProjectKeys.length} โครงการ — ทุกกิจกรรมย่อยในโครงการนั้นจะได้ฝ่ายเดียวกัน')
+                      : 'พิมพ์ชื่อผู้รับผิดชอบในช่องด้านล่าง แล้วติ๊กเลือกกิจกรรม/โครงการที่ต้องการกำหนด'
+                          '${_selectedBudgetIds.isNotEmpty ? ' (เลือกแล้ว ${_selectedBudgetIds.length} รายการ)' : ''}',
+                  style: TextStyle(color: colors.onPrimaryContainer, fontSize: 13),
+                ),
               ),
-            ),
+              if (isDepartment) ...[
+                const SizedBox(width: 12),
+                PopupMenuButton<String>(
+                  enabled: _selectedProjectKeys.isNotEmpty && !_applyingBulkAssign,
+                  onSelected: _applyBulkAssignDepartment,
+                  itemBuilder: (_) => budgetDepartmentGroups
+                      .map((g) => PopupMenuItem(value: g, child: Text(g)))
+                      .toList(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_applyingBulkAssign)
+                          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                        else
+                          Icon(Icons.arrow_drop_down, color: colors.onPrimary),
+                        const SizedBox(width: 6),
+                        Text('กำหนดฝ่าย/แผนงาน', style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
+          if (!isDepartment) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _bulkPersonCtrl,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      hintText: 'พิมพ์ชื่อผู้รับผิดชอบ เช่น นางสาวจริยา ยะคำป้อ',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: _applyingBulkAssign ? null : _applyBulkAssignResponsiblePerson,
+                  icon: _applyingBulkAssign
+                      ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                      : const Icon(Icons.check),
+                  label: const Text('กำหนด'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -403,9 +515,19 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Center(
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าแผนงบประมาณ',
+      icon: Icons.account_balance_wallet_outlined,
+      steps: const [
+        'กด "เพิ่มแผนงบ" มุมขวาล่างเพื่อกรอกเอง ทีละโครงการ/กิจกรรม หรือกด "📂 Import จากไฟล์" เพื่อให้ AI อ่านจากไฟล์ PDF/Excel แล้วแยกรายการให้',
+        'ตอน Import ถ้าพบรายการซ้ำกับที่มีอยู่แล้ว (ปีงบ+ชื่อโครงการ+กิจกรรมตรงกัน) ระบบจะถามว่าจะแทนที่ เก็บไว้ทั้งคู่ หรือข้ามรายการนั้น',
+        'ใช้ปุ่ม "กำหนดฝ่ายหลายโครงการ" หรือ "กำหนดผู้รับผิดชอบหลายโครงการ" เมื่อต้องการตั้งค่าเดียวกันให้หลายโครงการ/กิจกรรมพร้อมกัน แทนการไล่แก้ทีละรายการ',
+        'สลับมุมมอง "การ์ด"/"ตาราง" ได้ตามที่ถนัด ใช้ช่องค้นหา/ตัวกรองด้านบนเพื่อหาโครงการที่ต้องการเจอเร็วขึ้น',
+        'ตัวเลข "คงเหลือ" จะเท่ากับ "วงเงินที่ได้รับจัดสรร" เสมอ เพราะระบบยังไม่มีฟีเจอร์หักลดอัตโนมัติตามการใช้จ่ายจริง',
+      ],
+      child: Stack(
+        children: [
+          Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1100),
             child: Padding(
@@ -415,10 +537,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 children: [
                   _buildFilterBar(colors),
                   const SizedBox(height: 12),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _buildViewToggle(colors),
-                      const Spacer(),
                       OutlinedButton.icon(
                         onPressed: _importing ? null : _importFromFile,
                         icon: _importing
@@ -430,13 +554,28 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                             : const Icon(Icons.folder_open_outlined),
                         label: Text(_importing ? 'กำลังนำเข้า...' : '📂 Import จากไฟล์'),
                       ),
-                      const SizedBox(width: 12),
                       OutlinedButton.icon(
-                        onPressed: _budgets.isEmpty ? null : _toggleBulkAssignMode,
-                        icon: Icon(_bulkAssignMode ? Icons.close : Icons.edit_note_outlined),
-                        label: Text(_bulkAssignMode ? 'ยกเลิกเลือก' : 'กำหนดฝ่ายหลายโครงการ'),
+                        onPressed: _budgets.isEmpty
+                            ? null
+                            : () => _toggleBulkAssignMode(_BulkAssignField.department),
+                        icon: Icon(_bulkAssignField == _BulkAssignField.department
+                            ? Icons.close
+                            : Icons.edit_note_outlined),
+                        label: Text(_bulkAssignField == _BulkAssignField.department
+                            ? 'ยกเลิกเลือก'
+                            : 'กำหนดฝ่ายหลายโครงการ'),
                       ),
-                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _budgets.isEmpty
+                            ? null
+                            : () => _toggleBulkAssignMode(_BulkAssignField.responsiblePerson),
+                        icon: Icon(_bulkAssignField == _BulkAssignField.responsiblePerson
+                            ? Icons.close
+                            : Icons.person_search_outlined),
+                        label: Text(_bulkAssignField == _BulkAssignField.responsiblePerson
+                            ? 'ยกเลิกเลือก'
+                            : 'กำหนดผู้รับผิดชอบหลายโครงการ'),
+                      ),
                       OutlinedButton.icon(
                         onPressed: _budgets.isEmpty ? null : _confirmDeleteAll,
                         style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
@@ -445,7 +584,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       ),
                     ],
                   ),
-                  if (_bulkAssignMode) ...[
+                  if (_bulkAssignField != _BulkAssignField.none) ...[
                     const SizedBox(height: 12),
                     _buildBulkAssignBar(colors),
                   ],
@@ -493,7 +632,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             label: const Text('เพิ่มแผนงบ'),
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -615,12 +755,23 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               ),
               child: Row(
                 children: [
-                  if (_bulkAssignMode)
+                  if (_bulkAssignField == _BulkAssignField.department)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: Checkbox(
                         value: _selectedProjectKeys.contains(group.key),
                         onChanged: (_) => _toggleProjectSelection(group.key),
+                      ),
+                    ),
+                  if (_bulkAssignField == _BulkAssignField.responsiblePerson)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Tooltip(
+                        message: 'เลือกทั้งโครงการ (ทุกกิจกรรมย่อย)',
+                        child: Checkbox(
+                          value: rows.map((b) => b.id).whereType<int>().every(_selectedBudgetIds.contains),
+                          onChanged: (_) => _toggleProjectAllBudgets(rows),
+                        ),
                       ),
                     ),
                   Expanded(
@@ -659,9 +810,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text('คงเหลือรวม', style: TextStyle(fontSize: 10.5, color: colors.onPrimaryContainer.withValues(alpha: 0.8))),
-                      Text('${totalRemaining.toStringAsFixed(2)} บาท',
+                      Text('${formatBaht(totalRemaining)} บาท',
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.onPrimaryContainer)),
-                      Text('จาก ${totalAllocated.toStringAsFixed(2)} บาท',
+                      Text('จาก ${formatBaht(totalAllocated)} บาท',
                         style: TextStyle(fontSize: 10.5, color: colors.onPrimaryContainer.withValues(alpha: 0.8))),
                     ],
                   ),
@@ -688,6 +839,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         decoration: BoxDecoration(border: Border(top: BorderSide(color: colors.outlineVariant))),
         child: Row(
           children: [
+            if (_bulkAssignField == _BulkAssignField.responsiblePerson && b.id != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Checkbox(
+                  value: _selectedBudgetIds.contains(b.id),
+                  onChanged: (_) => _toggleBudgetSelection(b.id!),
+                ),
+              ),
             Icon(Icons.subdirectory_arrow_right, size: 16, color: colors.onSurfaceVariant),
             const SizedBox(width: 8),
             Expanded(
@@ -699,10 +858,13 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (b.egpNumber != null)
                     Text('e-GP: ${b.egpNumber}', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+                  if (b.responsiblePerson != null && b.responsiblePerson!.isNotEmpty)
+                    Text('ผู้รับผิดชอบ: ${b.responsiblePerson}',
+                      style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
                 ],
               ),
             ),
-            Text('${remaining.toStringAsFixed(2)} บาท',
+            Text('${formatBaht(remaining)} บาท',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: remainColor)),
             const SizedBox(width: 8),
             IconButton(
@@ -725,7 +887,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     final headerStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
     return SingleChildScrollView(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 900),
+        constraints: const BoxConstraints(minWidth: 1010),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -738,6 +900,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   SizedBox(width: 60, child: Text('ปีงบ', style: headerStyle)),
                   Expanded(flex: 3, child: Text('โครงการ / รายการย่อย', style: headerStyle)),
                   SizedBox(width: 100, child: Text('เลข e-GP', style: headerStyle)),
+                  SizedBox(width: 110, child: Text('ผู้รับผิดชอบ', style: headerStyle)),
                   SizedBox(width: 110, child: Text('วงเงิน', style: headerStyle, textAlign: TextAlign.right)),
                   SizedBox(width: 110, child: Text('คงเหลือ', style: headerStyle, textAlign: TextAlign.right)),
                   const SizedBox(width: 40),
@@ -773,6 +936,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             const SizedBox(width: 100),
             const SizedBox(width: 110),
             const SizedBox(width: 110),
+            const SizedBox(width: 110),
             const SizedBox(width: 40),
           ],
         ),
@@ -802,10 +966,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   ),
                 ),
                 SizedBox(width: 100, child: Text(b.egpNumber ?? '-', style: const TextStyle(fontSize: 12.5))),
-                SizedBox(width: 110, child: Text(allocated.toStringAsFixed(2), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
+                SizedBox(width: 110, child: Text(b.responsiblePerson ?? '-',
+                  style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                SizedBox(width: 110, child: Text(formatBaht(allocated), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
                 SizedBox(
                   width: 110,
-                  child: Text(remaining.toStringAsFixed(2),
+                  child: Text(formatBaht(remaining),
                     textAlign: TextAlign.right,
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: remainColor)),
                 ),

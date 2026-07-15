@@ -34,6 +34,7 @@ import 'package:file_picker/file_picker.dart';
 import '../services/backup_service.dart';
 import '../services/theme_controller.dart';
 import '../services/toast_service.dart';
+import '../utils/app_folder_name.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -139,6 +140,8 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _onBackupPressed() async {
     final colors = Theme.of(context).colorScheme;
+    final folderName = await getSchoolDocumentsFolderName();
+    if (!mounted) return;
     // แสดง bottom sheet เลือก Backup หรือ Restore
     await showModalBottomSheet(
       context: context,
@@ -166,7 +169,7 @@ class _AppShellState extends State<AppShell> {
             ListTile(
               leading: Icon(Icons.cloud_upload_outlined, color: colors.primary),
               title: const Text('สำรองข้อมูล (Backup)'),
-              subtitle: const Text('บันทึกไฟล์ .zip ไปที่ BanPaLao_Documents'),
+              subtitle: Text('บันทึกไฟล์ .zip ไปที่ $folderName'),
               onTap: () { Navigator.pop(ctx); _doBackup(); },
             ),
             ListTile(
@@ -422,7 +425,7 @@ class _AppShellState extends State<AppShell> {
                           border: Border.all(color: colors.onPrimary.withValues(alpha: 0.4)),
                         ),
                         child: Text(
-                          'v2.0.1',
+                          'v2.1',
                           style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.onPrimary),
                         ),
                       ),

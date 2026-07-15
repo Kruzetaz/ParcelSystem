@@ -10,19 +10,22 @@ class _EditableBudget {
   final TextEditingController projectName;
   final TextEditingController activityName;
   final TextEditingController allocatedAmount;
+  final TextEditingController responsiblePerson;
 
   _EditableBudget(Budget b)
       : fiscalYear = TextEditingController(text: b.fiscalYear),
         groupName = budgetDepartmentGroups.contains(b.groupName) ? b.groupName : null,
         projectName = TextEditingController(text: b.projectName ?? ''),
         activityName = TextEditingController(text: b.activityName ?? ''),
-        allocatedAmount = TextEditingController(text: b.allocatedAmount?.toStringAsFixed(2) ?? '');
+        allocatedAmount = TextEditingController(text: b.allocatedAmount?.toStringAsFixed(2) ?? ''),
+        responsiblePerson = TextEditingController(text: b.responsiblePerson ?? '');
 
   void dispose() {
     fiscalYear.dispose();
     projectName.dispose();
     activityName.dispose();
     allocatedAmount.dispose();
+    responsiblePerson.dispose();
   }
 
   Budget toBudget() => Budget(
@@ -32,6 +35,7 @@ class _EditableBudget {
         activityName: activityName.text.trim().isEmpty ? null : activityName.text.trim(),
         allocatedAmount: double.tryParse(allocatedAmount.text.trim()),
         remainingAmount: double.tryParse(allocatedAmount.text.trim()),
+        responsiblePerson: responsiblePerson.text.trim().isEmpty ? null : responsiblePerson.text.trim(),
       );
 }
 
@@ -210,21 +214,39 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
           ),
           Padding(
             padding: const EdgeInsets.only(left: 78, right: 40),
-            child: DropdownButtonFormField<String?>(
-              initialValue: row.groupName,
-              isDense: true,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                isDense: true, hintText: 'ฝ่าย/แผนงาน (ไม่ระบุ)',
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                border: InputBorder.none,
-              ),
-              style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
-              items: [
-                const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุฝ่าย/แผนงาน)')),
-                ...budgetDepartmentGroups.map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis))),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: row.groupName,
+                    isDense: true,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      isDense: true, hintText: 'ฝ่าย/แผนงาน (ไม่ระบุ)',
+                      contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      border: InputBorder.none,
+                    ),
+                    style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุฝ่าย/แผนงาน)')),
+                      ...budgetDepartmentGroups.map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis))),
+                    ],
+                    onChanged: (v) => setState(() => row.groupName = v),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: row.responsiblePerson,
+                    style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+                    decoration: const InputDecoration(
+                      isDense: true, hintText: 'ผู้รับผิดชอบ (ไม่ระบุ)',
+                      contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
               ],
-              onChanged: (v) => setState(() => row.groupName = v),
             ),
           ),
         ],

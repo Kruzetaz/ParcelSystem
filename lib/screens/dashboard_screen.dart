@@ -15,6 +15,7 @@ import '../models/budget.dart';
 import '../models/school_settings.dart';
 import 'app_sidebar.dart' show AppMode;
 import '../services/toast_service.dart';
+import '../utils/money_format.dart';
 
 enum _OrderFilter { all, draft, completed, underFiveK, w804UnderFiftyK, missingEgp }
 
@@ -633,15 +634,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  String _formatBaht(double value) {
-    final s = value.toStringAsFixed(0);
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return '$buf บาท';
-  }
+  String _formatBaht(double value) => '${formatBaht(value)} บาท';
 
   /// จัดแจ้งเตือนทั้งหมดเป็นกริด 3 คอลัมน์ต่อแถว — ถ้ามีมากกว่า 3 รายการจะขึ้น
   /// แถวใหม่ต่อด้านล่างอัตโนมัติ (ไม่ใช่ GridView เพราะจำนวนรายการมีน้อยและไม่
@@ -892,7 +885,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Padding(
                         padding: const EdgeInsets.only(right: 10),
                         child: Text(
-                          '${order.currentOrderPrice!.toStringAsFixed(2)} บาท',
+                          '${formatBaht(order.currentOrderPrice)} บาท',
                           style: TextStyle(fontWeight: FontWeight.w600, color: colors.primary),
                         ),
                       ),

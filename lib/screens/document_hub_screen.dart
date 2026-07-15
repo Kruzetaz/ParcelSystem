@@ -12,6 +12,7 @@ import '../services/document_generator.dart';
 import '../services/tor_document_generator.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
+import '../widgets/guide_panel.dart';
 
 class DocumentHubScreen extends StatefulWidget {
   const DocumentHubScreen({super.key});
@@ -153,10 +154,20 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     final colors = Theme.of(context).colorScheme;
     if (_loading) return const Center(child: CircularProgressIndicator());
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1000),
-        child: Padding(
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าสร้างเอกสารราชการ',
+      icon: Icons.description_outlined,
+      steps: const [
+        'เลือก "รายการอ้างอิง" (คำสั่งซื้อ/สั่งจ้าง) จากช่องด้านบนก่อนครั้งเดียว — เอกสารทุกใบด้านล่างจะดึงข้อมูลจากรายการนั้นให้อัตโนมัติ',
+        'เอกสารครบชุด (คำสั่งซื้อ+ผู้ตรวจรับ) ใช้ตอนอนุมัติจัดซื้อ, ประกาศผู้ชนะ ใช้ตอนประกาศผลผู้ขาย',
+        'ใบเสนอราคา/ใบส่งมอบงาน ให้ผู้ขายเซ็นตอนส่งของ, บันทึกขออนุมัติเบิกจ่าย ใช้ตอนจ่ายเงินจริง',
+        'TOR/ข้อบเขตของงาน ใช้ตอนกำหนดสเปกก่อนเริ่มจัดซื้อ — ถ้ายังไม่มี TOR ของรายการนี้ ให้ไปสร้างที่หน้า "TOR/คุณลักษณะ" ก่อน',
+        'กดที่การ์ดเอกสารที่ต้องการ ระบบจะสร้างไฟล์ .docx แล้วเปิดด้วยโปรแกรม Word ให้อัตโนมัติ',
+      ],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -194,6 +205,7 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
