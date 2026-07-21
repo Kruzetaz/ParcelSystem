@@ -132,7 +132,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                               ),
                             ),
                             Text(
-                              'v2.1 · พัฒนาโดย Kru.ZetaZ',
+                              'v2.4 · พัฒนาโดย Kru.ZetaZ',
                               style: TextStyle(color: Colors.grey, fontSize: 12),
                             ),
                           ],

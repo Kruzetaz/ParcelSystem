@@ -82,6 +82,21 @@ class GuideFabOverlay extends StatelessWidget {
   });
 
   void _openGuide(BuildContext context) {
+    // เปิด dialog ใน microtask ถัดไปแทนที่จะเปิดทันทีตอน onTap (ซึ่งยังอยู่
+    // ระหว่าง pointer event เดิม) — ป้องกันบั๊กของ Flutter mouse_tracker บน
+    // desktop ที่ชน assertion "_debugDuringDeviceUpdate" เวลามีการ mount
+    // widget/overlay ใหม่ (เช่น dialog) ขึ้นมาซ้อนระหว่างที่ตัว mouse tracker
+    // กำลังประมวลผล pointer event ของปุ่มเดิมอยู่พอดี ทำให้แอปค้าง กดอะไรไม่ได้
+    // ทั้งแอป — ใช้ Future.microtask แทน addPostFrameCallback เพราะ
+    // addPostFrameCallback ต้องรอ "เฟรมจอถัดไปจริงๆ" ซึ่งถ้าตอนนั้นแอปนิ่งๆ
+    // Flutter อาจไม่รีบวาดเฟรมใหม่ให้ ทำให้ผู้ใช้รู้สึกว่าปุ่มหน่วง/กดแล้วช้า
+    Future.microtask(() {
+      if (!context.mounted) return;
+      _showGuideDialog(context);
+    });
+  }
+
+  void _showGuideDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -130,16 +145,19 @@ class GuideFabOverlay extends StatelessWidget {
             color: colors.primary,
             borderRadius: BorderRadius.circular(10),
             elevation: 3,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
+            // หมายเหตุ: ใช้ GestureDetector แทน InkWell โดยตั้งใจ — InkWell ผูก
+            // MouseRegion ของตัวเองไว้เพื่อ hover/splash effect ซึ่งพอวางอยู่ใน
+            // Positioned/Stack ที่เนื้อหาหน้ารีบิลด์บ่อยๆ ทำให้ Flutter mouse
+            // tracker บน desktop ชน assertion "_debugDuringDeviceUpdate" แล้ว
+            // ทำให้ทั้งแอปกดอะไรไม่ได้เลย (บั๊กที่รู้จักกันของ Flutter บน desktop)
+            // GestureDetector ไม่ผูก MouseRegion เพิ่ม จึงไม่ชนปัญหานี้
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => _openGuide(context),
-              child: Tooltip(
-                message: 'วิธีใช้งานหน้านี้',
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Icon(Icons.help_outline, color: colors.onPrimary, size: 22),
-                ),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(Icons.help_outline, color: colors.onPrimary, size: 22),
               ),
             ),
           ),

@@ -23,10 +23,20 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
   bool _loading = true;
   String? _fiscalYearFilter;
 
+  final _purchaseScrollCtrl = ScrollController();
+  final _hireScrollCtrl = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _purchaseScrollCtrl.dispose();
+    _hireScrollCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -107,9 +117,9 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _buildSection(colors, 'ทะเบียนคุมการจัดซื้อ', _purchases),
+                                _buildSection(colors, 'ทะเบียนคุมการจัดซื้อ', _purchases, _purchaseScrollCtrl),
                                 const SizedBox(height: 24),
-                                _buildSection(colors, 'ทะเบียนคุมการจัดจ้าง', _hires),
+                                _buildSection(colors, 'ทะเบียนคุมการจัดจ้าง', _hires, _hireScrollCtrl),
                                 const SizedBox(height: 24),
                               ],
                             ),
@@ -121,7 +131,12 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
     );
   }
 
-  Widget _buildSection(ColorScheme colors, String title, List<ProcurementOrder> orders) {
+  Widget _buildSection(
+    ColorScheme colors,
+    String title,
+    List<ProcurementOrder> orders,
+    ScrollController scrollCtrl,
+  ) {
     final headerStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
     final total = orders.fold<double>(0, (s, o) => s + (o.currentOrderPrice ?? 0));
     return Container(
@@ -149,11 +164,35 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
               padding: const EdgeInsets.all(16),
               child: Text('ไม่มีรายการ', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
             )
-          else
-            SingleChildScrollView(
+          else ...[
+            // บอกใบ้ว่าตารางเลื่อนดูคอลัมน์ที่เหลือได้ (คอลัมน์เยอะกว่าที่จอโชว์พอดี)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+              child: Row(
+                children: [
+                  Icon(Icons.swipe_outlined, size: 13, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
+                  const SizedBox(width: 4),
+                  Text('เลื่อนดูคอลัมน์ที่เหลือได้ →',
+                    style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant.withValues(alpha: 0.7))),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Scrollbar(
+              controller: scrollCtrl,
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+              controller: scrollCtrl,
               scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 1150),
+              padding: const EdgeInsets.only(bottom: 10),
+              // ใช้ SizedBox กำหนดความกว้างตายตัวแทน ConstrainedBox(minWidth:)
+              // เพราะหน้านี้ซ้อน SingleChildScrollView แนวนอนอยู่ใน
+              // SingleChildScrollView แนวตั้งอีกที ทำให้ความกว้างที่ส่งลงมาไม่มี
+              // ขอบเขต (unbounded) — ConstrainedBox ที่มีแค่ minWidth ไม่บังคับ
+              // ความกว้างสูงสุด ทำให้ Row ที่มี Expanded ข้างในคำนวณพื้นที่ไม่ได้
+              // (เคยเจอบั๊กแถวไม่ขึ้นเลยเพราะจุดนี้)
+              child: SizedBox(
+                width: 1180,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -163,13 +202,21 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                       child: Row(
                         children: [
                           SizedBox(width: 36, child: Text('ที่', style: headerStyle)),
-                          SizedBox(width: 130, child: Text('เลขที่เอกสาร', style: headerStyle)),
+                          const SizedBox(width: 6),
+                          SizedBox(width: 100, child: Text('เลขที่เอกสาร', style: headerStyle)),
+                          const SizedBox(width: 6),
                           Expanded(flex: 3, child: Text('รายการ/โครงการ', style: headerStyle)),
-                          SizedBox(width: 150, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
+                          const SizedBox(width: 6),
+                          SizedBox(width: 120, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
+                          const SizedBox(width: 6),
                           SizedBox(width: 110, child: Text('จำนวนเงิน', style: headerStyle, textAlign: TextAlign.right)),
+                          const SizedBox(width: 6),
                           SizedBox(width: 100, child: Text('วันที่', style: headerStyle)),
+                          const SizedBox(width: 6),
                           SizedBox(width: 110, child: Text('ครบกำหนดส่งมอบ', style: headerStyle)),
+                          const SizedBox(width: 6),
                           SizedBox(width: 100, child: Text('วันตรวจรับ', style: headerStyle)),
+                          const SizedBox(width: 6),
                           SizedBox(width: 100, child: Text('วันส่งเบิกเงิน', style: headerStyle)),
                         ],
                       ),
@@ -178,7 +225,9 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                   ],
                 ),
               ),
+              ),
             ),
+          ],
         ],
       ),
     );
@@ -193,13 +242,21 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
       child: Row(
         children: [
           SizedBox(width: 36, child: Text('$index', style: const TextStyle(fontSize: 12.5))),
-          SizedBox(width: 130, child: Text(docNumber, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 6),
+          SizedBox(width: 100, child: Text(docNumber, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 6),
           Expanded(flex: 3, child: Text(itemLabel, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          SizedBox(width: 150, child: Text(o.vendorName ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 6),
+          SizedBox(width: 120, child: Text(o.vendorName ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 6),
           SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
+          const SizedBox(width: 6),
           SizedBox(width: 100, child: Text(o.dateOrderCreated ?? '-', style: const TextStyle(fontSize: 12))),
+          const SizedBox(width: 6),
           SizedBox(width: 110, child: Text(o.dateDeadline ?? '-', style: const TextStyle(fontSize: 12))),
+          const SizedBox(width: 6),
           SizedBox(width: 100, child: Text(o.dateInspection ?? '-', style: const TextStyle(fontSize: 12))),
+          const SizedBox(width: 6),
           SizedBox(width: 100, child: Text(o.dateDisbursement ?? '-', style: const TextStyle(fontSize: 12))),
         ],
       ),
