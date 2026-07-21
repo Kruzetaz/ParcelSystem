@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/annual_count.dart';
+import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
 
 const _thaiMonths = [
@@ -90,59 +91,68 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('ตรวจนับพัสดุประจำปี ${_currentFiscalYear()}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _counts.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.checklist_outlined, size: 64, color: colors.onSurfaceVariant),
-                                    const SizedBox(height: 12),
-                                    Text('ยังไม่มีประวัติการตรวจนับ\nกด "เริ่มการตรวจนับ" เพื่อเริ่มต้น',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
-                                  ],
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าตรวจนับพัสดุประจำปี',
+      icon: Icons.checklist_outlined,
+      steps: const [
+        'ใช้บันทึกผลการตรวจนับพัสดุ/ครุภัณฑ์จริงประจำปีงบประมาณ เทียบกับจำนวนที่มีอยู่ในทะเบียน ตามที่ระเบียบพัสดุกำหนดให้ตรวจนับอย่างน้อยปีละ 1 ครั้ง',
+        'กด "เริ่มการตรวจนับ" มุมขวาล่างเพื่อเปิดรอบตรวจนับใหม่ของปีงบประมาณปัจจุบัน',
+        'บันทึกจำนวนที่พบจริง/ชำรุด/สูญหาย ไว้เป็นหลักฐานประกอบการรายงาน สตง. และใช้เทียบกับรอบก่อนหน้าได้',
+      ],
+      child: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ตรวจนับพัสดุประจำปี ${_currentFiscalYear()}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _loading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _counts.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.checklist_outlined, size: 64, color: colors.onSurfaceVariant),
+                                      const SizedBox(height: 12),
+                                      Text('ยังไม่มีประวัติการตรวจนับ\nกด "เริ่มการตรวจนับ" เพื่อเริ่มต้น',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                                    ],
+                                  ),
+                                )
+                              : ListView.separated(
+                                  itemCount: _counts.length,
+                                  padding: const EdgeInsets.only(bottom: 80),
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (_, i) => _buildCard(colors, _counts[i]),
                                 ),
-                              )
-                            : ListView.separated(
-                                itemCount: _counts.length,
-                                padding: const EdgeInsets.only(bottom: 80),
-                                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                itemBuilder: (_, i) => _buildCard(colors, _counts[i]),
-                              ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            onPressed: _startNewCount,
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เริ่มการตรวจนับ'),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              onPressed: _startNewCount,
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เริ่มการตรวจนับ'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

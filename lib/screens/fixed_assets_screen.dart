@@ -15,6 +15,7 @@ import '../services/toast_service.dart';
 import '../utils/app_folder_name.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
+import '../widgets/standard_price_picker_dialog.dart';
 import '../widgets/thai_date_picker.dart';
 
 enum _AssetViewMode { table, grid }
@@ -141,6 +142,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
         'สลับมุมมองตาราง/กริดรูปภาพได้ที่ปุ่มมุมขวาของรายการ — มุมมองกริดเหมาะกับตอนต้องดูรูปครุภัณฑ์ประกอบ',
         'กดที่รายการในตารางเพื่อเปิดแผงรายละเอียดด้านขวา ดูประวัติการใช้งาน/ซ่อมบำรุงของครุภัณฑ์ชิ้นนั้น',
         'กรอกผู้ขาย/ประเภทเงิน/วิธีการได้มา/อายุการใช้งาน ให้ครบเพื่อให้ตรงกับแบบฟอร์มทะเบียนคุมครุภัณฑ์ของราชการ — ถ้ากรอกอายุการใช้งาน ระบบจะคำนวณค่าเสื่อมราคาโดยประมาณให้อัตโนมัติ (เป็นค่าประมาณการ ไม่ใช่ตัวเลขบัญชีที่รับรองอย่างเป็นทางการ)',
+        'กดปุ่ม "ค้นหาราคากลาง (สำนักงบประมาณ)" ในฟอร์มเพิ่ม/แก้ไข เพื่อค้นหาชื่อ+ราคากลางจากบัญชีราคามาตรฐานครุภัณฑ์มาเติมให้อัตโนมัติ (เป็นราคาประมาณการเบื้องต้น ควรตรวจสอบราคากลางจริงก่อนใช้อ้างอิงในเอกสารราชการ)',
         'รูปถ่ายครุภัณฑ์ที่แนบไว้ เก็บเป็นไฟล์ในเครื่องนี้เท่านั้น ไม่ได้อัปโหลดขึ้น cloud ที่ใดทั้งสิ้น',
         'กด "เพิ่มครุภัณฑ์" มุมขวาล่างเพื่อลงทะเบียนรายการใหม่',
       ],
@@ -212,6 +214,8 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
         card('มูลค่ารวมทั้งหมด', '${formatBaht(_totalValue)} บาท', colors.primary),
         const SizedBox(width: 12),
         card('มูลค่าสุทธิรวม (ประมาณ)', '${formatBaht(_totalNetBookValue)} บาท', Colors.teal),
+        // เว้นที่ว่างท้ายแถวไว้ให้ปุ่มไกด์ลอยมุมขวาบน ไม่ให้การ์ดสุดท้ายโดนบัง
+        const SizedBox(width: 52),
       ],
     );
   }
@@ -654,6 +658,15 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
     setState(() => _acquiredDate = _formatThai(picked));
   }
 
+  Future<void> _pickStandardPrice() async {
+    final selected = await showStandardPricePickerDialog(context);
+    if (selected == null) return;
+    setState(() {
+      if (_nameCtrl.text.trim().isEmpty) _nameCtrl.text = selected.name;
+      _unitPriceCtrl.text = selected.price.toStringAsFixed(2);
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -715,6 +728,17 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                 const SizedBox(height: 16),
                 _field(_assetNumberCtrl, 'เลขครุภัณฑ์'),
                 _field(_nameCtrl, 'รายการ *', required: true),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: OutlinedButton.icon(
+                      onPressed: _pickStandardPrice,
+                      icon: const Icon(Icons.price_change_outlined, size: 16),
+                      label: const Text('ค้นหาราคากลาง (สำนักงบประมาณ)'),
+                    ),
+                  ),
+                ),
                 Row(
                   children: [
                     Expanded(child: _field(_quantityCtrl, 'จำนวน', keyboardType: TextInputType.number)),

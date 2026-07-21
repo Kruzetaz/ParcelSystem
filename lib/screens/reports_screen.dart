@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/audit_log_entry.dart';
 import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
 
 enum _ReportTab { monthly, readiness, auditTrail }
 
@@ -121,23 +122,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildTabSelector(colors),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : switch (_tab) {
-                    _ReportTab.monthly => _buildMonthlyReport(colors),
-                    _ReportTab.readiness => _buildReadinessReport(colors),
-                    _ReportTab.auditTrail => _buildAuditTrail(colors),
-                  },
-          ),
-        ],
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้ารายงาน/สตง.',
+      icon: Icons.bar_chart_outlined,
+      steps: const [
+        '"รายงานรายเดือน" สรุปยอดใช้จ่ายตามกลุ่มงาน/หมวดหมู่ในแต่ละเดือนของปีงบประมาณ',
+        '"ตรวจสอบ สตง." เช็คแค่ว่าข้อมูลกรอกครบตามที่จำเป็นหรือไม่ (data completeness) ไม่ใช่การรับรองความถูกต้องทางกฎหมาย ต้องตรวจสอบตามระเบียบพัสดุจริงอีกครั้งก่อนใช้อ้างอิง',
+        '"Audit Trail" บันทึกประวัติการสร้าง/แก้ไข/ลบของข้อมูลส่วนใหญ่ในระบบ แต่ไม่ครอบคลุมทุกตารางย่อย (เช่น รายการพัสดุแต่ละแถวในคำสั่งซื้อ)',
+        'สลับดูรายงานแต่ละแบบได้ที่แถบด้านบน',
+      ],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildTabSelector(colors),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : switch (_tab) {
+                      _ReportTab.monthly => _buildMonthlyReport(colors),
+                      _ReportTab.readiness => _buildReadinessReport(colors),
+                      _ReportTab.auditTrail => _buildAuditTrail(colors),
+                    },
+            ),
+          ],
+        ),
       ),
     );
   }

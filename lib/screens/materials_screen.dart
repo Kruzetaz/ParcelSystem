@@ -11,6 +11,7 @@ import '../models/procurement_order.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
 
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -167,16 +168,28 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildSummaryCards(colors),
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าวัสดุ/คลังพัสดุ',
+      icon: Icons.inventory_outlined,
+      // การ์ดสรุปด้านบนกว้างเต็มจอ ปุ่มไกด์เลยต้องลอยมุมซ้ายล่างแทนมุมขวาบน
+      // (มุมขวาล่างมีปุ่ม "เพิ่มวัสดุ" อยู่แล้ว)
+      corner: Alignment.bottomLeft,
+      steps: const [
+        'ยอดคงเหลือคำนวณจากยอด "รับเข้า" ลบ "เบิกจ่าย" สะสมทั้งหมด — เป็นยอดสรุปรวม ไม่ใช่ประวัติรายรับ-จ่ายทีละครั้งแบบบัตรคุมวัสดุแบบราชการ',
+        'กด "เบิกจ่าย" ที่รายการวัสดุเพื่อตัดยอดออก ระบบจะเสนอสร้างใบเบิกพัสดุให้อัตโนมัติถ้าต้องการ',
+        'ใกล้หมด (≤5) หมายถึงจำนวนคงเหลือน้อย ควรพิจารณาจัดซื้อเพิ่ม',
+        'สลับมุมมองตาราง/กริดได้ที่ปุ่มด้านบนขวาของรายการ ใช้ช่องค้นหาเพื่อหาชื่อวัสดุที่ต้องการเร็วขึ้น',
+      ],
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildSummaryCards(colors),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -224,6 +237,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           ),
         ),
       ],
+      ),
     );
   }
 

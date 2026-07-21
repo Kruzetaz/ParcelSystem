@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/disposal.dart';
 import '../models/fixed_asset.dart';
+import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
 
 const _disposalMethods = ['ขายทอดตลาด', 'โอนให้หน่วยงานอื่น', 'ทำลาย'];
@@ -95,49 +96,59 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _disposals.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.delete_sweep_outlined, size: 64, color: colors.onSurfaceVariant),
-                              const SizedBox(height: 12),
-                              Text('ยังไม่มีรายการจำหน่ายพัสดุ\nกด "เพิ่มรายการจำหน่าย" เพื่อเริ่มต้น',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
-                            ],
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าจำหน่ายพัสดุ',
+      icon: Icons.delete_sweep_outlined,
+      steps: const [
+        'ใช้บันทึกการจำหน่ายพัสดุ/ครุภัณฑ์ที่ชำรุด/หมดความจำเป็น ออกจากทะเบียนตามระเบียบพัสดุ (ขาย/แลกเปลี่ยน/โอน/แปรสภาพ/ทำลาย)',
+        'ผูกกับรายการในทะเบียนครุภัณฑ์ได้โดยตรง (เลือกจากรายการที่มีอยู่แล้ว) หรือกรอกชื่อรายการเองก็ได้',
+        'สถานะ "ตัดยอดแล้ว" หมายถึงดำเนินการจำหน่ายออกจากบัญชีทรัพย์สินเสร็จสมบูรณ์แล้ว ควรอัปเดตหลังได้รับอนุมัติจากผู้มีอำนาจ',
+        'กด "เพิ่มรายการจำหน่าย" มุมขวาล่างเพื่อเริ่มบันทึกรายการใหม่',
+      ],
+      child: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _disposals.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.delete_sweep_outlined, size: 64, color: colors.onSurfaceVariant),
+                                const SizedBox(height: 12),
+                                Text('ยังไม่มีรายการจำหน่ายพัสดุ\nกด "เพิ่มรายการจำหน่าย" เพื่อเริ่มต้น',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: _disposals.length,
+                            padding: const EdgeInsets.only(bottom: 80),
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (_, i) => _buildCard(colors, _disposals[i]),
                           ),
-                        )
-                      : ListView.separated(
-                          itemCount: _disposals.length,
-                          padding: const EdgeInsets.only(bottom: 80),
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (_, i) => _buildCard(colors, _disposals[i]),
-                        ),
+              ),
             ),
           ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            onPressed: () => _openForm(),
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เพิ่มรายการจำหน่าย'),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              onPressed: () => _openForm(),
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่มรายการจำหน่าย'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

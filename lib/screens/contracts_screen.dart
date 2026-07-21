@@ -8,6 +8,7 @@ import '../models/contract.dart';
 import '../models/procurement_order.dart';
 import '../services/procurement_document_generator.dart';
 import '../utils/money_format.dart';
+import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
 import '../services/toast_service.dart';
 
@@ -119,58 +120,68 @@ class _ContractsScreenState extends State<ContractsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildSummaryBar(colors),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: _contracts.isEmpty
-                              ? Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.article_outlined, size: 64, color: colors.onSurfaceVariant),
-                                      const SizedBox(height: 12),
-                                      Text('ยังไม่มีสัญญา/ใบสั่งซื้อ-สั่งจ้าง\nกด "เพิ่มสัญญา" เพื่อเริ่มต้น',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
-                                    ],
+    return GuideFabOverlay(
+      title: 'วิธีใช้หน้าบริหารสัญญา',
+      icon: Icons.article_outlined,
+      steps: const [
+        'บันทึกสัญญา/ใบสั่งซื้อ-สั่งจ้างแต่ละฉบับ ผูกกับรายการจัดซื้อจัดจ้างที่มีอยู่แล้วได้ (ไม่บังคับ) เพื่อดึงข้อมูลมาเติมในเอกสารอัตโนมัติ',
+        'เลือกประเภทสัญญาให้ตรงกับลักษณะงาน (สัญญาซื้อขาย/สัญญาจ้าง/ใบสั่งซื้อ/ใบสั่งจ้าง) และอัปเดตสถานะเมื่อครบกำหนดหรือยกเลิก',
+        'กดไอคอนที่การ์ดแต่ละสัญญาเพื่อสร้างเอกสาร Word (รายงานขอซื้อ, ประกาศผู้ชนะ, ใบเสนอราคา ฯลฯ) ได้ทันทีโดยไม่ต้องไปหน้าอื่น',
+        'กด "เพิ่มสัญญา" มุมขวาล่างเพื่อบันทึกรายการใหม่',
+      ],
+      child: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSummaryBar(colors),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: _contracts.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.article_outlined, size: 64, color: colors.onSurfaceVariant),
+                                        const SizedBox(height: 12),
+                                        Text('ยังไม่มีสัญญา/ใบสั่งซื้อ-สั่งจ้าง\nกด "เพิ่มสัญญา" เพื่อเริ่มต้น',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: _contracts.length,
+                                    padding: const EdgeInsets.only(bottom: 80),
+                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                    itemBuilder: (_, i) => _buildCard(colors, _contracts[i]),
                                   ),
-                                )
-                              : ListView.separated(
-                                  itemCount: _contracts.length,
-                                  padding: const EdgeInsets.only(bottom: 80),
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (_, i) => _buildCard(colors, _contracts[i]),
-                                ),
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            onPressed: () => _openForm(),
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เพิ่มสัญญา'),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              onPressed: () => _openForm(),
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่มสัญญา'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

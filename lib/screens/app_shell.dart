@@ -15,6 +15,7 @@ import 'dashboard_screen.dart';
 import 'order_wizard_screen.dart';
 import 'easy_wizard_screen.dart';
 import 'document_hub_screen.dart';
+import 'order_register_screen.dart';
 import 'budget_list_screen.dart';
 import 'tor_screen.dart';
 import 'contracts_screen.dart';
@@ -300,6 +301,8 @@ class _AppShellState extends State<AppShell> {
         return const InspectionsScreen();
       case AppMode.documentHub:
         return const DocumentHubScreen();
+      case AppMode.orderRegister:
+        return const OrderRegisterScreen();
       case AppMode.fixedAssets:
         return const FixedAssetsScreen();
       case AppMode.materials:
