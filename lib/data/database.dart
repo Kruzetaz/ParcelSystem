@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 20;
+  static const int _version = 21;
 
   Database? _db;
 
@@ -306,6 +306,21 @@ class AppDatabase {
             await db.execute('ALTER TABLE procurement_orders ADD COLUMN procurement_method TEXT');
           } catch (_) {}
         }
+        if (oldVersion < 21) {
+          // เติมฟิลด์ให้ทะเบียนครุภัณฑ์ตรงกับแบบฟอร์ม "ทะเบียนคุมครุภัณฑ์/ทรัพย์สิน"
+          // ของราชการ (ผู้ขาย, ประเภทเงิน, วิธีการได้มา, อายุการใช้งาน) — ใช้คำนวณ
+          // ค่าเสื่อมราคาแบบเส้นตรงในแอปเพิ่มเติม
+          for (final stmt in [
+            'ALTER TABLE fixed_assets ADD COLUMN vendor_name TEXT',
+            'ALTER TABLE fixed_assets ADD COLUMN fund_type TEXT',
+            'ALTER TABLE fixed_assets ADD COLUMN procurement_method TEXT',
+            'ALTER TABLE fixed_assets ADD COLUMN useful_life_years INTEGER',
+          ]) {
+            try {
+              await db.execute(stmt);
+            } catch (_) {}
+          }
+        }
       },
     );
   }
@@ -538,7 +553,11 @@ class AppDatabase {
         location TEXT,
         acquired_date TEXT,
         photo_path TEXT,
-        status TEXT CHECK(status IN ('ใช้งานปกติ', 'ชำรุด', 'รอจำหน่าย')) DEFAULT 'ใช้งานปกติ'
+        status TEXT CHECK(status IN ('ใช้งานปกติ', 'ชำรุด', 'รอจำหน่าย')) DEFAULT 'ใช้งานปกติ',
+        vendor_name TEXT,
+        fund_type TEXT,
+        procurement_method TEXT,
+        useful_life_years INTEGER
       )
     ''');
     await db.execute('''

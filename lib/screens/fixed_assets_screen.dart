@@ -26,6 +26,23 @@ const _thaiMonths = [
 ];
 String _formatThai(DateTime d) => '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
 
+/// แปลงสตริงวันที่รูปแบบ "${d} ${เดือนไทย} ${ปี พ.ศ.}" กลับเป็น DateTime (ค.ศ.)
+/// ใช้คำนวณค่าเสื่อมราคา — คืน null ถ้าแปลงไม่ได้ (ยังไม่ได้กรอก/รูปแบบเก่า)
+DateTime? _parseThaiDate(String? text) {
+  if (text == null || text.trim().isEmpty) return null;
+  final parts = text.trim().split(' ');
+  if (parts.length != 3) return null;
+  final day = int.tryParse(parts[0]);
+  final monthIdx = _thaiMonths.indexOf(parts[1]);
+  final beYear = int.tryParse(parts[2]);
+  if (day == null || monthIdx <= 0 || beYear == null) return null;
+  try {
+    return DateTime(beYear - 543, monthIdx, day);
+  } catch (_) {
+    return null;
+  }
+}
+
 Future<String> _copyPhotoLocally(String sourcePath) async {
   final docsDir = await getApplicationDocumentsDirectory();
   final folderName = await getSchoolDocumentsFolderName();
@@ -77,6 +94,11 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   double get _totalValue => _assets.fold(0, (s, a) => s + a.totalValue);
   int _countByStatus(String s) => _assets.where((a) => a.status == s).length;
 
+  double get _totalNetBookValue => _assets.fold(0, (s, a) {
+        final dep = calcDepreciation(a, _parseThaiDate(a.acquiredDate));
+        return s + (dep?.netBookValue ?? a.totalValue);
+      });
+
   Future<void> _openForm({FixedAsset? existing}) async {
     final saved = await showDialog<bool>(
       context: context,
@@ -118,6 +140,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       steps: const [
         'สลับมุมมองตาราง/กริดรูปภาพได้ที่ปุ่มมุมขวาของรายการ — มุมมองกริดเหมาะกับตอนต้องดูรูปครุภัณฑ์ประกอบ',
         'กดที่รายการในตารางเพื่อเปิดแผงรายละเอียดด้านขวา ดูประวัติการใช้งาน/ซ่อมบำรุงของครุภัณฑ์ชิ้นนั้น',
+        'กรอกผู้ขาย/ประเภทเงิน/วิธีการได้มา/อายุการใช้งาน ให้ครบเพื่อให้ตรงกับแบบฟอร์มทะเบียนคุมครุภัณฑ์ของราชการ — ถ้ากรอกอายุการใช้งาน ระบบจะคำนวณค่าเสื่อมราคาโดยประมาณให้อัตโนมัติ (เป็นค่าประมาณการ ไม่ใช่ตัวเลขบัญชีที่รับรองอย่างเป็นทางการ)',
         'รูปถ่ายครุภัณฑ์ที่แนบไว้ เก็บเป็นไฟล์ในเครื่องนี้เท่านั้น ไม่ได้อัปโหลดขึ้น cloud ที่ใดทั้งสิ้น',
         'กด "เพิ่มครุภัณฑ์" มุมขวาล่างเพื่อลงทะเบียนรายการใหม่',
       ],
@@ -187,6 +210,8 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
         card('รอจำหน่าย', '${_countByStatus('รอจำหน่าย')} รายการ', Colors.orange),
         const SizedBox(width: 12),
         card('มูลค่ารวมทั้งหมด', '${formatBaht(_totalValue)} บาท', colors.primary),
+        const SizedBox(width: 12),
+        card('มูลค่าสุทธิรวม (ประมาณ)', '${formatBaht(_totalNetBookValue)} บาท', Colors.teal),
       ],
     );
   }
@@ -369,6 +394,41 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
             _detailRow(colors, 'มูลค่ารวม', '${formatBaht(a.totalValue)} บาท'),
             _detailRow(colors, 'สถานที่จัดวาง', a.location ?? '-'),
             _detailRow(colors, 'วันที่ได้มา', a.acquiredDate ?? '-'),
+            _detailRow(colors, 'ผู้ขาย/ผู้รับจ้าง', a.vendorName ?? '-'),
+            _detailRow(colors, 'ประเภทเงิน', a.fundType ?? '-'),
+            _detailRow(colors, 'วิธีการได้มา', a.procurementMethod ?? '-'),
+            _detailRow(colors, 'อายุการใช้งาน', a.usefulLifeYears != null ? '${a.usefulLifeYears} ปี' : '-'),
+            Builder(builder: (context) {
+              final dep = calcDepreciation(a, _parseThaiDate(a.acquiredDate));
+              if (dep == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 4),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colors.tertiaryContainer.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('ค่าเสื่อมราคา (ประมาณการ)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: colors.onSurfaceVariant)),
+                      const SizedBox(height: 4),
+                      _detailRow(colors, 'อัตรา/ปี', '${dep.ratePercentPerYear.toStringAsFixed(2)} %'),
+                      _detailRow(colors, 'ค่าเสื่อมต่อปี', '${formatBaht(dep.annualDepreciation)} บาท'),
+                      _detailRow(colors, 'ค่าเสื่อมสะสม', '${formatBaht(dep.accumulatedDepreciation)} บาท'),
+                      _detailRow(colors, 'มูลค่าสุทธิ', '${formatBaht(dep.netBookValue)} บาท'),
+                      const SizedBox(height: 4),
+                      Text(
+                        'คำนวณแบบเส้นตรงจากอายุการใช้งานที่กรอกไว้ เป็นค่าประมาณการเท่านั้น ไม่ใช่ตัวเลขทางบัญชีที่รับรองอย่างเป็นทางการ',
+                        style: TextStyle(fontSize: 10.5, color: colors.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -527,9 +587,13 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
   late final TextEditingController _quantityCtrl;
   late final TextEditingController _unitPriceCtrl;
   late final TextEditingController _locationCtrl;
+  late final TextEditingController _vendorNameCtrl;
+  late final TextEditingController _usefulLifeYearsCtrl;
   String? _acquiredDate;
   String? _photoPath;
   late String _status;
+  String? _fundType;
+  String? _procurementMethod;
   bool _saving = false;
 
   @override
@@ -541,9 +605,14 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
     _quantityCtrl = TextEditingController(text: a?.quantity.toString() ?? '1');
     _unitPriceCtrl = TextEditingController(text: a?.unitPrice?.toStringAsFixed(2) ?? '');
     _locationCtrl = TextEditingController(text: a?.location ?? '');
+    _vendorNameCtrl = TextEditingController(text: a?.vendorName ?? '');
+    _usefulLifeYearsCtrl = TextEditingController(text: a?.usefulLifeYears?.toString() ?? '');
     _acquiredDate = a?.acquiredDate;
     _photoPath = a?.photoPath;
     _status = a?.status ?? 'ใช้งานปกติ';
+    _fundType = fixedAssetFundTypes.contains(a?.fundType) ? a?.fundType : null;
+    _procurementMethod =
+        fixedAssetProcurementMethods.contains(a?.procurementMethod) ? a?.procurementMethod : null;
   }
 
   @override
@@ -553,6 +622,8 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
     _quantityCtrl.dispose();
     _unitPriceCtrl.dispose();
     _locationCtrl.dispose();
+    _vendorNameCtrl.dispose();
+    _usefulLifeYearsCtrl.dispose();
     super.dispose();
   }
 
@@ -596,6 +667,10 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
       acquiredDate: _acquiredDate,
       photoPath: _photoPath,
       status: _status,
+      vendorName: _vendorNameCtrl.text.trim().isEmpty ? null : _vendorNameCtrl.text.trim(),
+      fundType: _fundType,
+      procurementMethod: _procurementMethod,
+      usefulLifeYears: int.tryParse(_usefulLifeYearsCtrl.text.trim()),
     );
     if (widget.existing == null) {
       await _repo.insertFixedAsset(a);
@@ -663,6 +738,45 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                   decoration: const InputDecoration(labelText: 'สถานะ', border: OutlineInputBorder(), isDense: true),
                   items: _assetStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                   onChanged: (v) => setState(() => _status = v ?? 'ใช้งานปกติ'),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('ข้อมูลสำหรับทะเบียนคุมครุภัณฑ์/ทรัพย์สิน',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant)),
+                ),
+                const SizedBox(height: 8),
+                _field(_vendorNameCtrl, 'ผู้ขาย/ผู้รับจ้าง'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: _fundType,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'ประเภทเงิน', border: OutlineInputBorder(), isDense: true),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
+                      ...fixedAssetFundTypes.map((f) => DropdownMenuItem(value: f, child: Text(f))),
+                    ],
+                    onChanged: (v) => setState(() => _fundType = v),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: _procurementMethod,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'วิธีการได้มา', border: OutlineInputBorder(), isDense: true),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
+                      ...fixedAssetProcurementMethods.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
+                    ],
+                    onChanged: (v) => setState(() => _procurementMethod = v),
+                  ),
+                ),
+                _field(_usefulLifeYearsCtrl, 'อายุการใช้งาน (ปี)', keyboardType: TextInputType.number),
+                Text(
+                  'กรอกอายุการใช้งานเพื่อให้ระบบคำนวณค่าเสื่อมราคาโดยประมาณให้อัตโนมัติ (ไม่บังคับ)',
+                  style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
                 ),
               ],
             ),
