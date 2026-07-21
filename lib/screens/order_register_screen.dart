@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
+import '../services/order_register_export_service.dart';
+import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 
@@ -66,6 +68,27 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
     return o.projectName;
   }
 
+  bool _exporting = false;
+
+  Future<void> _exportToExcel() async {
+    setState(() => _exporting = true);
+    try {
+      await OrderRegisterExportService.exportAndOpen(
+        purchases: _purchases,
+        hires: _hires,
+        budgetsById: _budgetsById,
+        fiscalYearLabel: _fiscalYearFilter,
+      );
+      if (!mounted) return;
+      showAppToast('ส่งออกทะเบียนคุมเป็น Excel แล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('ส่งออกไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -77,6 +100,7 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
         'แยกเป็น 2 ตารางตามแบบฟอร์มราชการ: "ทะเบียนคุมการจัดซื้อ" กับ "ทะเบียนคุมการจัดจ้าง" (แยกตามช่อง "ประเภท" ที่เลือกไว้ตอนสร้างรายการ)',
         'ใช้ตัวกรองปีงบประมาณด้านบนเพื่อดูเฉพาะปีที่ต้องการ',
         'ถ้ารายการไหนไม่มีเลขที่/วันที่บางช่อง แสดงว่ายังกรอกข้อมูลนั้นไม่ครบในหน้ารายการต้นทาง ให้ไปเติมที่นั่น ไม่ต้องแก้ในหน้านี้',
+        'กด "ส่งออก Excel" มุมขวาบนเพื่อบันทึกทะเบียนคุมเป็นไฟล์ .xlsx (แยกชีตจัดซื้อ/จัดจ้าง) ตามตัวกรองปีงบที่เลือกไว้ แล้วเปิดไฟล์ให้อัตโนมัติ',
       ],
       corner: Alignment.bottomRight,
       child: _loading
@@ -91,6 +115,14 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                       Text('ทะเบียนคุมเลขที่จัดซื้อจัดจ้าง',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.onSurface)),
                       const Spacer(),
+                      OutlinedButton.icon(
+                        onPressed: _orders.isEmpty || _exporting ? null : _exportToExcel,
+                        icon: _exporting
+                            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                            : const Icon(Icons.file_download_outlined),
+                        label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                      ),
+                      const SizedBox(width: 12),
                       SizedBox(
                         width: 220,
                         child: DropdownButtonFormField<String?>(
@@ -192,7 +224,7 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
               // ความกว้างสูงสุด ทำให้ Row ที่มี Expanded ข้างในคำนวณพื้นที่ไม่ได้
               // (เคยเจอบั๊กแถวไม่ขึ้นเลยเพราะจุดนี้)
               child: SizedBox(
-                width: 1180,
+                width: 1372,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -208,6 +240,10 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                           Expanded(flex: 3, child: Text('รายการ/โครงการ', style: headerStyle)),
                           const SizedBox(width: 6),
                           SizedBox(width: 120, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
+                          const SizedBox(width: 6),
+                          SizedBox(width: 90, child: Text('ประเภทเงิน', style: headerStyle)),
+                          const SizedBox(width: 6),
+                          SizedBox(width: 90, child: Text('เลขที่โครงการ', style: headerStyle)),
                           const SizedBox(width: 6),
                           SizedBox(width: 110, child: Text('จำนวนเงิน', style: headerStyle, textAlign: TextAlign.right)),
                           const SizedBox(width: 6),
@@ -248,6 +284,10 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
           Expanded(flex: 3, child: Text(itemLabel, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 6),
           SizedBox(width: 120, child: Text(o.vendorName ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 6),
+          SizedBox(width: 90, child: Text(o.fundType ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 6),
+          SizedBox(width: 90, child: Text(o.projectNumber ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 6),
           SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
           const SizedBox(width: 6),

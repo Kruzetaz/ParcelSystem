@@ -75,6 +75,12 @@ class ProcurementOrder {
   final String? contractControlNumber;
   final String? inspectionControlNumber;
 
+  // ตรงกับทะเบียนคุมเลขที่จัดซื้อจัดจ้างของจริงที่โรงเรียนใช้ — ประเภทของเงิน
+  // (เช่น เงินอุดหนุน, เงินรายได้สถานศึกษา) และเลขที่โครงการภายใน (คนละตัวกับ
+  // egpProjectId ที่เป็นรหัสในระบบ e-GP)
+  final String? fundType;
+  final String? projectNumber;
+
   final String? dateMemoUsed;
   final String? dateOrderCreated;
   final String? dateAnnouncement;
@@ -144,6 +150,8 @@ class ProcurementOrder {
     this.egpProjectId,
     this.contractControlNumber,
     this.inspectionControlNumber,
+    this.fundType,
+    this.projectNumber,
     this.dateMemoUsed,
     this.dateOrderCreated,
     this.dateAnnouncement,
@@ -213,6 +221,8 @@ class ProcurementOrder {
         'egp_project_id': egpProjectId,
         'contract_control_number': contractControlNumber,
         'inspection_control_number': inspectionControlNumber,
+        'fund_type': fundType,
+        'project_number': projectNumber,
         'date_memo_used': dateMemoUsed,
         'date_order_created': dateOrderCreated,
         'date_announcement': dateAnnouncement,
@@ -282,6 +292,8 @@ class ProcurementOrder {
         egpProjectId: m['egp_project_id'] as String?,
         contractControlNumber: m['contract_control_number'] as String?,
         inspectionControlNumber: m['inspection_control_number'] as String?,
+        fundType: m['fund_type'] as String?,
+        projectNumber: m['project_number'] as String?,
         dateMemoUsed: m['date_memo_used'] as String?,
         dateOrderCreated: m['date_order_created'] as String?,
         dateAnnouncement: m['date_announcement'] as String?,
@@ -351,6 +363,8 @@ class ProcurementOrder {
     String? egpProjectId,
     String? contractControlNumber,
     String? inspectionControlNumber,
+    String? fundType,
+    String? projectNumber,
     String? dateMemoUsed,
     String? dateOrderCreated,
     String? dateAnnouncement,
@@ -419,6 +433,8 @@ class ProcurementOrder {
       egpProjectId: egpProjectId ?? this.egpProjectId,
       contractControlNumber: contractControlNumber ?? this.contractControlNumber,
       inspectionControlNumber: inspectionControlNumber ?? this.inspectionControlNumber,
+      fundType: fundType ?? this.fundType,
+      projectNumber: projectNumber ?? this.projectNumber,
       dateMemoUsed: dateMemoUsed ?? this.dateMemoUsed,
       dateOrderCreated: dateOrderCreated ?? this.dateOrderCreated,
       dateAnnouncement: dateAnnouncement ?? this.dateAnnouncement,
@@ -438,6 +454,16 @@ class ProcurementOrder {
 /// ภาครัฐ พ.ศ. 2560 + หนังสือเวียน ว.804 — ใช้แนะนำวิธีจัดซื้อจัดจ้างให้อัตโนมัติ
 /// ใน Easy Wizard (คำแนะนำเบื้องต้นเท่านั้น ผู้ใช้ควรตรวจสอบระเบียบจริงอีกครั้ง
 /// ก่อนใช้อ้างอิงในเอกสารราชการ)
+/// ประเภทของเงินที่ใช้จัดซื้อจัดจ้าง — ตรงกับที่ทะเบียนคุมของโรงเรียนใช้จริง
+const orderFundTypes = [
+  'เงินอุดหนุน',
+  'เงินรายได้สถานศึกษา',
+  'เงินงบประมาณ',
+  'เงินนอกงบประมาณ',
+  'เงินบริจาค',
+  'อื่นๆ',
+];
+
 String procurementMethodForAmount(double amount) {
   if (amount <= 5000) return 'เฉพาะเจาะจง (ไม่เกิน 5,000 บาท)';
   if (amount <= 50000) return 'เฉพาะเจาะจงตาม ว.804 (ไม่เกิน 50,000 บาท)';

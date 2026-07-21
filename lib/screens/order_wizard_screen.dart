@@ -404,10 +404,12 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   late final TextEditingController _procurementSubjectCtrl;
   late final TextEditingController _orderNumberCtrl;
   late final TextEditingController _egpProjectIdCtrl;
+  late final TextEditingController _projectNumberCtrl;
   late final TextEditingController _projectNameCtrl;
   late final TextEditingController _activityNameCtrl;
   late final TextEditingController _purposeReasonCtrl;
   String? _orderType; // 'ซื้อ' | 'จ้าง'
+  String? _fundType;
   bool _generatingReason = false;
 
   @override
@@ -417,10 +419,12 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _procurementSubjectCtrl = TextEditingController(text: widget.draft.procurementSubject);
     _orderNumberCtrl = TextEditingController(text: widget.draft.orderNumber);
     _egpProjectIdCtrl = TextEditingController(text: widget.draft.egpProjectId);
+    _projectNumberCtrl = TextEditingController(text: widget.draft.projectNumber);
     _projectNameCtrl = TextEditingController(text: widget.draft.projectName);
     _activityNameCtrl = TextEditingController(text: widget.draft.activityName);
     _purposeReasonCtrl = TextEditingController(text: widget.draft.purposeReason);
     _orderType = widget.draft.orderType;
+    _fundType = orderFundTypes.contains(widget.draft.fundType) ? widget.draft.fundType : null;
     _loadBudgets();
   }
 
@@ -514,6 +518,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _procurementSubjectCtrl.dispose();
     _orderNumberCtrl.dispose();
     _egpProjectIdCtrl.dispose();
+    _projectNumberCtrl.dispose();
     _projectNameCtrl.dispose();
     _activityNameCtrl.dispose();
     _purposeReasonCtrl.dispose();
@@ -674,6 +679,34 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               controller: _egpProjectIdCtrl,
               decoration: _inputDecoration('เลขที่โครงการ e-GP (auto-fill จากแผนงบ แก้ไขเองได้)'),
               onChanged: (v) => widget.onChanged((d) => d.copyWith(egpProjectId: v)),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: _fundType,
+                    isExpanded: true,
+                    decoration: _inputDecoration('ประเภทของเงิน'),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
+                      ...orderFundTypes.map((f) => DropdownMenuItem(value: f, child: Text(f))),
+                    ],
+                    onChanged: (v) {
+                      setState(() => _fundType = v);
+                      widget.onChanged((d) => d.copyWith(fundType: v));
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _projectNumberCtrl,
+                    decoration: _inputDecoration('เลขที่โครงการ (ทะเบียนคุมภายใน)'),
+                    onChanged: (v) => widget.onChanged((d) => d.copyWith(projectNumber: v)),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             TextFormField(

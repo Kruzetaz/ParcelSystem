@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 21;
+  static const int _version = 22;
 
   Database? _db;
 
@@ -321,6 +321,18 @@ class AppDatabase {
             } catch (_) {}
           }
         }
+        if (oldVersion < 22) {
+          // เติม "ประเภทของเงิน" และ "เลขที่โครงการ" ให้ procurement_orders
+          // ตรงกับทะเบียนคุมเลขที่จัดซื้อจัดจ้างของจริงที่โรงเรียนใช้อยู่
+          for (final stmt in [
+            'ALTER TABLE procurement_orders ADD COLUMN fund_type TEXT',
+            'ALTER TABLE procurement_orders ADD COLUMN project_number TEXT',
+          ]) {
+            try {
+              await db.execute(stmt);
+            } catch (_) {}
+          }
+        }
       },
     );
   }
@@ -410,6 +422,8 @@ class AppDatabase {
         egp_project_id TEXT,
         contract_control_number TEXT,
         inspection_control_number TEXT,
+        fund_type TEXT,
+        project_number TEXT,
 
         date_memo_used TEXT,
         date_order_created TEXT,
