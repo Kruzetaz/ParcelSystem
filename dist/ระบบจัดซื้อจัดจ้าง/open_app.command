@@ -14,8 +14,8 @@
 # กด "อนุญาต"/Allow ครั้งเดียว ครั้งต่อไปจะไม่ถามอีก)
 
 PROJECT_DIR="/Users/zack1again/Developer/Projects/ParcelSystem"
-APP_PATH="$PROJECT_DIR/build/macos/Build/Products/Release/ParcelSystem v.2.1.app"
-APP_BINARY="$APP_PATH/Contents/MacOS/ParcelSystem v.2.1"
+APP_PATH="$PROJECT_DIR/build/macos/Build/Products/Release/ParcelSystem v.2.4.app"
+APP_BINARY="$APP_PATH/Contents/MacOS/ParcelSystem v.2.4"
 
 clear
 echo "กำลังเปิด ระบบจัดซื้อจัดจ้าง ..."

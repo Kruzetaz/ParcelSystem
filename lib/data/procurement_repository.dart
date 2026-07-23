@@ -1,5 +1,6 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/budget.dart';
+import '../models/vendor.dart';
 import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
@@ -19,6 +20,37 @@ import 'database.dart';
 
 class ProcurementRepository {
   final _db = AppDatabase.instance;
+
+  // ─────────────────────────────────────────
+  // VENDORS (ร้านค้า/คู่ค้าที่เคยกรอกไว้ — เลือกใช้ซ้ำได้)
+  // ─────────────────────────────────────────
+
+  /// บันทึก/อัปเดตข้อมูลร้านค้าโดยใช้ "ชื่อร้าน" เป็น key — ถ้ามีชื่อนี้อยู่แล้ว
+  /// จะอัปเดตข้อมูลทับด้วยค่าล่าสุดที่กรอก (เผื่อเบอร์โทร/ที่อยู่เปลี่ยน)
+  Future<void> upsertVendor(Vendor vendor) async {
+    if (vendor.name.trim().isEmpty) return;
+    final db = await _db.database;
+    await db.insert(
+      'vendors',
+      Vendor(
+        name: vendor.name.trim(),
+        owner: vendor.owner,
+        addressNo: vendor.addressNo,
+        subdistrict: vendor.subdistrict,
+        district: vendor.district,
+        province: vendor.province,
+        phone: vendor.phone,
+        taxId: vendor.taxId,
+      ).toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Vendor>> getAllVendors() async {
+    final db = await _db.database;
+    final rows = await db.query('vendors', orderBy: 'name ASC');
+    return rows.map(Vendor.fromMap).toList();
+  }
 
   // ─────────────────────────────────────────
   // BUDGETS (แผนงบประมาณ)

@@ -42,6 +42,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   String _searchQuery = '';
   String? _selectedDepartment; // null = ทั้งหมด — ใช้ค่าจาก groupName
   String? _selectedProject; // null = ทั้งหมด — ใช้ค่าจาก projectName
+  String? _selectedSource; // null = ทั้งหมด — ใช้ค่าจาก budgetSource
 
   // โหมด "กำหนดค่าหลายโครงการพร้อมกัน" — ใช้ enum เดียวสลับระหว่างกำหนด
   // "ฝ่าย/แผนงาน" (เลือกได้แค่ระดับโครงการ — ทุกกิจกรรมย่อยได้ค่าเดียวกันเสมอ)
@@ -483,6 +484,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   List<Budget> get _filteredBudgets => _budgets.where((b) {
         if (_selectedDepartment != null && b.groupName != _selectedDepartment) return false;
         if (_selectedProject != null && b.projectName != _selectedProject) return false;
+        if (_selectedSource != null && b.budgetSource != _selectedSource) return false;
         if (_searchQuery.isNotEmpty) {
           final q = _searchQuery.toLowerCase();
           final matchesProject = (b.projectName ?? '').toLowerCase().contains(q);
@@ -683,6 +685,17 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             onChanged: (v) => setState(() => _selectedProject = v),
           ),
         ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 3,
+          child: _buildDropdown(
+            colors: colors,
+            hint: 'แหล่งงบ (ทั้งหมด)',
+            value: _selectedSource,
+            options: budgetSources,
+            onChanged: (v) => setState(() => _selectedSource = v),
+          ),
+        ),
       ],
     );
   }
@@ -792,6 +805,18 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                             const SizedBox(width: 6),
                             Text(department,
                               style: TextStyle(fontSize: 11.5, color: colors.onPrimaryContainer)),
+                          ],
+                          if (rows.first.budgetSource == budgetSourceDistrict) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text('งบเขต (นอกแผน)',
+                                style: TextStyle(fontSize: 10.5, color: Colors.white, fontWeight: FontWeight.w600)),
+                            ),
                           ],
                           if (rows.length > 1) ...[
                             const SizedBox(width: 6),
@@ -929,9 +954,23 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             SizedBox(width: 60, child: Text(fiscalYear, style: const TextStyle(fontSize: 12.5))),
             Expanded(
               flex: 3,
-              child: Text(group.key,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(group.key,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  if (rows.first.budgetSource == budgetSourceDistrict) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                      child: const Text('งบเขต', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(width: 100),
             const SizedBox(width: 110),
@@ -1010,6 +1049,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
   late final TextEditingController _egpNumber;
   late final TextEditingController _allocatedAmount;
   late final TextEditingController _responsiblePerson;
+  late String _budgetSource;
   bool _saving = false;
 
   @override
@@ -1023,6 +1063,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     _egpNumber = TextEditingController(text: b?.egpNumber ?? '');
     _allocatedAmount = TextEditingController(text: b?.allocatedAmount?.toStringAsFixed(2) ?? '');
     _responsiblePerson = TextEditingController(text: b?.responsiblePerson ?? '');
+    _budgetSource = b?.budgetSource ?? budgetSourceSchool;
   }
 
   @override
@@ -1052,6 +1093,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
       // เสมอทุกครั้งที่บันทึก กันไม่ให้สองค่านี้เพี้ยนไปจากกัน
       remainingAmount: allocated,
       responsiblePerson: _responsiblePerson.text.trim().isEmpty ? null : _responsiblePerson.text.trim(),
+      budgetSource: _budgetSource,
     );
     if (widget.existing == null) {
       await _repo.insertBudget(b);
@@ -1093,6 +1135,20 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
                           )),
                     ],
                     onChanged: (v) => setState(() => _groupName = v),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _budgetSource,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'แหล่งงบประมาณ', border: OutlineInputBorder(), isDense: true,
+                    ),
+                    items: budgetSources
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _budgetSource = v ?? budgetSourceSchool),
                   ),
                 ),
                 _field(_projectName, 'ชื่อโครงการ (โครงการหลัก)'),

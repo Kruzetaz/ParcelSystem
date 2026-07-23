@@ -16,7 +16,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 22;
+  static const int _version = 23;
 
   Database? _db;
 
@@ -333,6 +333,31 @@ class AppDatabase {
             } catch (_) {}
           }
         }
+        if (oldVersion < 23) {
+          // แยกงบที่อยู่ในแผนโรงเรียน กับงบเขต/หน่วยเหนือที่จัดสรรตรงมา (นอกแผน)
+          try {
+            await db.execute(
+              "ALTER TABLE budgets ADD COLUMN budget_source TEXT NOT NULL DEFAULT 'ในแผนงบโรงเรียน'",
+            );
+          } catch (_) {}
+          // จำข้อมูลร้านค้า/คู่ค้าที่เคยกรอกไว้ ให้เลือกใช้ซ้ำได้ในครั้งถัดไป
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS vendors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                owner TEXT,
+                address_no TEXT,
+                subdistrict TEXT,
+                district TEXT,
+                province TEXT,
+                phone TEXT,
+                tax_id TEXT,
+                updated_at TEXT
+              )
+            ''');
+          } catch (_) {}
+        }
       },
     );
   }
@@ -349,7 +374,24 @@ class AppDatabase {
         egp_number TEXT,
         allocated_amount REAL,
         remaining_amount REAL,
-        responsible_person TEXT
+        responsible_person TEXT,
+        budget_source TEXT NOT NULL DEFAULT 'ในแผนงบโรงเรียน'
+      )
+    ''');
+
+    // ── ตารางจดจำข้อมูลร้านค้า/คู่ค้าที่เคยกรอกไว้ ให้เลือกใช้ซ้ำได้ ──────
+    await db.execute('''
+      CREATE TABLE vendors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        owner TEXT,
+        address_no TEXT,
+        subdistrict TEXT,
+        district TEXT,
+        province TEXT,
+        phone TEXT,
+        tax_id TEXT,
+        updated_at TEXT
       )
     ''');
 

@@ -14,6 +14,12 @@ const budgetDepartmentGroups = [
   'งบกิจกรรมพัฒนาผู้เรียน',
 ];
 
+/// แหล่งที่มาของงบประมาณ — แยกโครงการที่อยู่ในแผนปฏิบัติการประจำปีของโรงเรียน
+/// ออกจากโครงการที่ได้รับจัดสรรตรงจากเขตพื้นที่/หน่วยเหนือ (ไม่อยู่ในแผนงบโรงเรียน)
+const budgetSourceSchool = 'ในแผนงบโรงเรียน';
+const budgetSourceDistrict = 'งบเขต/หน่วยเหนือ (นอกแผน)';
+const budgetSources = [budgetSourceSchool, budgetSourceDistrict];
+
 class Budget {
   final int? id;
   final String fiscalYear;
@@ -24,6 +30,7 @@ class Budget {
   final double? allocatedAmount;
   final double? remainingAmount;
   final String? responsiblePerson;
+  final String budgetSource;
 
   const Budget({
     this.id,
@@ -35,6 +42,7 @@ class Budget {
     this.allocatedAmount,
     this.remainingAmount,
     this.responsiblePerson,
+    this.budgetSource = budgetSourceSchool,
   });
 
   Map<String, dynamic> toMap() => {
@@ -47,6 +55,7 @@ class Budget {
         'allocated_amount': allocatedAmount,
         'remaining_amount': remainingAmount,
         'responsible_person': responsiblePerson,
+        'budget_source': budgetSource,
       };
 
   factory Budget.fromMap(Map<String, dynamic> m) => Budget(
@@ -59,6 +68,7 @@ class Budget {
         allocatedAmount: (m['allocated_amount'] as num?)?.toDouble(),
         remainingAmount: (m['remaining_amount'] as num?)?.toDouble(),
         responsiblePerson: m['responsible_person'] as String?,
+        budgetSource: (m['budget_source'] as String?) ?? budgetSourceSchool,
       );
 
   Budget copyWith({
@@ -71,6 +81,7 @@ class Budget {
     double? allocatedAmount,
     double? remainingAmount,
     String? responsiblePerson,
+    String? budgetSource,
   }) {
     return Budget(
       id: id ?? this.id,
@@ -82,6 +93,7 @@ class Budget {
       allocatedAmount: allocatedAmount ?? this.allocatedAmount,
       remainingAmount: remainingAmount ?? this.remainingAmount,
       responsiblePerson: responsiblePerson ?? this.responsiblePerson,
+      budgetSource: budgetSource ?? this.budgetSource,
     );
   }
 }

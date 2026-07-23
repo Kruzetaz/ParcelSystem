@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import '../models/procurement_item.dart';
 import '../utils/money_format.dart';
+import 'memory_text_field.dart';
 
 /// แถวหนึ่งในตาราง — ผูก TextEditingController ของแต่ละ field ไว้ในตัวเดียว
 /// เพื่อไม่ให้ cursor กระโดดตอนพิมพ์ (ปัญหาคลาสสิกของ dynamic form ใน Flutter)
@@ -257,7 +258,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
             flex: 4,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: MemoryTextField(
+                fieldKey: 'item.name',
                 controller: row.itemName,
                 decoration: const InputDecoration(
                   isDense: true,
@@ -289,7 +291,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
             width: 80,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: MemoryTextField(
+                fieldKey: 'item.unit',
                 controller: row.unit,
                 decoration: const InputDecoration(
                   isDense: true,
