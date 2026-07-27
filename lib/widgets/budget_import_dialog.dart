@@ -12,9 +12,9 @@ class _EditableBudget {
   final TextEditingController allocatedAmount;
   final TextEditingController responsiblePerson;
 
-  _EditableBudget(Budget b)
+  _EditableBudget(Budget b, List<String> departmentOptions)
       : fiscalYear = TextEditingController(text: b.fiscalYear),
-        groupName = budgetDepartmentGroups.contains(b.groupName) ? b.groupName : null,
+        groupName = departmentOptions.contains(b.groupName) ? b.groupName : null,
         projectName = TextEditingController(text: b.projectName ?? ''),
         activityName = TextEditingController(text: b.activityName ?? ''),
         allocatedAmount = TextEditingController(text: b.allocatedAmount?.toStringAsFixed(2) ?? ''),
@@ -40,20 +40,23 @@ class _EditableBudget {
 }
 
 /// แสดง dialog พรีวิว — คืนค่า List<Budget> ที่ยืนยันแล้ว หรือ null ถ้ายกเลิก
+/// [departmentOptions] คือรายชื่อกลุ่มงานที่ใช้งานอยู่ (จากแท็บ "กลุ่มงาน" ในตั้งค่า)
 Future<List<Budget>?> showBudgetImportPreviewDialog(
   BuildContext context,
   List<Budget> parsedBudgets,
+  List<String> departmentOptions,
 ) {
   return showDialog<List<Budget>>(
     context: context,
     barrierDismissible: false,
-    builder: (ctx) => _BudgetImportPreviewDialog(parsedBudgets: parsedBudgets),
+    builder: (ctx) => _BudgetImportPreviewDialog(parsedBudgets: parsedBudgets, departmentOptions: departmentOptions),
   );
 }
 
 class _BudgetImportPreviewDialog extends StatefulWidget {
   final List<Budget> parsedBudgets;
-  const _BudgetImportPreviewDialog({required this.parsedBudgets});
+  final List<String> departmentOptions;
+  const _BudgetImportPreviewDialog({required this.parsedBudgets, required this.departmentOptions});
 
   @override
   State<_BudgetImportPreviewDialog> createState() => _BudgetImportPreviewDialogState();
@@ -65,7 +68,7 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
   @override
   void initState() {
     super.initState();
-    _rows = widget.parsedBudgets.map(_EditableBudget.new).toList();
+    _rows = widget.parsedBudgets.map((b) => _EditableBudget(b, widget.departmentOptions)).toList();
   }
 
   @override
@@ -229,7 +232,7 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                     style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุฝ่าย/แผนงาน)')),
-                      ...budgetDepartmentGroups.map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis))),
+                      ...widget.departmentOptions.map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis))),
                     ],
                     onChanged: (v) => setState(() => row.groupName = v),
                   ),

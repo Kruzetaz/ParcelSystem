@@ -130,6 +130,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double get _totalAllocatedBudget =>
       _budgets.fold(0.0, (sum, b) => sum + (b.allocatedAmount ?? 0));
 
+  /// รวมงบตามฝ่าย/กลุ่มงาน (groupName) — เรียงจากมากไปน้อย ใช้วาดกราฟแท่งใน Dashboard
+  List<MapEntry<String, double>> get _budgetByDepartment {
+    final totals = <String, double>{};
+    for (final b in _budgets) {
+      final dept = (b.groupName?.trim().isNotEmpty ?? false) ? b.groupName! : 'ไม่ระบุฝ่าย/แผนงาน';
+      totals[dept] = (totals[dept] ?? 0) + (b.allocatedAmount ?? 0);
+    }
+    final entries = totals.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return entries;
+  }
+
   /// ปีงบประมาณล่าสุด หา mode (ปีที่มีเอกสารเยอะสุด) ถ้าเสมอกันเลือกปีมากสุด
   String? get _currentFiscalYear {
     if (_orders.isEmpty) return null;
@@ -219,6 +230,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                       const SizedBox(height: 20),
                       _buildKpiRow(colors),
+                      if (_budgetByDepartment.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        _buildDepartmentBudgetChart(colors),
+                      ],
                       const SizedBox(height: 24),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -550,6 +565,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // กราฟแท่งงบประมาณตามฝ่าย/กลุ่มงาน — เทียบวงเงินที่ได้รับจัดสรรของแต่ละฝ่าย
+  // ─────────────────────────────────────────
+
+  Widget _buildDepartmentBudgetChart(ColorScheme colors) {
+    final entries = _budgetByDepartment;
+    final maxValue = entries.map((e) => e.value).fold(0.0, math.max);
+    if (maxValue <= 0) return const SizedBox.shrink();
+
+    final barColors = [
+      colors.primary,
+      Colors.teal,
+      Colors.indigo,
+      Colors.orange,
+      Colors.purple,
+      Colors.blueGrey,
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('งบประมาณตามฝ่าย/กลุ่มงาน',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.primary)),
+          const SizedBox(height: 4),
+          Text('เทียบวงเงินที่ได้รับจัดสรรของแต่ละฝ่าย/กลุ่มงาน',
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12)),
+          const SizedBox(height: 16),
+          for (var i = 0; i < entries.length; i++) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 160,
+                    child: Text(entries[i].key,
+                      style: const TextStyle(fontSize: 12.5),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final ratio = entries[i].value / maxValue;
+                        return Stack(
+                          children: [
+                            Container(
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: colors.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            Container(
+                              width: constraints.maxWidth * ratio.clamp(0.02, 1.0),
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: barColors[i % barColors.length],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 110,
+                    child: Text('${formatBaht(entries[i].value)} บาท',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -8,6 +8,9 @@ import '../models/school_settings.dart';
 import '../services/current_user_service.dart';
 import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
+import 'personnel_tab.dart';
+import 'work_groups_tab.dart';
+import 'vendor_management_tab.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,8 +19,9 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProviderStateMixin {
   final _repo = ProcurementRepository();
+  late final TabController _tabController;
 
   late final TextEditingController _schoolNameCtrl;
   late final TextEditingController _schoolAddressNoCtrl;
@@ -37,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
     _currentUserCtrl = TextEditingController();
     _schoolNameCtrl = TextEditingController();
     _schoolAddressNoCtrl = TextEditingController();
@@ -73,6 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _currentUserCtrl.dispose();
     _schoolNameCtrl.dispose();
     _schoolAddressNoCtrl.dispose();
@@ -131,14 +137,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : GuideFabOverlay(
             title: 'ตั้งค่าโรงเรียนไว้ทำไม',
             icon: Icons.school_outlined,
+            // ปุ่มไกด์ปกติอยู่มุมบนขวา แต่หน้านี้มี TabBar เต็มความกว้างด้านบน
+            // (4 แท็บ) ชนกันพอดี — ย้ายไปมุมล่างซ้ายแทน (แท็บ บุคลากร/กลุ่มงาน/
+            // ร้านค้า มีปุ่ม + ลอยอยู่มุมล่างขวาของตัวเองอยู่แล้ว ต้องเลี่ยงมุมนั้นด้วย)
+            corner: Alignment.bottomLeft,
             steps: const [
               'ข้อมูลทั้งหมดในหน้านี้ถูกใช้เติมลงในเอกสารราชการทุกใบที่สร้างโดยอัตโนมัติ ไม่ต้องพิมพ์ซ้ำทีละใบ',
               'แนะนำให้กรอกให้ครบก่อนเริ่มสร้างคำสั่งซื้อ/สั่งจ้างใบแรก จะได้ไม่ต้องย้อนมาแก้เอกสารที่สร้างไปแล้ว',
               'ชื่อผู้ใช้งาน (ด้านบน) ใช้แค่ประทับชื่อในประวัติการใช้งาน (Audit Trail) เท่านั้น ไม่ใช่รหัสผ่านหรือบัญชีเข้าระบบ',
               'ชื่อผู้อำนวยการ/เจ้าหน้าที่พัสดุ/หัวหน้าเจ้าหน้าที่พัสดุ/เจ้าหน้าที่การเงิน จะไปเป็นค่าเริ่มต้นในทุกเอกสาร แก้ที่นี่ที่เดียวจบ',
               'ชื่อโรงเรียนที่กรอกในนี้ยังใช้เป็นชื่อโฟลเดอร์เก็บไฟล์เอกสาร/รูป/ไฟล์ backup ของระบบด้วย',
+              'แท็บ "บุคลากร" คือทำเนียบครู/เจ้าหน้าที่กลาง — เพิ่มไว้ที่นี่แล้วช่องกรอกชื่อ-ตำแหน่งในหน้าสร้างเอกสารจะเลือกใช้ซ้ำได้ทันที',
             ],
-            child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  color: colors.primary,
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorColor: colors.onPrimary,
+                    labelColor: colors.onPrimary,
+                    unselectedLabelColor: colors.onPrimary.withValues(alpha: 0.7),
+                    tabs: const [
+                      Tab(text: 'ข้อมูลโรงเรียน'),
+                      Tab(text: 'บุคลากร'),
+                      Tab(text: 'กลุ่มงาน'),
+                      Tab(text: 'ผู้รับจ้าง/ร้านค้า'),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildSchoolInfoTab(colors),
+                      const PersonnelTab(),
+                      const WorkGroupsTab(),
+                      const VendorManagementTab(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+  }
+
+  Widget _buildSchoolInfoTab(ColorScheme colors) {
+    return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Center(
                 child: ConstrainedBox(
@@ -324,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            ),
           );
   }
 }
+

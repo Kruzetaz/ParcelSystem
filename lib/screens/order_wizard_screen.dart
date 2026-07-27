@@ -17,6 +17,7 @@ import '../data/procurement_repository.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
 import '../models/vendor.dart';
+import '../models/personnel.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
 import '../services/document_generator.dart';
@@ -29,19 +30,8 @@ import '../widgets/guide_panel.dart';
 import '../widgets/memory_text_field.dart';
 import '../widgets/receipt_ocr_dialog.dart';
 import '../widgets/thai_date_picker.dart';
+import 'personnel_tab.dart';
 import 'settings_screen.dart';
-
-/// ตัวเลือกตำแหน่งครูมาตรฐาน — ตรึงไว้บนสุดของ dropdown ช่อง "ตำแหน่ง" ใน
-/// Tab 2 (ผู้ปฏิบัติงาน) เสมอ แต่ยังพิมพ์ตำแหน่งอื่นเอง (เช่น ผู้อำนวยการ,
-/// เจ้าหน้าที่พัสดุ) ได้ตามปกติ ไม่ได้ล็อกเป็น dropdown บังคับ
-const teacherPositions = [
-  'ครูผู้ช่วย',
-  'ครู',
-  'ครูชำนาญการ',
-  'ครูชำนาญการพิเศษ',
-  'ครูเชี่ยวชาญ',
-  'ครูเชี่ยวชาญพิเศษ',
-];
 
 class OrderWizardScreen extends StatefulWidget {
   final ProcurementOrder? existingOrder;
@@ -872,6 +862,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
   final _repo = ProcurementRepository();
   SchoolSettings? _schoolInfo;
   bool _loadingSchoolInfo = true;
+  List<Personnel> _personnel = [];
 
   late final TextEditingController _ownerNameCtrl;
   late final TextEditingController _ownerPositionCtrl;
@@ -906,6 +897,32 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
 
     _inspectorTitleGroup = d.inspectorTitleGroup ?? 'ผู้ตรวจรับพัสดุ';
     _loadSchoolInfo();
+    _loadPersonnel();
+  }
+
+  Future<void> _loadPersonnel() async {
+    final list = await _repo.getAllPersonnel(activeOnly: true);
+    if (!mounted) return;
+    setState(() => _personnel = list);
+  }
+
+  List<String> get _personnelNames => _personnel.map((p) => p.name).toList();
+
+  /// ถ้าชื่อที่พิมพ์/เลือกตรงกับทำเนียบบุคลากรพอดี และช่องตำแหน่งยังว่างอยู่
+  /// ให้ดึงตำแหน่งจากทำเนียบมาเติมให้อัตโนมัติ (ไม่ทับตำแหน่งที่ผู้ใช้พิมพ์เองไว้แล้ว)
+  void _autofillPositionFromPersonnel(
+    String name,
+    TextEditingController posCtrl,
+    ProcurementOrder Function(ProcurementOrder, String) applyPosition,
+  ) {
+    if (posCtrl.text.trim().isNotEmpty) return;
+    for (final p in _personnel) {
+      if (p.name.trim() == name.trim() && (p.position?.trim().isNotEmpty ?? false)) {
+        setState(() => posCtrl.text = p.position!);
+        widget.onChanged((d) => applyPosition(d, p.position!));
+        break;
+      }
+    }
   }
 
   @override
@@ -983,16 +1000,21 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                 Expanded(
                   child: MemoryTextField(
                     fieldKey: 'wizard.personName',
+                    presetOptions: _personnelNames,
                     controller: _ownerNameCtrl,
                     decoration: _inputDecoration('ชื่อเจ้าของงบ/โครงการ'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(ownerName: v)),
+                    onChanged: (v) {
+                      widget.onChanged((d) => d.copyWith(ownerName: v));
+                      _autofillPositionFromPersonnel(v, _ownerPositionCtrl,
+                          (d, pos) => d.copyWith(ownerPosition: pos));
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: MemoryTextField(
                     fieldKey: 'wizard.personPosition',
-                    presetOptions: teacherPositions,
+                    presetOptions: commonPositions,
                     controller: _ownerPositionCtrl,
                     decoration: _inputDecoration('ตำแหน่ง'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(ownerPosition: v)),
@@ -1006,16 +1028,21 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                 Expanded(
                   child: MemoryTextField(
                     fieldKey: 'wizard.personName',
+                    presetOptions: _personnelNames,
                     controller: _specCreatorNameCtrl,
                     decoration: _inputDecoration('ผู้จัดทำรายละเอียดคุณลักษณะ (สเปค)'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(specCreatorName: v)),
+                    onChanged: (v) {
+                      widget.onChanged((d) => d.copyWith(specCreatorName: v));
+                      _autofillPositionFromPersonnel(v, _specCreatorPositionCtrl,
+                          (d, pos) => d.copyWith(specCreatorPosition: pos));
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: MemoryTextField(
                     fieldKey: 'wizard.personPosition',
-                    presetOptions: teacherPositions,
+                    presetOptions: commonPositions,
                     controller: _specCreatorPositionCtrl,
                     decoration: _inputDecoration('ตำแหน่ง'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(specCreatorPosition: v)),
@@ -1039,16 +1066,21 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                 Expanded(
                   child: MemoryTextField(
                     fieldKey: 'wizard.personName',
+                    presetOptions: _personnelNames,
                     controller: _inspector1Ctrl,
                     decoration: _inputDecoration(isCommittee ? 'กรรมการคนที่ 1' : 'ผู้ตรวจรับพัสดุ'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector1: v)),
+                    onChanged: (v) {
+                      widget.onChanged((d) => d.copyWith(inspector1: v));
+                      _autofillPositionFromPersonnel(v, _inspector1PosCtrl,
+                          (d, pos) => d.copyWith(inspector1Pos: pos));
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: MemoryTextField(
                     fieldKey: 'wizard.personPosition',
-                    presetOptions: teacherPositions,
+                    presetOptions: commonPositions,
                     controller: _inspector1PosCtrl,
                     decoration: _inputDecoration('ตำแหน่ง'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector1Pos: v)),
@@ -1063,16 +1095,21 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                   Expanded(
                     child: MemoryTextField(
                       fieldKey: 'wizard.personName',
+                      presetOptions: _personnelNames,
                       controller: _inspector2Ctrl,
                       decoration: _inputDecoration('กรรมการคนที่ 2'),
-                      onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector2: v)),
+                      onChanged: (v) {
+                        widget.onChanged((d) => d.copyWith(inspector2: v));
+                        _autofillPositionFromPersonnel(v, _inspector2PosCtrl,
+                            (d, pos) => d.copyWith(inspector2Pos: pos));
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: MemoryTextField(
                       fieldKey: 'wizard.personPosition',
-                    presetOptions: teacherPositions,
+                    presetOptions: commonPositions,
                       controller: _inspector2PosCtrl,
                       decoration: _inputDecoration('ตำแหน่ง'),
                       onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector2Pos: v)),
@@ -1086,16 +1123,21 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                   Expanded(
                     child: MemoryTextField(
                       fieldKey: 'wizard.personName',
+                      presetOptions: _personnelNames,
                       controller: _inspector3Ctrl,
                       decoration: _inputDecoration('กรรมการคนที่ 3'),
-                      onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector3: v)),
+                      onChanged: (v) {
+                        widget.onChanged((d) => d.copyWith(inspector3: v));
+                        _autofillPositionFromPersonnel(v, _inspector3PosCtrl,
+                            (d, pos) => d.copyWith(inspector3Pos: pos));
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: MemoryTextField(
                       fieldKey: 'wizard.personPosition',
-                    presetOptions: teacherPositions,
+                    presetOptions: commonPositions,
                       controller: _inspector3PosCtrl,
                       decoration: _inputDecoration('ตำแหน่ง'),
                       onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector3Pos: v)),
@@ -1294,7 +1336,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   }
 
   Future<void> _loadVendors() async {
-    final vendors = await _repo.getAllVendors();
+    final vendors = await _repo.getAllVendors(activeOnly: true);
     if (!mounted) return;
     setState(() {
       _savedVendors = vendors;

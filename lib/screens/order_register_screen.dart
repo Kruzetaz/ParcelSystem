@@ -11,6 +11,20 @@ import '../services/order_register_export_service.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
+import '../widgets/column_visibility_menu.dart';
+
+/// คอลัมน์ที่ซ่อน/แสดงได้ในตารางทะเบียนคุม — "ที่"/"เลขที่เอกสาร"/"รายการ/โครงการ"
+/// แสดงเสมอ ไม่อยู่ในนี้
+const _orderRegisterOptionalColumns = [
+  'ผู้ขาย/ผู้รับจ้าง',
+  'ประเภทเงิน',
+  'เลขที่โครงการ',
+  'จำนวนเงิน',
+  'วันที่',
+  'ครบกำหนดส่งมอบ',
+  'วันตรวจรับ',
+  'วันส่งเบิกเงิน',
+];
 
 class OrderRegisterScreen extends StatefulWidget {
   const OrderRegisterScreen({super.key});
@@ -69,6 +83,7 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
   }
 
   bool _exporting = false;
+  Set<String> _visibleColumns = _orderRegisterOptionalColumns.toSet();
 
   Future<void> _exportToExcel() async {
     setState(() => _exporting = true);
@@ -115,6 +130,12 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                       Text('ทะเบียนคุมเลขที่จัดซื้อจัดจ้าง',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.onSurface)),
                       const Spacer(),
+                      ColumnVisibilityMenu(
+                        allColumns: _orderRegisterOptionalColumns,
+                        visibleColumns: _visibleColumns,
+                        onChanged: (v) => setState(() => _visibleColumns = v),
+                      ),
+                      const SizedBox(width: 4),
                       OutlinedButton.icon(
                         onPressed: _orders.isEmpty || _exporting ? null : _exportToExcel,
                         icon: _exporting
@@ -238,22 +259,38 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                           SizedBox(width: 100, child: Text('เลขที่เอกสาร', style: headerStyle)),
                           const SizedBox(width: 6),
                           Expanded(flex: 3, child: Text('รายการ/โครงการ', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 120, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 90, child: Text('ประเภทเงิน', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 90, child: Text('เลขที่โครงการ', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 110, child: Text('จำนวนเงิน', style: headerStyle, textAlign: TextAlign.right)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 100, child: Text('วันที่', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 110, child: Text('ครบกำหนดส่งมอบ', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 100, child: Text('วันตรวจรับ', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 100, child: Text('วันส่งเบิกเงิน', style: headerStyle)),
+                          if (_visibleColumns.contains('ผู้ขาย/ผู้รับจ้าง')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 120, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
+                          ],
+                          if (_visibleColumns.contains('ประเภทเงิน')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 90, child: Text('ประเภทเงิน', style: headerStyle)),
+                          ],
+                          if (_visibleColumns.contains('เลขที่โครงการ')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 90, child: Text('เลขที่โครงการ', style: headerStyle)),
+                          ],
+                          if (_visibleColumns.contains('จำนวนเงิน')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 110, child: Text('จำนวนเงิน', style: headerStyle, textAlign: TextAlign.right)),
+                          ],
+                          if (_visibleColumns.contains('วันที่')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 100, child: Text('วันที่', style: headerStyle)),
+                          ],
+                          if (_visibleColumns.contains('ครบกำหนดส่งมอบ')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 110, child: Text('ครบกำหนดส่งมอบ', style: headerStyle)),
+                          ],
+                          if (_visibleColumns.contains('วันตรวจรับ')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 100, child: Text('วันตรวจรับ', style: headerStyle)),
+                          ],
+                          if (_visibleColumns.contains('วันส่งเบิกเงิน')) ...[
+                            const SizedBox(width: 6),
+                            SizedBox(width: 100, child: Text('วันส่งเบิกเงิน', style: headerStyle)),
+                          ],
                         ],
                       ),
                     ),
@@ -282,22 +319,38 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
           SizedBox(width: 100, child: Text(docNumber, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 6),
           Expanded(flex: 3, child: Text(itemLabel, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 6),
-          SizedBox(width: 120, child: Text(o.vendorName ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 6),
-          SizedBox(width: 90, child: Text(o.fundType ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 6),
-          SizedBox(width: 90, child: Text(o.projectNumber ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 6),
-          SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
-          const SizedBox(width: 6),
-          SizedBox(width: 100, child: Text(o.dateOrderCreated ?? '-', style: const TextStyle(fontSize: 12))),
-          const SizedBox(width: 6),
-          SizedBox(width: 110, child: Text(o.dateDeadline ?? '-', style: const TextStyle(fontSize: 12))),
-          const SizedBox(width: 6),
-          SizedBox(width: 100, child: Text(o.dateInspection ?? '-', style: const TextStyle(fontSize: 12))),
-          const SizedBox(width: 6),
-          SizedBox(width: 100, child: Text(o.dateDisbursement ?? '-', style: const TextStyle(fontSize: 12))),
+          if (_visibleColumns.contains('ผู้ขาย/ผู้รับจ้าง')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 120, child: Text(o.vendorName ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ],
+          if (_visibleColumns.contains('ประเภทเงิน')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 90, child: Text(o.fundType ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ],
+          if (_visibleColumns.contains('เลขที่โครงการ')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 90, child: Text(o.projectNumber ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ],
+          if (_visibleColumns.contains('จำนวนเงิน')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
+          ],
+          if (_visibleColumns.contains('วันที่')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 100, child: Text(o.dateOrderCreated ?? '-', style: const TextStyle(fontSize: 12))),
+          ],
+          if (_visibleColumns.contains('ครบกำหนดส่งมอบ')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 110, child: Text(o.dateDeadline ?? '-', style: const TextStyle(fontSize: 12))),
+          ],
+          if (_visibleColumns.contains('วันตรวจรับ')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 100, child: Text(o.dateInspection ?? '-', style: const TextStyle(fontSize: 12))),
+          ],
+          if (_visibleColumns.contains('วันส่งเบิกเงิน')) ...[
+            const SizedBox(width: 6),
+            SizedBox(width: 100, child: Text(o.dateDisbursement ?? '-', style: const TextStyle(fontSize: 12))),
+          ],
         ],
       ),
     );

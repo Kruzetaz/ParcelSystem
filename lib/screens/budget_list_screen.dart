@@ -10,11 +10,16 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/budget.dart';
+import '../models/work_group.dart';
 import '../services/budget_import_service.dart';
 import '../services/toast_service.dart';
 import '../widgets/budget_import_dialog.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
+import '../widgets/column_visibility_menu.dart';
+
+/// คอลัมน์ที่ซ่อน/แสดงได้ในมุมมองตาราง — "ฝ่าย/ปีงบ/โครงการ/คงเหลือ" แสดงเสมอ
+const _budgetTableOptionalColumns = ['เลข e-GP', 'ผู้รับผิดชอบ', 'วงเงิน'];
 
 enum _BudgetViewMode { card, table }
 
@@ -34,6 +39,7 @@ class BudgetListScreen extends StatefulWidget {
 class _BudgetListScreenState extends State<BudgetListScreen> {
   final _repo = ProcurementRepository();
   List<Budget> _budgets = [];
+  List<WorkGroup> _workGroups = [];
   bool _loading = true;
   bool _importing = false;
 
@@ -43,6 +49,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   String? _selectedDepartment; // null = ทั้งหมด — ใช้ค่าจาก groupName
   String? _selectedProject; // null = ทั้งหมด — ใช้ค่าจาก projectName
   String? _selectedSource; // null = ทั้งหมด — ใช้ค่าจาก budgetSource
+  Set<String> _visibleColumns = _budgetTableOptionalColumns.toSet();
 
   // โหมด "กำหนดค่าหลายโครงการพร้อมกัน" — ใช้ enum เดียวสลับระหว่างกำหนด
   // "ฝ่าย/แผนงาน" (เลือกได้แค่ระดับโครงการ — ทุกกิจกรรมย่อยได้ค่าเดียวกันเสมอ)
@@ -73,9 +80,11 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final list = await _repo.getAllBudgets();
+    final groups = await _repo.getAllWorkGroups(activeOnly: true);
     if (!mounted) return;
     setState(() {
       _budgets = list;
+      _workGroups = groups;
       _loading = false;
     });
   }
@@ -283,7 +292,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 PopupMenuButton<String>(
                   enabled: _selectedProjectKeys.isNotEmpty && !_applyingBulkAssign,
                   onSelected: _applyBulkAssignDepartment,
-                  itemBuilder: (_) => budgetDepartmentGroups
+                  itemBuilder: (_) => _departmentNames
                       .map((g) => PopupMenuItem(value: g, child: Text(g)))
                       .toList(),
                   child: Container(
@@ -356,7 +365,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         return;
       }
 
-      final confirmed = await showBudgetImportPreviewDialog(context, parsed);
+      final confirmed = await showBudgetImportPreviewDialog(context, parsed, _departmentNames);
       if (confirmed != null && confirmed.isNotEmpty) {
         await _saveImportedBudgets(confirmed);
       }
@@ -459,17 +468,19 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   // การกรอง + จัดกลุ่ม
   // ─────────────────────────────────────────
 
-  /// ตัวเลือกฝ่าย/แผนงาน — ใช้ 5 กลุ่มมาตรฐานเป็นหลัก + รวมค่าเก่าที่เคยกรอกไว้
-  /// แบบข้อความอิสระก่อนเปลี่ยนเป็น dropdown (กันไม่ให้ข้อมูลเก่าหายไปจากตัวกรอง)
+  /// ตัวเลือกฝ่าย/แผนงาน — ใช้กลุ่มงานที่จัดการไว้ในตั้งค่า (แท็บ "กลุ่มงาน") เป็นหลัก
+  /// + รวมค่าเก่าที่เคยกรอกไว้แบบข้อความอิสระ (กันไม่ให้ข้อมูลเก่าหายไปจากตัวกรอง)
+  List<String> get _departmentNames => _workGroups.map((g) => g.name).toList();
+
   List<String> get _departmentOptions {
     final legacy = _budgets
         .map((b) => b.groupName)
         .whereType<String>()
-        .where((s) => s.isNotEmpty && !budgetDepartmentGroups.contains(s))
+        .where((s) => s.isNotEmpty && !_departmentNames.contains(s))
         .toSet()
         .toList()
       ..sort();
-    return [...budgetDepartmentGroups, ...legacy];
+    return [..._departmentNames, ...legacy];
   }
 
   List<String> get _projectOptions => _budgets
@@ -545,6 +556,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _buildViewToggle(colors),
+                      if (_viewMode == _BudgetViewMode.table)
+                        ColumnVisibilityMenu(
+                          allColumns: _budgetTableOptionalColumns,
+                          visibleColumns: _visibleColumns,
+                          onChanged: (v) => setState(() => _visibleColumns = v),
+                        ),
                       OutlinedButton.icon(
                         onPressed: _importing ? null : _importFromFile,
                         icon: _importing
@@ -924,9 +941,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   SizedBox(width: 110, child: Text('ฝ่าย/แผนงาน', style: headerStyle)),
                   SizedBox(width: 60, child: Text('ปีงบ', style: headerStyle)),
                   Expanded(flex: 3, child: Text('โครงการ / รายการย่อย', style: headerStyle)),
-                  SizedBox(width: 100, child: Text('เลข e-GP', style: headerStyle)),
-                  SizedBox(width: 110, child: Text('ผู้รับผิดชอบ', style: headerStyle)),
-                  SizedBox(width: 110, child: Text('วงเงิน', style: headerStyle, textAlign: TextAlign.right)),
+                  if (_visibleColumns.contains('เลข e-GP'))
+                    SizedBox(width: 100, child: Text('เลข e-GP', style: headerStyle)),
+                  if (_visibleColumns.contains('ผู้รับผิดชอบ'))
+                    SizedBox(width: 110, child: Text('ผู้รับผิดชอบ', style: headerStyle)),
+                  if (_visibleColumns.contains('วงเงิน'))
+                    SizedBox(width: 110, child: Text('วงเงิน', style: headerStyle, textAlign: TextAlign.right)),
                   SizedBox(width: 110, child: Text('คงเหลือ', style: headerStyle, textAlign: TextAlign.right)),
                   const SizedBox(width: 40),
                 ],
@@ -972,9 +992,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: 100),
-            const SizedBox(width: 110),
-            const SizedBox(width: 110),
+            if (_visibleColumns.contains('เลข e-GP')) const SizedBox(width: 100),
+            if (_visibleColumns.contains('ผู้รับผิดชอบ')) const SizedBox(width: 110),
+            if (_visibleColumns.contains('วงเงิน')) const SizedBox(width: 110),
             const SizedBox(width: 110),
             const SizedBox(width: 40),
           ],
@@ -1004,10 +1024,13 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       style: const TextStyle(fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ),
                 ),
-                SizedBox(width: 100, child: Text(b.egpNumber ?? '-', style: const TextStyle(fontSize: 12.5))),
-                SizedBox(width: 110, child: Text(b.responsiblePerson ?? '-',
-                  style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                SizedBox(width: 110, child: Text(formatBaht(allocated), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
+                if (_visibleColumns.contains('เลข e-GP'))
+                  SizedBox(width: 100, child: Text(b.egpNumber ?? '-', style: const TextStyle(fontSize: 12.5))),
+                if (_visibleColumns.contains('ผู้รับผิดชอบ'))
+                  SizedBox(width: 110, child: Text(b.responsiblePerson ?? '-',
+                    style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                if (_visibleColumns.contains('วงเงิน'))
+                  SizedBox(width: 110, child: Text(formatBaht(allocated), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
                 SizedBox(
                   width: 110,
                   child: Text(formatBaht(remaining),
@@ -1051,6 +1074,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
   late final TextEditingController _responsiblePerson;
   late String _budgetSource;
   bool _saving = false;
+  List<WorkGroup> _workGroups = [];
 
   @override
   void initState() {
@@ -1064,6 +1088,13 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     _allocatedAmount = TextEditingController(text: b?.allocatedAmount?.toStringAsFixed(2) ?? '');
     _responsiblePerson = TextEditingController(text: b?.responsiblePerson ?? '');
     _budgetSource = b?.budgetSource ?? budgetSourceSchool;
+    _loadWorkGroups();
+  }
+
+  Future<void> _loadWorkGroups() async {
+    final groups = await _repo.getAllWorkGroups(activeOnly: true);
+    if (!mounted) return;
+    setState(() => _workGroups = groups);
   }
 
   @override
@@ -1129,7 +1160,9 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
                     ),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
-                      ...budgetDepartmentGroups.map((g) => DropdownMenuItem(
+                      ..._workGroups.map((g) => g.name).followedBy(
+                        (_groupName != null && !_workGroups.any((g) => g.name == _groupName)) ? [_groupName!] : const [],
+                      ).map((g) => DropdownMenuItem(
                             value: g,
                             child: Text(g, overflow: TextOverflow.ellipsis),
                           )),

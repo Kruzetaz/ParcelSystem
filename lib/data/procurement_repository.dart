@@ -1,6 +1,9 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/budget.dart';
 import '../models/vendor.dart';
+import '../models/personnel.dart';
+import '../models/work_group.dart';
+import '../models/control_log_entry.dart';
 import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
@@ -26,30 +29,125 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   /// บันทึก/อัปเดตข้อมูลร้านค้าโดยใช้ "ชื่อร้าน" เป็น key — ถ้ามีชื่อนี้อยู่แล้ว
-  /// จะอัปเดตข้อมูลทับด้วยค่าล่าสุดที่กรอก (เผื่อเบอร์โทร/ที่อยู่เปลี่ยน)
+  /// จะอัปเดตข้อมูลทับด้วยค่าล่าสุดที่กรอก (เผื่อเบอร์โทร/ที่อยู่เปลี่ยน) แต่คง
+  /// ประเภท/หมู่ที่/รหัสไปรษณีย์/สถานะที่ตั้งไว้จากหน้าจัดการร้านค้าไว้เสมอ
+  /// (ฟอร์มใน wizard ไม่มีช่องกรอกฟิลด์พวกนี้ ไม่ให้ auto-save ไปเขียนทับเป็นค่าว่าง)
   Future<void> upsertVendor(Vendor vendor) async {
-    if (vendor.name.trim().isEmpty) return;
+    final name = vendor.name.trim();
+    if (name.isEmpty) return;
+    final existing = await getVendorByName(name);
     final db = await _db.database;
     await db.insert(
       'vendors',
       Vendor(
-        name: vendor.name.trim(),
+        name: name,
         owner: vendor.owner,
         addressNo: vendor.addressNo,
+        mooNumber: existing?.mooNumber,
         subdistrict: vendor.subdistrict,
         district: vendor.district,
         province: vendor.province,
+        postalCode: existing?.postalCode,
         phone: vendor.phone,
         taxId: vendor.taxId,
+        vendorType: existing?.vendorType ?? vendorTypeIndividual,
+        active: existing?.active ?? true,
       ).toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  Future<List<Vendor>> getAllVendors() async {
+  Future<Vendor?> getVendorByName(String name) async {
     final db = await _db.database;
-    final rows = await db.query('vendors', orderBy: 'name ASC');
+    final rows = await db.query('vendors', where: 'name = ?', whereArgs: [name.trim()], limit: 1);
+    if (rows.isEmpty) return null;
+    return Vendor.fromMap(rows.first);
+  }
+
+  Future<List<Vendor>> getAllVendors({bool activeOnly = false}) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'vendors',
+      where: activeOnly ? 'active = 1' : null,
+      orderBy: 'name ASC',
+    );
     return rows.map(Vendor.fromMap).toList();
+  }
+
+  /// ใช้จากหน้าจัดการร้านค้าในตั้งค่า — แก้ไขทุกฟิลด์รวมประเภท/สถานะได้เต็มรูปแบบ
+  Future<void> updateVendor(Vendor vendor) async {
+    final db = await _db.database;
+    await db.update('vendors', vendor.toMap(), where: 'id = ?', whereArgs: [vendor.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ร้านค้า', description: vendor.name);
+  }
+
+  Future<void> deleteVendor(int id) async {
+    final db = await _db.database;
+    await db.delete('vendors', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ─────────────────────────────────────────
+  // PERSONNEL (ทำเนียบบุคลากรกลาง)
+  // ─────────────────────────────────────────
+
+  Future<int> insertPersonnel(Personnel person) async {
+    final db = await _db.database;
+    final id = await db.insert('personnel', person.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'บุคลากร', description: person.name);
+    return id;
+  }
+
+  Future<void> updatePersonnel(Personnel person) async {
+    final db = await _db.database;
+    await db.update('personnel', person.toMap(), where: 'id = ?', whereArgs: [person.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'บุคลากร', description: person.name);
+  }
+
+  Future<List<Personnel>> getAllPersonnel({bool activeOnly = false}) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'personnel',
+      where: activeOnly ? 'active = 1' : null,
+      orderBy: 'name ASC',
+    );
+    return rows.map(Personnel.fromMap).toList();
+  }
+
+  Future<void> deletePersonnel(int id) async {
+    final db = await _db.database;
+    await db.delete('personnel', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ─────────────────────────────────────────
+  // WORK GROUPS (กลุ่มงาน/ฝ่าย)
+  // ─────────────────────────────────────────
+
+  Future<int> insertWorkGroup(WorkGroup group) async {
+    final db = await _db.database;
+    final id = await db.insert('work_groups', group.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'กลุ่มงาน', description: group.name);
+    return id;
+  }
+
+  Future<void> updateWorkGroup(WorkGroup group) async {
+    final db = await _db.database;
+    await db.update('work_groups', group.toMap(), where: 'id = ?', whereArgs: [group.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'กลุ่มงาน', description: group.name);
+  }
+
+  Future<List<WorkGroup>> getAllWorkGroups({bool activeOnly = false}) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'work_groups',
+      where: activeOnly ? 'active = 1' : null,
+      orderBy: 'id ASC',
+    );
+    return rows.map(WorkGroup.fromMap).toList();
+  }
+
+  Future<void> deleteWorkGroup(int id) async {
+    final db = await _db.database;
+    await db.delete('work_groups', where: 'id = ?', whereArgs: [id]);
   }
 
   // ─────────────────────────────────────────
@@ -644,5 +742,107 @@ class ProcurementRepository {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ข้อมูลโรงเรียน', description: settings.schoolName ?? 'ตั้งค่าโรงเรียน');
+  }
+
+  // ─────────────────────────────────────────
+  // CONTROL LOG (ทะเบียนคุมเลขที่บันทึกข้อความ/คำสั่ง/TOR)
+  // ไม่ใช่ตารางแยก — รวบรวมเลขที่ควบคุมที่มีอยู่แล้วกระจายอยู่หลายตาราง
+  // (procurement_orders, tor_documents, contracts, inspections) มาแสดงที่เดียว
+  // ─────────────────────────────────────────
+
+  Future<List<ControlLogEntry>> getControlLogEntries() async {
+    final orders = await getAllOrders();
+    final budgets = await getAllBudgets();
+    final budgetsById = {for (final b in budgets) if (b.id != null) b.id!: b};
+    final ordersById = {for (final o in orders) if (o.id != null) o.id!: o};
+    final tors = await getAllTorDocuments();
+    final contracts = await getAllContracts();
+    final inspections = await getAllInspections();
+
+    String? deptOf(ProcurementOrder? o) => o?.budgetId != null ? budgetsById[o!.budgetId]?.groupName : null;
+    String? personOf(ProcurementOrder? o) => o?.ownerName ?? (o?.budgetId != null ? budgetsById[o!.budgetId]?.responsiblePerson : null);
+    String projectLabelOf(ProcurementOrder? o) =>
+        o?.projectName ?? o?.procurementSubject ?? '(ไม่ระบุชื่อรายการ)';
+
+    final entries = <ControlLogEntry>[];
+
+    for (final o in orders) {
+      if (o.procurementNumber?.trim().isNotEmpty ?? false) {
+        entries.add(ControlLogEntry(
+          controlNumber: o.procurementNumber!,
+          docType: 'รายงานขอซื้อ/จ้าง',
+          dateText: o.dateOrderCreated,
+          description: projectLabelOf(o),
+          amount: o.currentOrderPrice ?? o.allocatedAmount,
+          department: deptOf(o),
+          responsiblePerson: personOf(o),
+          fiscalYear: o.fiscalYear ?? '-',
+          orderId: o.id,
+        ));
+      }
+      if (o.orderNumber?.trim().isNotEmpty ?? false) {
+        entries.add(ControlLogEntry(
+          controlNumber: o.orderNumber!,
+          docType: 'ใบสั่งซื้อ/สั่งจ้าง',
+          dateText: o.dateContractSigned,
+          description: projectLabelOf(o),
+          amount: o.currentOrderPrice ?? o.allocatedAmount,
+          department: deptOf(o),
+          responsiblePerson: personOf(o),
+          fiscalYear: o.fiscalYear ?? '-',
+          orderId: o.id,
+        ));
+      }
+    }
+
+    for (final t in tors) {
+      if (!(t.documentNumber?.trim().isNotEmpty ?? false)) continue;
+      final o = ordersById[t.orderId];
+      entries.add(ControlLogEntry(
+        controlNumber: t.documentNumber!,
+        docType: 'เอกสาร TOR/รายละเอียดคุณลักษณะ',
+        dateText: t.createdDate,
+        description: t.title,
+        amount: t.estimatedAmount,
+        department: deptOf(o),
+        responsiblePerson: personOf(o),
+        fiscalYear: o?.fiscalYear ?? '-',
+        orderId: t.orderId,
+      ));
+    }
+
+    for (final c in contracts) {
+      if (!(c.contractNumber?.trim().isNotEmpty ?? false)) continue;
+      final o = ordersById[c.orderId];
+      entries.add(ControlLogEntry(
+        controlNumber: c.contractNumber!,
+        docType: c.contractType ?? 'สัญญา/ใบสั่งซื้อสั่งจ้าง',
+        dateText: c.startDate,
+        description: c.vendorName ?? projectLabelOf(o),
+        amount: c.contractAmount,
+        department: deptOf(o),
+        responsiblePerson: personOf(o),
+        fiscalYear: o?.fiscalYear ?? '-',
+        orderId: c.orderId,
+      ));
+    }
+
+    for (final i in inspections) {
+      if (!(i.inspectionNumber?.trim().isNotEmpty ?? false)) continue;
+      final o = ordersById[i.orderId];
+      entries.add(ControlLogEntry(
+        controlNumber: i.inspectionNumber!,
+        docType: 'ใบตรวจรับพัสดุ',
+        dateText: i.actualDeliveryDate ?? i.dueDate,
+        description: projectLabelOf(o),
+        amount: o?.currentOrderPrice,
+        department: deptOf(o),
+        responsiblePerson: personOf(o),
+        fiscalYear: o?.fiscalYear ?? '-',
+        orderId: i.orderId,
+      ));
+    }
+
+    return entries;
   }
 }

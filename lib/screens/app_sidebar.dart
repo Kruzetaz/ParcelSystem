@@ -24,7 +24,7 @@ const _sidebarLabelWidth = 130.0;
 const _sidebarAnimDuration = Duration(milliseconds: 220);
 const _sidebarAnimCurve = Curves.easeInOut;
 
-enum AppMode { dashboard, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, documentHub, orderRegister, fixedAssets, materials, annualCount, disposals, reports, settings, aiSettings }
+enum AppMode { dashboard, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, documentHub, orderRegister, controlLog, fixedAssets, materials, annualCount, disposals, reports, settings, aiSettings }
 
 class AppSidebar extends StatelessWidget {
   final AppMode currentMode;
@@ -80,6 +80,7 @@ class AppSidebar extends StatelessWidget {
                     _buildItem(colors, AppMode.inspections, Icons.fact_check_outlined, 'ตรวจรับพัสดุ'),
                     _buildItem(colors, AppMode.documentHub, Icons.file_copy_outlined, 'สร้างเอกสารราชการ'),
                     _buildItem(colors, AppMode.orderRegister, Icons.numbers_outlined, 'ทะเบียนคุมเลขที่'),
+                    _buildItem(colors, AppMode.controlLog, Icons.receipt_long_outlined, 'ทะเบียนคุมเลขบันทึก/TOR'),
 
                     _buildSectionHeader(colors, 'ทรัพย์สินและพัสดุ'),
                     _buildItem(colors, AppMode.fixedAssets, Icons.inventory_2_outlined, 'ทะเบียนครุภัณฑ์'),

@@ -11,12 +11,13 @@
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import '../models/budget.dart';
 
 class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 23;
+  static const int _version = 26;
 
   Database? _db;
 
@@ -358,6 +359,56 @@ class AppDatabase {
             ''');
           } catch (_) {}
         }
+        if (oldVersion < 24) {
+          // ทำเนียบบุคลากรกลาง — ให้ทุกช่องกรอกชื่อ-ตำแหน่งทั่วแอปเลือกใช้ซ้ำได้
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS personnel (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                position TEXT,
+                phone TEXT,
+                email TEXT,
+                active INTEGER NOT NULL DEFAULT 1
+              )
+            ''');
+          } catch (_) {}
+        }
+        if (oldVersion < 25) {
+          // กลุ่มงาน/ฝ่าย เป็นตารางจัดการได้จริง แทนค่าคงที่ 5 กลุ่มเดิมในโค้ด
+          // — เติมค่าเดิม 5 กลุ่มให้อัตโนมัติกันผู้ใช้เก่าเห็นตัวเลือกหายไป
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS work_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                head_name TEXT,
+                active INTEGER NOT NULL DEFAULT 1
+              )
+            ''');
+            for (final g in budgetDepartmentGroups) {
+              await db.insert(
+                'work_groups',
+                {'name': g, 'active': 1},
+                conflictAlgorithm: ConflictAlgorithm.ignore,
+              );
+            }
+          } catch (_) {}
+        }
+        if (oldVersion < 26) {
+          // ขยายข้อมูลร้านค้า/ผู้รับจ้างให้เต็มรูปแบบ (ประเภทนิติบุคคล, หมู่ที่,
+          // รหัสไปรษณีย์, สถานะใช้งาน) รองรับหน้าจัดการร้านค้าแยกในตั้งค่า
+          for (final stmt in [
+            "ALTER TABLE vendors ADD COLUMN vendor_type TEXT NOT NULL DEFAULT 'บุคคลธรรมดา'",
+            'ALTER TABLE vendors ADD COLUMN moo_number TEXT',
+            'ALTER TABLE vendors ADD COLUMN postal_code TEXT',
+            'ALTER TABLE vendors ADD COLUMN active INTEGER NOT NULL DEFAULT 1',
+          ]) {
+            try {
+              await db.execute(stmt);
+            } catch (_) {}
+          }
+        }
       },
     );
   }
@@ -386,14 +437,43 @@ class AppDatabase {
         name TEXT NOT NULL UNIQUE,
         owner TEXT,
         address_no TEXT,
+        moo_number TEXT,
         subdistrict TEXT,
         district TEXT,
         province TEXT,
+        postal_code TEXT,
         phone TEXT,
         tax_id TEXT,
+        vendor_type TEXT NOT NULL DEFAULT 'บุคคลธรรมดา',
+        active INTEGER NOT NULL DEFAULT 1,
         updated_at TEXT
       )
     ''');
+
+    // ── ทำเนียบบุคลากรกลาง — ให้ทุกช่องกรอกชื่อ-ตำแหน่งทั่วแอปเลือกใช้ซ้ำได้ ──
+    await db.execute('''
+      CREATE TABLE personnel (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        position TEXT,
+        phone TEXT,
+        email TEXT,
+        active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+
+    // ── กลุ่มงาน/ฝ่าย เป็นตารางจัดการได้จริง ──────────────────────────
+    await db.execute('''
+      CREATE TABLE work_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        head_name TEXT,
+        active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+    for (final g in budgetDepartmentGroups) {
+      await db.insert('work_groups', {'name': g, 'active': 1});
+    }
 
     // ── ตารางหลัก: เอกสารการจัดซื้อจัดจ้างแต่ละใบ ────────────────────
     await db.execute('''
