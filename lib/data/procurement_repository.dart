@@ -552,8 +552,8 @@ class ProcurementRepository {
     final rows = await db.query(
       'procurement_orders',
       where:
-          'procurement_number LIKE ? OR order_number LIKE ? OR project_name LIKE ? OR vendor_name LIKE ?',
-      whereArgs: List.filled(4, '%$query%'),
+          'procurement_number LIKE ? OR order_number LIKE ? OR project_name LIKE ? OR activity_name LIKE ? OR vendor_name LIKE ?',
+      whereArgs: List.filled(5, '%$query%'),
       orderBy: 'id DESC',
     );
     return rows.map(ProcurementOrder.fromMap).toList();

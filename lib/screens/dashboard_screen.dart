@@ -846,7 +846,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: TextField(
         controller: _searchCtrl,
         decoration: InputDecoration(
-          hintText: 'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อร้านค้า',
+          hintText: 'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อกิจกรรม / ชื่อร้านค้า',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -961,9 +961,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            order.projectName?.isNotEmpty == true
-                                ? order.projectName!
-                                : '(ไม่มีชื่อโครงการ)',
+                            [
+                              order.projectName?.isNotEmpty == true ? order.projectName! : '(ไม่มีชื่อโครงการ)',
+                              if (order.activityName?.trim().isNotEmpty ?? false) order.activityName!.trim(),
+                            ].join(' › '),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
