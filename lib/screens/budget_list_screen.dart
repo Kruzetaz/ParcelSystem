@@ -21,6 +21,10 @@ import '../widgets/column_visibility_menu.dart';
 /// คอลัมน์ที่ซ่อน/แสดงได้ในมุมมองตาราง — "ฝ่าย/ปีงบ/โครงการ/คงเหลือ" แสดงเสมอ
 const _budgetTableOptionalColumns = ['เลข e-GP', 'ผู้รับผิดชอบ', 'วงเงิน'];
 
+/// ค่าพิเศษในตัวกรอง "ฝ่าย/แผนงาน" สำหรับกรองเฉพาะแผนงบที่ยังไม่ได้เลือกฝ่ายไว้
+/// (groupName ว่าง) — ไม่ใช่ชื่อฝ่ายจริง แค่ใช้เป็น sentinel ในตัวกรองเท่านั้น
+const budgetUnassignedDepartmentFilter = '(ไม่ระบุฝ่าย/แผนงาน)';
+
 enum _BudgetViewMode { card, table }
 
 /// วิธีจัดการรายการที่ซ้ำกันตอน import จากไฟล์
@@ -472,6 +476,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   /// + รวมค่าเก่าที่เคยกรอกไว้แบบข้อความอิสระ (กันไม่ให้ข้อมูลเก่าหายไปจากตัวกรอง)
   List<String> get _departmentNames => _workGroups.map((g) => g.name).toList();
 
+  bool get _hasUnassignedDepartmentBudgets =>
+      _budgets.any((b) => !(b.groupName?.trim().isNotEmpty ?? false));
+
   List<String> get _departmentOptions {
     final legacy = _budgets
         .map((b) => b.groupName)
@@ -480,11 +487,23 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         .toSet()
         .toList()
       ..sort();
-    return [..._departmentNames, ...legacy];
+    return [
+      ..._departmentNames,
+      ...legacy,
+      if (_hasUnassignedDepartmentBudgets) budgetUnassignedDepartmentFilter,
+    ];
+  }
+
+  bool _matchesDepartmentFilter(Budget b) {
+    if (_selectedDepartment == null) return true;
+    if (_selectedDepartment == budgetUnassignedDepartmentFilter) {
+      return !(b.groupName?.trim().isNotEmpty ?? false);
+    }
+    return b.groupName == _selectedDepartment;
   }
 
   List<String> get _projectOptions => _budgets
-      .where((b) => _selectedDepartment == null || b.groupName == _selectedDepartment)
+      .where(_matchesDepartmentFilter)
       .map((b) => b.projectName)
       .whereType<String>()
       .where((s) => s.isNotEmpty)
@@ -493,7 +512,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     ..sort();
 
   List<Budget> get _filteredBudgets => _budgets.where((b) {
-        if (_selectedDepartment != null && b.groupName != _selectedDepartment) return false;
+        if (!_matchesDepartmentFilter(b)) return false;
         if (_selectedProject != null && b.projectName != _selectedProject) return false;
         if (_selectedSource != null && b.budgetSource != _selectedSource) return false;
         if (_searchQuery.isNotEmpty) {

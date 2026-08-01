@@ -1,7 +1,8 @@
 // thai_date_picker.dart
-// ปฏิทินเลือกวันที่แบบไทย — มี dropdown เดือน/ปี (พ.ศ.) ให้กระโดดข้ามปีได้เร็ว
-// และปุ่มสลับไปโหมด "พิมพ์เอง" กรอกเป็น วว/ดด/ปปปป (พ.ศ.) เช่น 24/01/2569
-// หรือ วว เดือนย่อ ปปปป เช่น 24 มี.ค. 2569 ก็ได้ทั้งคู่
+// ปฏิทินเลือกวันที่แบบไทย — มีช่องพิมพ์วันที่เองอยู่ด้านบนตลอด (วว/ดด/ปปปป
+// หรือ วว เดือนย่อ/เต็ม ปปปป เช่น 24/01/2569 หรือ 24 มี.ค. 2569) พิมพ์แล้ว
+// ปฏิทินด้านล่าง (เดือน/ปี + ตัวเลขวันที่) จะกระโดดตามให้ทันที ไม่ต้องสลับโหมด
+// และเลือกจากปฏิทินก็อัปเดตช่องพิมพ์ให้กลับเช่นกัน (sync 2 ทาง)
 
 import 'package:flutter/material.dart';
 
@@ -64,9 +65,11 @@ class _ThaiDatePickerDialog extends StatefulWidget {
 class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
   late DateTime _selected;
   late DateTime _viewMonth; // วันที่ 1 ของเดือนที่กำลังแสดงในปฏิทิน
-  bool _manualMode = false;
   late final TextEditingController _manualCtrl;
   String? _manualError;
+  // กันไม่ให้ _onManualChanged เขียนกลับเข้า _manualCtrl วนซ้ำตอนที่เราเป็นคน
+  // set ค่าเข้า controller เอง (เช่น ตอนแตะเลือกวันที่จากปฏิทิน)
+  bool _syncingFromCalendar = false;
 
   @override
   void initState() {
@@ -74,10 +77,12 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
     _selected = _clampToRange(widget.initialDate);
     _viewMonth = DateTime(_selected.year, _selected.month);
     _manualCtrl = TextEditingController(text: _formatSlash(_selected));
+    _manualCtrl.addListener(_onManualChanged);
   }
 
   @override
   void dispose() {
+    _manualCtrl.removeListener(_onManualChanged);
     _manualCtrl.dispose();
     super.dispose();
   }
@@ -128,10 +133,16 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
     return DateTime(year, month, day);
   }
 
-  void _applyManualInput() {
+  /// เรียกทุกครั้งที่พิมพ์ในช่องด้านบน — parse ผ่านก็ขยับปฏิทิน/วันที่เลือกตาม
+  /// ทันที ยังไม่ผ่าน (พิมพ์ค้างอยู่ครึ่งๆ กลางๆ) ก็แค่โชว์ error เฉยๆ ไม่ล้าง
+  /// ค่าที่เลือกไว้ก่อนหน้า
+  void _onManualChanged() {
+    if (_syncingFromCalendar) return;
     final parsed = _parseManual(_manualCtrl.text);
     if (parsed == null) {
-      setState(() => _manualError = 'รูปแบบไม่ถูกต้อง กรอกเป็น วว/ดด/ปปปป เช่น 24/01/2569');
+      setState(() => _manualError = _manualCtrl.text.trim().isEmpty
+          ? null
+          : 'รูปแบบไม่ถูกต้อง เช่น 24/01/2569');
       return;
     }
     if (parsed.isBefore(widget.firstDate) || parsed.isAfter(widget.lastDate)) {
@@ -143,17 +154,16 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
       _selected = parsed;
       _viewMonth = DateTime(parsed.year, parsed.month);
       _manualError = null;
-      _manualMode = false;
     });
   }
 
-  void _toggleMode() {
+  void _selectFromCalendar(DateTime date) {
     setState(() {
-      if (!_manualMode) {
-        _manualCtrl.text = _formatSlash(_selected);
-        _manualError = null;
-      }
-      _manualMode = !_manualMode;
+      _selected = date;
+      _manualError = null;
+      _syncingFromCalendar = true;
+      _manualCtrl.text = _formatSlash(date);
+      _syncingFromCalendar = false;
     });
   }
 
@@ -205,28 +215,28 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.helpText ?? 'เลือกวันที่',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: widget.primaryColor,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: _manualMode ? 'เลือกจากปฏิทิน' : 'พิมพ์วันที่เอง',
-                    icon: Icon(_manualMode ? Icons.calendar_month : Icons.edit_calendar,
-                        color: widget.primaryColor),
-                    onPressed: _toggleMode,
-                  ),
-                ],
+              Text(
+                widget.helpText ?? 'เลือกวันที่',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: widget.primaryColor,
+                ),
               ),
-              const SizedBox(height: 8),
-              if (_manualMode) _buildManualEntry() else _buildCalendar(today),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _manualCtrl,
+                decoration: InputDecoration(
+                  labelText: 'วว/ดด/ปปปป (พ.ศ.)',
+                  hintText: 'เช่น 24/01/2569 หรือ 24 มี.ค. 2569',
+                  errorText: _manualError,
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.edit_calendar_outlined, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildCalendar(today),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -238,10 +248,8 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                   const SizedBox(width: 4),
                   FilledButton(
                     style: FilledButton.styleFrom(backgroundColor: widget.primaryColor),
-                    onPressed: _manualMode
-                        ? _applyManualInput
-                        : () => Navigator.pop(context, _selected),
-                    child: Text(_manualMode ? 'ตกลง' : 'เลือกวันนี้'),
+                    onPressed: () => Navigator.pop(context, _selected),
+                    child: const Text('เลือกวันนี้'),
                   ),
                 ],
               ),
@@ -249,25 +257,6 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildManualEntry() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _manualCtrl,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: 'วว/ดด/ปปปป (พ.ศ.)',
-            hintText: 'เช่น 24/01/2569 หรือ 24 มี.ค. 2569',
-            errorText: _manualError,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          onSubmitted: (_) => _applyManualInput(),
-        ),
-      ],
     );
   }
 
@@ -328,11 +317,16 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
         ),
         Row(
           children: [
-            for (final w in _thaiWeekdaysShort)
+            for (var i = 0; i < _thaiWeekdaysShort.length; i++)
               Expanded(
                 child: Center(
-                  child: Text(w,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                  // อา (i=0) กับ ส (i=6) คือวันหยุดสุดสัปดาห์ — ใส่สีแดงจางๆ กำกับ
+                  child: Text(_thaiWeekdaysShort[i],
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: (i == 0 || i == 6) ? Colors.red.shade300 : null,
+                      )),
                 ),
               ),
           ],
@@ -353,14 +347,22 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                 date.day == _selected.day;
             final isToday =
                 date.year == today.year && date.month == today.month && date.day == today.day;
+            // เสาร์ (6) / อาทิตย์ (7) ตาม DateTime.weekday
+            final isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
             return Padding(
               padding: const EdgeInsets.all(2),
               child: Material(
                 color: isSelected ? widget.primaryColor : Colors.transparent,
                 shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: inRange ? () => setState(() => _selected = date) : null,
+                // ใช้ GestureDetector แทน InkWell โดยตั้งใจ — ตอนนี้ช่องพิมพ์
+                // วันที่เองอยู่ติดกับปฏิทินตลอด (พิมพ์ทุกตัวอักษร = setState
+                // รีบิลด์ทั้งไดอะล็อกรวมถึงปฏิทิน) ถ้าใช้ InkWell ซึ่งผูก
+                // MouseRegion ของตัวเองไว้ จะชนบั๊ก mouse_tracker
+                // "_debugDuringDeviceUpdate" ของ Flutter บน desktop เหมือนที่เจอ
+                // ในปุ่มไกด์มาก่อน (ดู guide_panel.dart) ทำให้กดอะไรไม่ได้ทั้งแอป
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: inRange ? () => _selectFromCalendar(date) : null,
                   child: Container(
                     alignment: Alignment.center,
                     decoration: isToday && !isSelected
@@ -376,7 +378,9 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                             ? Theme.of(context).disabledColor
                             : isSelected
                                 ? widget.onPrimaryColor
-                                : null,
+                                : isWeekend
+                                    ? Colors.red.shade300
+                                    : null,
                         fontWeight: isSelected ? FontWeight.bold : null,
                       ),
                     ),
