@@ -431,7 +431,7 @@ class _AppShellState extends State<AppShell> {
                           border: Border.all(color: colors.onPrimary.withValues(alpha: 0.4)),
                         ),
                         child: Text(
-                          'v2.4',
+                          'v3.0 FullUpdate',
                           style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.onPrimary),
                         ),
                       ),

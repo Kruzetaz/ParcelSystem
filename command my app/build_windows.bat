@@ -6,7 +6,7 @@ REM แล้วสร้าง shortcut ไปวางที่ Desktop ให
 
 REM แก้ path นี้ให้ตรงกับตำแหน่งโปรเจกต์จริงในเครื่องคุณ
 set PROJECT_DIR=C:\Dev\ParcelSystem
-set EXE_NAME=ParcelSystem v.2.4.exe
+set EXE_NAME=ParcelSystem v.3.0 FullUpdate.exe
 
 cd /d "%PROJECT_DIR%"
 if errorlevel 1 (

@@ -17,8 +17,8 @@ flutter clean
 flutter pub get
 flutter build macos --release
 
-APP_PATH="build/macos/Build/Products/Release/ParcelSystem v.2.4.app"
-APP_BINARY="$APP_PATH/Contents/MacOS/ParcelSystem v.2.4"
+APP_PATH="build/macos/Build/Products/Release/ParcelSystem v.3.0 FullUpdate.app"
+APP_BINARY="$APP_PATH/Contents/MacOS/ParcelSystem v.3.0 FullUpdate"
 
 if [ -d "$APP_PATH" ]; then
   echo ""
