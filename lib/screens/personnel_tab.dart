@@ -112,6 +112,115 @@ class _PersonnelTabState extends State<PersonnelTab> {
     return colors.primary;
   }
 
+  static const _positionColW = 160.0;
+  static const _phoneColW = 130.0;
+  static const _statusColW = 84.0;
+  static const _actionsColW = 88.0;
+
+  Widget _buildHeaderRow(ColorScheme colors) {
+    final style = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          Expanded(flex: 2, child: Text('ชื่อ-นามสกุล', style: style)),
+          const SizedBox(width: 12),
+          SizedBox(width: _positionColW, child: Text('ตำแหน่ง', style: style)),
+          const SizedBox(width: 12),
+          SizedBox(width: _phoneColW, child: Text('เบอร์โทรศัพท์', style: style)),
+          const SizedBox(width: 12),
+          Expanded(flex: 2, child: Text('อีเมล', style: style)),
+          SizedBox(width: _statusColW, child: Text('', style: style)),
+          SizedBox(width: _actionsColW, child: Text('', style: style)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(ColorScheme colors, Personnel p) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+        color: p.active ? null : colors.surfaceContainerHighest.withValues(alpha: 0.4),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(p.name,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: _positionColW,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: (p.position?.trim().isNotEmpty ?? false)
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _positionColor(colors, p.position),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(p.position!,
+                        style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    )
+                  : Text('-', style: TextStyle(color: colors.onSurfaceVariant)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: _phoneColW,
+            child: Text(p.phone ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: Text(p.email ?? '-',
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          SizedBox(
+            width: _statusColW,
+            child: !p.active
+                ? Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
+                    child: const Text('ปิดใช้งาน', style: TextStyle(fontSize: 11)),
+                  )
+                : null,
+          ),
+          SizedBox(
+            width: _actionsColW,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  tooltip: 'แก้ไข',
+                  onPressed: () => _openForm(existing: p),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                  tooltip: 'ลบ',
+                  onPressed: () => _confirmDelete(p),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -149,73 +258,20 @@ class _PersonnelTabState extends State<PersonnelTab> {
                               style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
                             ),
                           )
-                        : ListView.separated(
-                            padding: const EdgeInsets.only(bottom: 80),
-                            itemCount: _filtered.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (_, i) {
-                              final p = _filtered[i];
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: colors.outlineVariant),
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: p.active ? null : colors.surfaceContainerHighest.withValues(alpha: 0.4),
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildHeaderRow(colors),
+                              const SizedBox(height: 6),
+                              Expanded(
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.only(bottom: 80),
+                                  itemCount: _filtered.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (_, i) => _buildRow(colors, _filtered[i]),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(p.name,
-                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    ),
-                                    Expanded(
-                                      child: (p.position?.trim().isNotEmpty ?? false)
-                                          ? Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: _positionColor(colors, p.position),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(p.position!,
-                                                style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
-                                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                                            )
-                                          : Text('-', style: TextStyle(color: colors.onSurfaceVariant)),
-                                    ),
-                                    Expanded(
-                                      child: Text(p.phone ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
-                                    ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(p.email ?? '-',
-                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
-                                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    ),
-                                    if (!p.active)
-                                      Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
-                                        child: const Text('ปิดใช้งาน', style: TextStyle(fontSize: 11)),
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined, size: 20),
-                                      tooltip: 'แก้ไข',
-                                      onPressed: () => _openForm(existing: p),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                      tooltip: 'ลบ',
-                                      onPressed: () => _confirmDelete(p),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
               ),
             ],

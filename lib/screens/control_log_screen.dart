@@ -110,17 +110,20 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
+                    Text('ทะเบียนคุมเลขที่บันทึกข้อความ/คำสั่ง/TOR',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: colors.primary),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('ทะเบียนคุมเลขที่บันทึกข้อความ/คำสั่ง/TOR',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: colors.primary)),
-                        const Spacer(),
                         ColumnVisibilityMenu(
                           allColumns: _controlLogOptionalColumns,
                           visibleColumns: _visibleColumns,
                           onChanged: (v) => setState(() => _visibleColumns = v),
                         ),
-                        const SizedBox(width: 4),
                         OutlinedButton.icon(
                           onPressed: _entries.isEmpty || _exporting ? null : _exportToExcel,
                           icon: _exporting
@@ -128,30 +131,30 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                               : const Icon(Icons.file_download_outlined),
                           label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
                         ),
-                        const SizedBox(width: 12),
                         SizedBox(
-                          width: 160,
+                          width: 175,
                           child: DropdownButtonFormField<String?>(
                             initialValue: _docTypeFilter,
                             isDense: true,
+                            isExpanded: true,
                             decoration: const InputDecoration(isDense: true, hintText: 'ประเภทงาน (ทั้งหมด)'),
                             items: [
-                              const DropdownMenuItem<String?>(value: null, child: Text('ประเภทงาน (ทั้งหมด)')),
+                              const DropdownMenuItem<String?>(value: null, child: Text('ประเภทงาน (ทั้งหมด)', overflow: TextOverflow.ellipsis)),
                               ..._docTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, overflow: TextOverflow.ellipsis))),
                             ],
                             onChanged: (v) => setState(() => _docTypeFilter = v),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         SizedBox(
-                          width: 150,
+                          width: 130,
                           child: DropdownButtonFormField<String?>(
                             initialValue: _fiscalYearFilter,
                             isDense: true,
+                            isExpanded: true,
                             decoration: const InputDecoration(isDense: true, hintText: 'ปีงบ (ทั้งหมด)'),
                             items: [
-                              const DropdownMenuItem<String?>(value: null, child: Text('ปีงบ (ทั้งหมด)')),
-                              ..._fiscalYears.map((y) => DropdownMenuItem(value: y, child: Text('ปี $y'))),
+                              const DropdownMenuItem<String?>(value: null, child: Text('ปีงบ (ทั้งหมด)', overflow: TextOverflow.ellipsis)),
+                              ..._fiscalYears.map((y) => DropdownMenuItem(value: y, child: Text('ปี $y', overflow: TextOverflow.ellipsis))),
                             ],
                             onChanged: (v) => setState(() => _fiscalYearFilter = v),
                           ),
@@ -186,42 +189,61 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
 
   Widget _buildTable(ColorScheme colors) {
     final headerStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
-    return Scrollbar(
-      controller: _scrollCtrl,
-      thumbVisibility: true,
-      child: SingleChildScrollView(
+    // ห่อด้วย SingleChildScrollView แนวตั้งชั้นนอกก่อนเสมอ — ตารางนี้อยู่ใน
+    // Expanded (สูงจำกัดตามพื้นที่จอ) ถ้ามีแค่ scroll แนวนอนอย่างเดียวโดยไม่มี
+    // แนวตั้งห่อไว้ พอแถวเยอะเกินพื้นที่จอจะ overflow ด้านล่างทันที (ไม่มีทาง
+    // เลื่อนดูแถวที่เหลือได้เลย)
+    return SingleChildScrollView(
+      child: Scrollbar(
         controller: _scrollCtrl,
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: 1280,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
-                child: Row(
-                  children: [
-                    SizedBox(width: 40, child: Text('ที่', style: headerStyle)),
-                    if (_visibleColumns.contains('เลขที่บันทึก/คำสั่ง'))
-                      SizedBox(width: 110, child: Text('เลขที่บันทึก/คำสั่ง', style: headerStyle)),
-                    if (_visibleColumns.contains('ประเภทงาน'))
-                      SizedBox(width: 160, child: Text('ประเภทงาน', style: headerStyle)),
-                    if (_visibleColumns.contains('วันที่บันทึก'))
-                      SizedBox(width: 110, child: Text('วันที่บันทึก', style: headerStyle)),
-                    Expanded(child: Text('ชื่อรายการ/บันทึกข้อความ', style: headerStyle)),
-                    if (_visibleColumns.contains('วงเงิน'))
-                      SizedBox(width: 110, child: Text('วงเงิน', style: headerStyle, textAlign: TextAlign.right)),
-                    if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน'))
-                      SizedBox(width: 150, child: Text('หน่วยงาน/กลุ่มงาน', style: headerStyle)),
-                    if (_visibleColumns.contains('ผู้รับผิดชอบหลัก'))
-                      SizedBox(width: 140, child: Text('ผู้รับผิดชอบหลัก', style: headerStyle)),
-                  ],
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _scrollCtrl,
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: 1320,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
+                  child: Row(
+                    children: [
+                      SizedBox(width: 40, child: Text('ที่', style: headerStyle)),
+                      const SizedBox(width: 8),
+                      if (_visibleColumns.contains('เลขที่บันทึก/คำสั่ง')) ...[
+                        SizedBox(width: 110, child: Text('เลขที่บันทึก/คำสั่ง', style: headerStyle)),
+                        const SizedBox(width: 8),
+                      ],
+                      if (_visibleColumns.contains('ประเภทงาน')) ...[
+                        SizedBox(width: 160, child: Text('ประเภทงาน', style: headerStyle)),
+                        const SizedBox(width: 8),
+                      ],
+                      if (_visibleColumns.contains('วันที่บันทึก')) ...[
+                        SizedBox(width: 110, child: Text('วันที่บันทึก', style: headerStyle)),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(child: Text('ชื่อรายการ/บันทึกข้อความ', style: headerStyle)),
+                      if (_visibleColumns.contains('วงเงิน')) ...[
+                        const SizedBox(width: 8),
+                        SizedBox(width: 110, child: Text('วงเงิน', style: headerStyle, textAlign: TextAlign.right)),
+                      ],
+                      if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน')) ...[
+                        const SizedBox(width: 8),
+                        SizedBox(width: 150, child: Text('หน่วยงาน/กลุ่มงาน', style: headerStyle)),
+                      ],
+                      if (_visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
+                        const SizedBox(width: 8),
+                        SizedBox(width: 140, child: Text('ผู้รับผิดชอบหลัก', style: headerStyle)),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-              for (var i = 0; i < _filtered.length; i++) _buildRow(colors, i, _filtered[i]),
-              const SizedBox(height: 80),
-            ],
+                for (var i = 0; i < _filtered.length; i++) _buildRow(colors, i, _filtered[i]),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
@@ -235,19 +257,32 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
       child: Row(
         children: [
           SizedBox(width: 40, child: Text('${index + 1}', style: const TextStyle(fontSize: 12.5))),
-          if (_visibleColumns.contains('เลขที่บันทึก/คำสั่ง'))
+          const SizedBox(width: 8),
+          if (_visibleColumns.contains('เลขที่บันทึก/คำสั่ง')) ...[
             SizedBox(width: 110, child: Text(e.controlNumber, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600))),
-          if (_visibleColumns.contains('ประเภทงาน'))
+            const SizedBox(width: 8),
+          ],
+          if (_visibleColumns.contains('ประเภทงาน')) ...[
             SizedBox(width: 160, child: Text(e.docType, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          if (_visibleColumns.contains('วันที่บันทึก'))
+            const SizedBox(width: 8),
+          ],
+          if (_visibleColumns.contains('วันที่บันทึก')) ...[
             SizedBox(width: 110, child: Text(e.dateText ?? '-', style: const TextStyle(fontSize: 12.5))),
+            const SizedBox(width: 8),
+          ],
           Expanded(child: Text(e.description, style: const TextStyle(fontSize: 12.5), maxLines: 2, overflow: TextOverflow.ellipsis)),
-          if (_visibleColumns.contains('วงเงิน'))
+          if (_visibleColumns.contains('วงเงิน')) ...[
+            const SizedBox(width: 8),
             SizedBox(width: 110, child: Text(e.amount != null ? formatBaht(e.amount!) : '-', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
-          if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน'))
+          ],
+          if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน')) ...[
+            const SizedBox(width: 8),
             SizedBox(width: 150, child: Text(e.department ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          if (_visibleColumns.contains('ผู้รับผิดชอบหลัก'))
+          ],
+          if (_visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
+            const SizedBox(width: 8),
             SizedBox(width: 140, child: Text(e.responsiblePerson ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ],
         ],
       ),
     );

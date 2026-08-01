@@ -84,6 +84,121 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
     }
   }
 
+  static const _typeColW = 96.0;
+  static const _taxIdColW = 130.0;
+  static const _phoneColW = 120.0;
+  static const _statusColW = 84.0;
+  static const _actionsColW = 88.0;
+
+  Widget _buildHeaderRow(ColorScheme colors) {
+    final style = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          SizedBox(width: _typeColW, child: Text('ประเภท', style: style)),
+          const SizedBox(width: 12),
+          Expanded(flex: 2, child: Text('ชื่อร้านค้า/เจ้าของร้าน', style: style)),
+          const SizedBox(width: 12),
+          SizedBox(width: _taxIdColW, child: Text('เลขผู้เสียภาษี', style: style)),
+          const SizedBox(width: 12),
+          SizedBox(width: _phoneColW, child: Text('เบอร์โทรศัพท์', style: style)),
+          SizedBox(width: _statusColW, child: Text('', style: style)),
+          SizedBox(width: _actionsColW, child: Text('', style: style)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(ColorScheme colors, Vendor v) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+        color: v.active ? null : colors.surfaceContainerHighest.withValues(alpha: 0.4),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: _typeColW,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: v.vendorType == vendorTypeJuristic ? Colors.deepOrange : Colors.blue,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(v.vendorType,
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(v.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (v.owner?.trim().isNotEmpty ?? false)
+                  Text(v.owner!, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: _taxIdColW,
+            child: Text(v.taxId ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: _phoneColW,
+            child: Text(v.phone ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
+          ),
+          SizedBox(
+            width: _statusColW,
+            child: !v.active
+                ? Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
+                    child: const Text('ปิดใช้งาน', style: TextStyle(fontSize: 11)),
+                  )
+                : null,
+          ),
+          SizedBox(
+            width: _actionsColW,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  tooltip: 'แก้ไข',
+                  onPressed: () => _openForm(existing: v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                  tooltip: 'ลบ',
+                  onPressed: () => _confirmDelete(v),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -115,73 +230,20 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
                               style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
                             ),
                           )
-                        : ListView.separated(
-                            padding: const EdgeInsets.only(bottom: 80),
-                            itemCount: _filtered.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (_, i) {
-                              final v = _filtered[i];
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: colors.outlineVariant),
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: v.active ? null : colors.surfaceContainerHighest.withValues(alpha: 0.4),
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildHeaderRow(colors),
+                              const SizedBox(height: 6),
+                              Expanded(
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.only(bottom: 80),
+                                  itemCount: _filtered.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (_, i) => _buildRow(colors, _filtered[i]),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: v.vendorType == vendorTypeJuristic ? Colors.deepOrange : Colors.blue,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(v.vendorType,
-                                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(v.name,
-                                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                                          if (v.owner?.trim().isNotEmpty ?? false)
-                                            Text(v.owner!, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12)),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Text(v.taxId ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
-                                    ),
-                                    Expanded(
-                                      child: Text(v.phone ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
-                                    ),
-                                    if (!v.active)
-                                      Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
-                                        child: const Text('ปิดใช้งาน', style: TextStyle(fontSize: 11)),
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined, size: 20),
-                                      tooltip: 'แก้ไข',
-                                      onPressed: () => _openForm(existing: v),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                      tooltip: 'ลบ',
-                                      onPressed: () => _confirmDelete(v),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
               ),
             ],

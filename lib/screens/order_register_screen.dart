@@ -145,7 +145,7 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                       ),
                       const SizedBox(width: 12),
                       SizedBox(
-                        width: 220,
+                        width: 165,
                         child: DropdownButtonFormField<String?>(
                           initialValue: _fiscalYearFilter,
                           isExpanded: true,

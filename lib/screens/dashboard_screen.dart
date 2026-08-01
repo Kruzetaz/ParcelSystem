@@ -130,15 +130,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double get _totalAllocatedBudget =>
       _budgets.fold(0.0, (sum, b) => sum + (b.allocatedAmount ?? 0));
 
-  /// รวมงบตามฝ่าย/กลุ่มงาน (groupName) — เรียงจากมากไปน้อย ใช้วาดกราฟแท่งใน Dashboard
+  /// รวมงบตามฝ่าย/กลุ่มงาน (groupName) — เรียงตามลำดับมาตรฐาน budgetDepartmentGroups
+  /// เดียวกับ dropdown ตัวกรองฝ่าย/แผนงาน (กลุ่มที่ไม่อยู่ในลิสต์มาตรฐาน หรือ
+  /// "ไม่ระบุฝ่าย/แผนงาน" จะเรียงต่อท้ายตามตัวอักษร) ใช้วาดกราฟแท่งใน Dashboard
   List<MapEntry<String, double>> get _budgetByDepartment {
     final totals = <String, double>{};
     for (final b in _budgets) {
       final dept = (b.groupName?.trim().isNotEmpty ?? false) ? b.groupName! : 'ไม่ระบุฝ่าย/แผนงาน';
       totals[dept] = (totals[dept] ?? 0) + (b.allocatedAmount ?? 0);
     }
-    final entries = totals.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    int sortRank(String name) {
+      final idx = budgetDepartmentGroups.indexOf(name);
+      return idx == -1 ? budgetDepartmentGroups.length + 1 : idx;
+    }
+    final entries = totals.entries.toList()
+      ..sort((a, b) {
+        final rankCompare = sortRank(a.key).compareTo(sortRank(b.key));
+        if (rankCompare != 0) return rankCompare;
+        return a.key.compareTo(b.key);
+      });
     return entries;
+  }
+
+  /// ยอดที่ใช้ไปแล้ว (เฉพาะเอกสารที่ "เสร็จสมบูรณ์") แยกตามฝ่าย/กลุ่มงาน — จับคู่
+  /// ออร์เดอร์กับฝ่ายผ่าน budgetId ของออร์เดอร์ที่ผูกกับแผนงบ ใช้วาดซ้อนบนแท่ง
+  /// "วงเงินทั้งหมด" ในกราฟ Dashboard เพื่อเทียบใช้ไปเท่าไหร่จากที่ได้รับจัดสรร
+  Map<String, double> get _spentByDepartment {
+    final budgetsById = {for (final b in _budgets) if (b.id != null) b.id!: b};
+    final spent = <String, double>{};
+    for (final o in _orders) {
+      if (o.currentStatus != 'COMPLETED') continue;
+      final budget = o.budgetId != null ? budgetsById[o.budgetId] : null;
+      final dept = (budget?.groupName?.trim().isNotEmpty ?? false) ? budget!.groupName! : 'ไม่ระบุฝ่าย/แผนงาน';
+      spent[dept] = (spent[dept] ?? 0) + (o.currentOrderPrice ?? 0);
+    }
+    return spent;
   }
 
   /// ปีงบประมาณล่าสุด หา mode (ปีที่มีเอกสารเยอะสุด) ถ้าเสมอกันเลือกปีมากสุด
@@ -570,22 +596,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ─────────────────────────────────────────
-  // กราฟแท่งงบประมาณตามฝ่าย/กลุ่มงาน — เทียบวงเงินที่ได้รับจัดสรรของแต่ละฝ่าย
+  // กราฟแท่งงบประมาณตามฝ่าย/กลุ่มงาน — แต่ละแท่งซ้อน 2 ชั้นในหลอดเดียวกัน
+  // สีอ่อน (ด้านหลัง) = วงเงินที่ได้รับจัดสรรทั้งหมด, สีเข้ม (ด้านหน้า) = ยอดที่
+  // ใช้ไปแล้วจริงในเอกสารที่เสร็จสมบูรณ์ — ใช้โทนสีเดียวกับธีมของแอป (primary)
   // ─────────────────────────────────────────
+
+  Widget _legendSwatch(Color color) => Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+      );
+
+  /// สีประจำแต่ละฝ่าย — เลือกให้ต่างกันชัดเจนแยกแท่งออกจากกันง่าย (ไม่ยึดโทนเขียว
+  /// ของธีมแล้วตามที่ขอ เพราะหมุนเฉดรอบสีเดียวมันใกล้กันเกินไปจนแยกไม่ออก)
+  static const _deptColorPalette = [
+    Colors.teal,
+    Colors.indigo,
+    Colors.deepOrange,
+    Colors.purple,
+    Colors.blue,
+    Colors.brown,
+    Colors.pink,
+    Colors.green,
+    Colors.amber,
+    Colors.cyan,
+  ];
+
+  Color _deptColor(ColorScheme colors, int index) =>
+      _deptColorPalette[index % _deptColorPalette.length];
 
   Widget _buildDepartmentBudgetChart(ColorScheme colors) {
     final entries = _budgetByDepartment;
+    final spentMap = _spentByDepartment;
     final maxValue = entries.map((e) => e.value).fold(0.0, math.max);
     if (maxValue <= 0) return const SizedBox.shrink();
 
-    final barColors = [
-      colors.primary,
-      Colors.teal,
-      Colors.indigo,
-      Colors.orange,
-      Colors.purple,
-      Colors.blueGrey,
-    ];
+    final trackColor = colors.surfaceContainerHighest;
+
+    // วัดความกว้างจริงของชื่อฝ่ายที่ยาวที่สุด ให้คอลัมน์ชื่อพอดีเห็นเต็มทุกแถว
+    // ไม่ตัดคำ (แทนการล็อกความกว้างคงที่แบบเดิมที่ตัดชื่อยาวด้วย ellipsis)
+    const labelStyle = TextStyle(fontSize: 12.5);
+    var labelColW = 0.0;
+    for (final e in entries) {
+      final painter = TextPainter(
+        text: TextSpan(text: e.key, style: labelStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      if (painter.width > labelColW) labelColW = painter.width;
+    }
+    labelColW += 8; // กันปัดเศษทำให้ตัวสุดท้ายตกบรรทัดใหม่
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -599,8 +658,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text('งบประมาณตามฝ่าย/กลุ่มงาน',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.primary)),
           const SizedBox(height: 4),
-          Text('เทียบวงเงินที่ได้รับจัดสรรของแต่ละฝ่าย/กลุ่มงาน',
+          Text('สีอ่อน = วงเงินที่ได้รับจัดสรรทั้งหมด · สีเข้ม = ยอดที่ใช้ไปแล้ว (เอกสารที่เสร็จสมบูรณ์)',
             style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _legendSwatch(colors.primary.withValues(alpha: 0.28)),
+              const SizedBox(width: 6),
+              Text('วงเงินทั้งหมด', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+              const SizedBox(width: 16),
+              _legendSwatch(colors.primary),
+              const SizedBox(width: 6),
+              Text('ใช้ไปแล้ว (แต่ละฝ่ายมีสีเฉพาะของตัวเอง)', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+            ],
+          ),
           const SizedBox(height: 16),
           for (var i = 0; i < entries.length; i++) ...[
             Padding(
@@ -608,32 +679,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 160,
-                    child: Text(entries[i].key,
-                      style: const TextStyle(fontSize: 12.5),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    width: labelColW,
+                    child: Text(entries[i].key, style: labelStyle, softWrap: false, maxLines: 1),
                   ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final ratio = entries[i].value / maxValue;
+                        final totalRatio = entries[i].value / maxValue;
+                        final spent = spentMap[entries[i].key] ?? 0;
+                        final spentRatio = spent / maxValue;
+                        final deptColor = _deptColor(colors, i);
                         return Stack(
                           children: [
                             Container(
-                              height: 18,
+                              height: 15,
                               decoration: BoxDecoration(
-                                color: colors.surfaceContainerHighest,
+                                color: trackColor,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
                             Container(
-                              width: constraints.maxWidth * ratio.clamp(0.02, 1.0),
-                              height: 18,
+                              width: constraints.maxWidth * totalRatio.clamp(0.02, 1.0),
+                              height: 15,
                               decoration: BoxDecoration(
-                                color: barColors[i % barColors.length],
+                                color: deptColor.withValues(alpha: 0.32),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
+                            if (spent > 0)
+                              Container(
+                                width: constraints.maxWidth * spentRatio.clamp(0.02, 1.0),
+                                height: 15,
+                                decoration: BoxDecoration(
+                                  color: deptColor,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
                           ],
                         );
                       },
@@ -641,7 +723,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 10),
                   SizedBox(
-                    width: 110,
+                    width: 130,
                     child: Text('${formatBaht(entries[i].value)} บาท',
                       textAlign: TextAlign.right,
                       style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
