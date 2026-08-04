@@ -1356,7 +1356,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
 
   /// คำนวณยอด VAT/หัก ณ ที่จ่าย เป็นจำนวนเงิน (บาท) จาก % ปัจจุบัน + ยอดรวม
   /// items แล้วเติมลงช่อง "จำนวนเงิน" ให้ดูตรงกัน — ไม่แตะช่อง % เลย
-  void _refreshTaxAmountFields() {
+  /// [skipVat]/[skipWithholding] ใช้ตอนผู้ใช้กำลังพิมพ์ในช่องจำนวนเงินนั้นๆ เอง
+  /// เพื่อไม่ให้เขียนทับข้อความที่กำลังพิมพ์อยู่กลางคัน (ทำให้เคอร์เซอร์กระโดด
+  /// ไปท้ายข้อความทุกตัวอักษร พิมพ์เลขหลักที่สองไม่ได้)
+  void _refreshTaxAmountFields({bool skipVat = false, bool skipWithholding = false}) {
     final s = widget.itemsSubtotal;
     final vRate = widget.draft.vatRate;
     final wRate = widget.draft.withholdingTaxRate;
@@ -1364,8 +1367,12 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     final vatAmt = s - preVat;
     final whAmt = preVat * wRate;
     _syncingTaxFields = true;
-    _vatAmountCtrl.text = s > 0 ? vatAmt.toStringAsFixed(2) : '';
-    _withholdingAmountCtrl.text = s > 0 ? whAmt.toStringAsFixed(2) : '';
+    if (!skipVat) {
+      _vatAmountCtrl.text = s > 0 ? vatAmt.toStringAsFixed(2) : '';
+    }
+    if (!skipWithholding) {
+      _withholdingAmountCtrl.text = s > 0 ? whAmt.toStringAsFixed(2) : '';
+    }
     _syncingTaxFields = false;
   }
 
@@ -1381,7 +1388,9 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _vatRateCtrl.text = (rate * 100).toStringAsFixed(2);
     _syncingTaxFields = false;
     widget.onChanged((d) => d.copyWith(vatRate: rate));
-    _refreshTaxAmountFields();
+    // ฐานก่อน VAT เปลี่ยน กระทบยอดหัก ณ ที่จ่าย ต้องรีเฟรชช่องนั้น แต่ห้ามแตะ
+    // ช่อง VAT amount เอง เพราะผู้ใช้กำลังพิมพ์อยู่
+    _refreshTaxAmountFields(skipVat: true);
   }
 
   /// ผู้ใช้พิมพ์จำนวนเงินหัก ณ ที่จ่ายที่เห็นในบิลจริงเข้ามาตรงๆ — ย้อนคำนวณ
@@ -1398,7 +1407,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _withholdingRateCtrl.text = (rate * 100).toStringAsFixed(2);
     _syncingTaxFields = false;
     widget.onChanged((d) => d.copyWith(withholdingTaxRate: rate));
-    _refreshTaxAmountFields();
+    // หัก ณ ที่จ่ายไม่กระทบยอด VAT แต่ห้ามแตะช่องตัวเองที่กำลังพิมพ์อยู่
+    _refreshTaxAmountFields(skipWithholding: true);
   }
 
   Future<void> _loadVendors() async {
