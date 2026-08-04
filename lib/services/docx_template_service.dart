@@ -325,7 +325,20 @@ class DocxTemplateService {
   }
 
   static String _escapeXmlText(String value) {
-    return value
+    // ตัดเครื่องหมายขึ้นบรรทัดใหม่ที่หลุดติดมาในค่าที่กรอก (เช่น พิมพ์เผลอกด
+    // Enter, หรือวางข้อความที่ก็อปมาจากที่อื่นแล้วมีบรรทัดใหม่ติดมา) ให้เหลือ
+    // แค่ช่องว่างแทน — ถ้าไม่ตัด อักขระ \n/\r ดิบจะหลุดเข้าไปอยู่ใน <w:t> ตรงๆ
+    // ซึ่ง Word จะตีความเป็นการขึ้นบรรทัดใหม่กลางประโยค ทำให้ข้อความที่ควรต่อกัน
+    // (เช่น "{{school_name}} จะดำเนินการจัด{{procurement_subject}}") ถูกตัดขึ้น
+    // บรรทัดใหม่แบบเลือกไม่ได้ ลบไม่ออกในไฟล์ที่สร้างออกมา (ต้นเหตุคือค่าข้อมูล
+    // ไม่ใช่ตัว template — ตัว template เองไม่มี <w:br/> หรือย่อหน้าแยกตรงจุดนั้น)
+    final normalized = value
+        .replaceAll('\r\n', ' ')
+        .replaceAll('\r', ' ')
+        .replaceAll('\n', ' ')
+        .replaceAll(RegExp(r' {2,}'), ' ')
+        .trim();
+    return normalized
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;');
