@@ -101,6 +101,10 @@ class DocumentGenerator {
     return file;
   }
 
+  /// เปิดโฟลเดอร์ที่เก็บเอกสารด้วยตัวจัดการไฟล์ของระบบ (Finder/Explorer) — ใช้
+  /// ตอนสร้างเอกสารหลายไฟล์พร้อมกัน (bulk) แทนที่จะเปิด Word ทีละไฟล์รัว ๆ
+  static Future<void> openFolder(String folderPath) => _openFile(folderPath);
+
   // ---------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------

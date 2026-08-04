@@ -17,7 +17,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 26;
+  static const int _version = 27;
 
   Database? _db;
 
@@ -409,6 +409,37 @@ class AppDatabase {
             } catch (_) {}
           }
         }
+        if (oldVersion < 27) {
+          // บัญชีวัสดุแบบบัตรคุมสต๊อกจริง — เพิ่มฟิลด์ที่แบบฟอร์มราชการต้องใช้
+          // (จำนวนอย่างสูง/ต่ำ, ที่เก็บ, ขนาด/ลักษณะ) และตารางประวัติรับ-จ่ายทีละ
+          // รายการ (ก่อนหน้านี้เก็บแค่ยอดรวมสะสม stock_in/stock_out ไม่มีประวัติ)
+          for (final stmt in [
+            'ALTER TABLE materials ADD COLUMN min_stock REAL',
+            'ALTER TABLE materials ADD COLUMN max_stock REAL',
+            'ALTER TABLE materials ADD COLUMN storage_location TEXT',
+            'ALTER TABLE materials ADD COLUMN size_spec TEXT',
+          ]) {
+            try {
+              await db.execute(stmt);
+            } catch (_) {}
+          }
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS material_transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                material_id INTEGER NOT NULL,
+                transaction_date TEXT,
+                transaction_type TEXT CHECK(transaction_type IN ('รับเข้า', 'เบิกจ่าย')),
+                quantity REAL NOT NULL,
+                unit_price REAL,
+                ref_document TEXT,
+                counterparty TEXT,
+                note TEXT,
+                FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE
+              )
+            ''');
+          } catch (_) {}
+        }
       },
     );
   }
@@ -708,6 +739,9 @@ class AppDatabase {
     ''');
 
     // ── วัสดุ/คลังพัสดุ ──────────────────────────────────────────────
+    // stock_in/stock_out ยังเก็บยอดรวมสะสมไว้ (คำนวณ "คงเหลือ" เร็วโดยไม่ต้อง
+    // sum ตาราง material_transactions ทุกครั้ง) ส่วนประวัติรับ-จ่ายทีละรายการ
+    // (บัตรคุมสต๊อก) แยกเก็บที่ material_transactions
     await db.execute('''
       CREATE TABLE materials (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -717,7 +751,26 @@ class AppDatabase {
         unit TEXT,
         stock_in REAL DEFAULT 0,
         stock_out REAL DEFAULT 0,
-        unit_price REAL
+        unit_price REAL,
+        min_stock REAL,
+        max_stock REAL,
+        storage_location TEXT,
+        size_spec TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE material_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        material_id INTEGER NOT NULL,
+        transaction_date TEXT,
+        transaction_type TEXT CHECK(transaction_type IN ('รับเข้า', 'เบิกจ่าย')),
+        quantity REAL NOT NULL,
+        unit_price REAL,
+        ref_document TEXT,
+        counterparty TEXT,
+        note TEXT,
+        FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE
       )
     ''');
 

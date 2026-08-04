@@ -208,6 +208,9 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
     return GuideFabOverlay(
       title: 'วิธีใช้หน้าตรวจรับพัสดุ',
       icon: Icons.fact_check_outlined,
+      // การ์ดสรุปด้านบนกว้างเต็มจอ การ์ดขวาสุดโดนปุ่มไกด์มุมขวาบน (ค่า default)
+      // บังตัวเลข ย้ายไปมุมซ้ายล่างแทน — มุมขวาล่างมีปุ่ม "เพิ่มรายการตรวจรับ" อยู่แล้ว
+      corner: Alignment.bottomLeft,
       steps: const [
         'บันทึกผลการตรวจรับพัสดุ/งานจ้าง เทียบกับวันครบกำหนดส่งมอบตามสัญญา/ใบสั่งซื้อ',
         'ถ้าส่งมอบเกินกำหนด ระบบจะคำนวณ "ค่าปรับโดยประมาณ" ให้อัตโนมัติ — เป็นแค่ตัวเลขประมาณการเท่านั้น ให้ตรวจสอบอัตราค่าปรับที่แท้จริงจากสัญญาก่อนใช้ยืนยันทุกครั้ง',
@@ -361,12 +364,20 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                   icon: _exportingId == i.id
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.description_outlined),
-                  tooltip: 'ออกเอกสารบันทึกขออนุมัติเบิกจ่าย',
+                  iconSize: 20,
+                  visualDensity: VisualDensity.compact,
+                  // ตรวจรับพัสดุมีเอกสารที่เกี่ยวข้องแบบเดียว (บันทึกขออนุมัติ
+                  // เบิกจ่าย หลังตรวจรับผ่านแล้ว) จึงมีปุ่มเดียวทำหน้าที่ทั้งดู
+                  // ตัวอย่างและสร้างเอกสารในตัว ไม่แยก 2 ปุ่มให้สับสนเพราะเป็น
+                  // เอกสารใบเดียวกัน
+                  tooltip: 'สร้าง/ดูเอกสารบันทึกขออนุมัติเบิกจ่าย',
                   color: colors.primary,
                   onPressed: _exportingId != null ? null : () => _exportDisbursementMemo(i),
                 ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                iconSize: 20,
+                visualDensity: VisualDensity.compact,
                 tooltip: 'ลบ',
                 onPressed: () => _confirmDelete(i),
               ),

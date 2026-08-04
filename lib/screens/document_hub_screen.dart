@@ -15,14 +15,18 @@ import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
 
 class DocumentHubScreen extends StatefulWidget {
-  const DocumentHubScreen({super.key});
+  // เปิดมาจากปุ่มลัด "สร้างเอกสาร" ที่การ์ดรายการใน Dashboard/ทะเบียน — ให้เลือก
+  // รายการอ้างอิงไว้ให้ล่วงหน้า ไม่ต้องมาเลือกจาก dropdown ซ้ำ
+  final int? initialOrderId;
+
+  const DocumentHubScreen({super.key, this.initialOrderId});
   @override
   State<DocumentHubScreen> createState() => _DocumentHubScreenState();
 }
 
 /// เอกสารแต่ละใบที่ hub นี้ทำได้ — แยกจาก ProcurementDocumentType ของ service
 /// เพราะรวม TOR/master ที่ใช้ generator คนละตัวเข้าไว้ในลิสต์เดียวกันด้วย
-enum _DocKind { masterFull, tor, contractOrderReport, contractAnnouncement, quotation, deliveryNote, disbursementMemo }
+enum _DocKind { masterFull, tor, contractOrderReport, purchaseOrder, contractAnnouncement, quotation, requisition, deliveryNote, disbursementMemo }
 
 class _DocCardInfo {
   final _DocKind kind;
@@ -52,6 +56,12 @@ const _docCards = [
     icon: Icons.fact_check_outlined,
   ),
   _DocCardInfo(
+    kind: _DocKind.purchaseOrder,
+    title: 'ใบสั่งซื้อ/ใบสั่งจ้าง',
+    subtitle: 'เอกสารสั่งซื้อ/จ้างจริงที่ส่งให้ร้านค้า',
+    icon: Icons.shopping_cart_outlined,
+  ),
+  _DocCardInfo(
     kind: _DocKind.contractAnnouncement,
     title: 'ประกาศผู้ชนะการเสนอราคา',
     subtitle: 'รายงานผลการพิจารณา + ประกาศผู้ชนะ',
@@ -62,6 +72,12 @@ const _docCards = [
     title: 'ใบเสนอราคา',
     subtitle: 'เอกสารฝั่งผู้ขาย/ผู้รับจ้าง',
     icon: Icons.receipt_long_outlined,
+  ),
+  _DocCardInfo(
+    kind: _DocKind.requisition,
+    title: 'ใบเบิกพัสดุ',
+    subtitle: 'เบิกวัสดุ/ครุภัณฑ์จากคลังไปใช้งาน',
+    icon: Icons.assignment_return_outlined,
   ),
   _DocCardInfo(
     kind: _DocKind.deliveryNote,
@@ -96,10 +112,19 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     final orders = await _repo.getAllOrders();
     final school = await _repo.getSchoolSettings();
     if (!mounted) return;
+    ProcurementOrder? initial = orders.isNotEmpty ? orders.first : null;
+    if (widget.initialOrderId != null) {
+      for (final o in orders) {
+        if (o.id == widget.initialOrderId) {
+          initial = o;
+          break;
+        }
+      }
+    }
     setState(() {
       _orders = orders;
       _school = school;
-      _selectedOrder = orders.isNotEmpty ? orders.first : null;
+      _selectedOrder = initial;
       _loading = false;
     });
   }
@@ -126,12 +151,18 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
         case _DocKind.contractOrderReport:
           await ProcurementDocumentGenerator.generateAndOpen(
               type: ProcurementDocumentType.contractOrderReport, order: order, school: school, items: items);
+        case _DocKind.purchaseOrder:
+          await ProcurementDocumentGenerator.generateAndOpen(
+              type: ProcurementDocumentType.purchaseOrder, order: order, school: school, items: items);
         case _DocKind.contractAnnouncement:
           await ProcurementDocumentGenerator.generateAndOpen(
               type: ProcurementDocumentType.contractAnnouncement, order: order, school: school, items: items);
         case _DocKind.quotation:
           await ProcurementDocumentGenerator.generateAndOpen(
               type: ProcurementDocumentType.quotation, order: order, school: school, items: items);
+        case _DocKind.requisition:
+          await ProcurementDocumentGenerator.generateAndOpen(
+              type: ProcurementDocumentType.requisition, order: order, school: school, items: items);
         case _DocKind.deliveryNote:
           await ProcurementDocumentGenerator.generateAndOpen(
               type: ProcurementDocumentType.deliveryNote, order: order, school: school, items: items);
@@ -160,6 +191,7 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
       steps: const [
         'เลือก "รายการอ้างอิง" (คำสั่งซื้อ/สั่งจ้าง) จากช่องด้านบนก่อนครั้งเดียว — เอกสารทุกใบด้านล่างจะดึงข้อมูลจากรายการนั้นให้อัตโนมัติ',
         'เอกสารครบชุด (คำสั่งซื้อ+ผู้ตรวจรับ) ใช้ตอนอนุมัติจัดซื้อ, ประกาศผู้ชนะ ใช้ตอนประกาศผลผู้ขาย',
+        '"ใบสั่งซื้อ/ใบสั่งจ้าง" คือเอกสารสั่งซื้อจริงที่ส่งให้ร้านค้า — คนละใบกับ "รายงานขอซื้อ/ขอจ้าง" ที่เป็นบันทึกขออนุมัติภายในโรงเรียนเท่านั้น',
         'ใบเสนอราคา/ใบส่งมอบงาน ให้ผู้ขายเซ็นตอนส่งของ, บันทึกขออนุมัติเบิกจ่าย ใช้ตอนจ่ายเงินจริง',
         'TOR/ข้อบเขตของงาน ใช้ตอนกำหนดสเปกก่อนเริ่มจัดซื้อ — ถ้ายังไม่มี TOR ของรายการนี้ ให้ไปสร้างที่หน้า "TOR/คุณลักษณะ" ก่อน',
         'กดที่การ์ดเอกสารที่ต้องการ ระบบจะสร้างไฟล์ .docx แล้วเปิดด้วยโปรแกรม Word ให้อัตโนมัติ',

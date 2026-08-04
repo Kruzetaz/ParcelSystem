@@ -24,7 +24,7 @@ const _sidebarLabelWidth = 130.0;
 const _sidebarAnimDuration = Duration(milliseconds: 220);
 const _sidebarAnimCurve = Curves.easeInOut;
 
-enum AppMode { dashboard, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, documentHub, orderRegister, controlLog, fixedAssets, materials, annualCount, disposals, reports, settings, aiSettings }
+enum AppMode { dashboard, procurementCalendar, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, documentHub, orderRegister, controlLog, fixedAssets, repairHistory, materials, annualCount, disposals, reports, settings, aiSettings }
 
 class AppSidebar extends StatelessWidget {
   final AppMode currentMode;
@@ -67,6 +67,7 @@ class AppSidebar extends StatelessWidget {
                   children: [
                     _buildSectionHeader(colors, 'ภาพรวม', first: true),
                     _buildItem(colors, AppMode.dashboard, Icons.dashboard_outlined, 'หน้าหลัก'),
+                    _buildItem(colors, AppMode.procurementCalendar, Icons.event_note_outlined, 'ปฏิทินงานพัสดุ'),
 
                     _buildSectionHeader(colors, 'สร้างเอกสาร'),
                     _buildItem(colors, AppMode.newOrder, Icons.add_circle_outline, 'สร้างใหม่'),
@@ -84,6 +85,7 @@ class AppSidebar extends StatelessWidget {
 
                     _buildSectionHeader(colors, 'ทรัพย์สินและพัสดุ'),
                     _buildItem(colors, AppMode.fixedAssets, Icons.inventory_2_outlined, 'ทะเบียนครุภัณฑ์'),
+                    _buildItem(colors, AppMode.repairHistory, Icons.build_outlined, 'ประวัติซ่อมครุภัณฑ์'),
                     _buildItem(colors, AppMode.materials, Icons.inventory_outlined, 'วัสดุ/คลังพัสดุ'),
                     _buildItem(colors, AppMode.annualCount, Icons.checklist_outlined, 'ตรวจนับประจำปี'),
                     _buildItem(colors, AppMode.disposals, Icons.delete_sweep_outlined, 'จำหน่ายพัสดุ'),
@@ -97,6 +99,7 @@ class AppSidebar extends StatelessWidget {
             _buildSectionHeader(colors, 'ตั้งค่า'),
             _buildItem(colors, AppMode.aiSettings, Icons.auto_awesome_outlined, 'ตั้งค่า AI'),
             _buildItem(colors, AppMode.settings, Icons.settings_outlined, 'ตั้งค่าโรงเรียน'),
+            _buildWhtFooter(colors),
             const SizedBox(height: 16),
           ],
         ),
@@ -171,6 +174,46 @@ class AppSidebar extends StatelessWidget {
               ),
             )
           : Divider(height: 1, color: colors.outlineVariant),
+    );
+  }
+
+  /// แถบอ้างอิงอัตราหัก ณ ที่จ่ายค้างไว้ท้าย sidebar ตลอด — ช่วยเจ้าหน้าที่ไม่ต้อง
+  /// เปิดหาอัตราภาษีทุกครั้งที่กรอกบิล ตอนพับ sidebar เหลือแค่ไอคอนกดดู tooltip
+  static const _whtText = 'ซื้อสินค้า = ไม่หัก (0%)\nจ้างทำของ/บริการ = 3%\nค่าเช่า = 5%';
+
+  Widget _buildWhtFooter(ColorScheme colors) {
+    if (!expanded) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Tooltip(
+          message: 'อัตราหัก ณ ที่จ่าย (ประมวลรัษฎากร)\n$_whtText',
+          preferBelow: false,
+          child: Icon(Icons.percent_outlined, size: 18, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.percent_outlined, size: 14, color: colors.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'หัก ณ ที่จ่าย\nซื้อ=0% | จ้าง=3% | เช่า=5%',
+                style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

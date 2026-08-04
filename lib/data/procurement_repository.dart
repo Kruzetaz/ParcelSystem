@@ -14,7 +14,9 @@ import '../models/guarantee.dart';
 import '../models/inspection.dart';
 import '../models/fixed_asset.dart';
 import '../models/asset_event.dart';
+import '../models/asset_repair_entry.dart';
 import '../models/material_item.dart';
+import '../models/material_transaction.dart';
 import '../models/annual_count.dart';
 import '../models/disposal.dart';
 import '../models/audit_log_entry.dart';
@@ -398,6 +400,27 @@ class ProcurementRepository {
     return rows.map(AssetEvent.fromMap).toList();
   }
 
+  Future<void> deleteAssetEvent(int id) async {
+    final db = await _db.database;
+    await db.delete('asset_events', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'ประวัติซ่อมครุภัณฑ์', description: 'ประวัติซ่อม #$id');
+  }
+
+  /// รวมประวัติซ่อมแซมของครุภัณฑ์ทุกชิ้นมาไว้ที่เดียว (join กับ fixed_assets เอา
+  /// ชื่อ/เลขครุภัณฑ์มาแสดง) — ก่อนหน้านี้ดูได้แค่ทีละชิ้นในหน้าทะเบียนครุภัณฑ์
+  Future<List<AssetRepairEntry>> getAssetRepairHistory() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT ae.id AS event_id, ae.asset_id, ae.event_date, ae.description,
+             fa.asset_number, fa.name AS asset_name, fa.location AS asset_location
+      FROM asset_events ae
+      JOIN fixed_assets fa ON fa.id = ae.asset_id
+      WHERE ae.event_type = 'ซ่อมแซม'
+      ORDER BY ae.id DESC
+    ''');
+    return rows.map(AssetRepairEntry.fromMap).toList();
+  }
+
   // ─────────────────────────────────────────
   // MATERIALS (วัสดุ/คลังพัสดุ)
   // ─────────────────────────────────────────
@@ -425,6 +448,44 @@ class ProcurementRepository {
     final db = await _db.database;
     await db.delete('materials', where: 'id = ?', whereArgs: [id]);
     await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'วัสดุ/คลังพัสดุ', description: 'วัสดุ #$id');
+  }
+
+  /// บันทึกประวัติรับเข้า/เบิกจ่ายทีละรายการ (บัตรคุมสต๊อก) — เรียกคู่กับการ
+  /// อัปเดต stock_in/stock_out สะสมใน MaterialItem เสมอ ไม่ใช้แทนกัน
+  Future<int> insertMaterialTransaction(MaterialTransaction t) async {
+    final db = await _db.database;
+    final id = await db.insert('material_transactions', t.toMap());
+    await AuditService.instance.log(
+      db,
+      action: 'สร้าง',
+      tableLabel: 'ประวัติรับ-จ่ายวัสดุ',
+      description: '${t.transactionType} #$id',
+    );
+    return id;
+  }
+
+  Future<List<MaterialTransaction>> getMaterialTransactions(int materialId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'material_transactions',
+      where: 'material_id = ?',
+      whereArgs: [materialId],
+      orderBy: 'id DESC',
+    );
+    return rows.map(MaterialTransaction.fromMap).toList();
+  }
+
+  /// ประวัติรับ-จ่ายทั้งหมดของวัสดุ [materialId] เรียงเก่า->ใหม่ พร้อมยอดคงเหลือ
+  /// สะสม ณ แต่ละแถว (running balance) — ใช้สำหรับพิมพ์บัญชีวัสดุ/บัตรคุมสต๊อก
+  Future<List<MaterialTransaction>> getMaterialTransactionsChronological(int materialId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'material_transactions',
+      where: 'material_id = ?',
+      whereArgs: [materialId],
+      orderBy: 'id ASC',
+    );
+    return rows.map(MaterialTransaction.fromMap).toList();
   }
 
   // ─────────────────────────────────────────
@@ -716,6 +777,47 @@ class ProcurementRepository {
         if (updates.isNotEmpty) {
           await db2.update('tor_documents', updates, where: 'id = ?', whereArgs: [existing.id]);
         }
+      }
+
+      // auto-สร้าง/อัปเดตสัญญาในหน้า "บริหารสัญญา" ให้ตามโครงการนี้เสมอ ทุกครั้งที่
+      // กดบันทึก — ผู้ใช้ยืนยันแล้วว่าไม่อยากมาเพิ่มเองซ้ำ ต่างจาก TOR ด้านบนตรงที่
+      // จุดนี้ "ทับ" ค่าที่ดึงมาจากโครงการทุกครั้ง (ไม่ใช่แค่เติมช่องว่าง) เพราะ
+      // ผู้ใช้เลือกให้สัญญาที่ผูกไว้อัปเดตตามโครงการเสมอเวลาแก้ผู้ขาย/วงเงิน —
+      // ไม่แตะช่องที่มีแค่ในหน้าสัญญาเอง (ประเภทสัญญา/วันที่สิ้นสุด/จำนวนงวด/
+      // สถานะ) เพราะโครงการไม่มีข้อมูลพวกนี้ให้ดึง
+      final existingContract =
+          await db2.query('contracts', where: 'order_id = ?', whereArgs: [orderId], orderBy: 'id DESC', limit: 1);
+      final contractAmount = order.currentOrderPrice ?? order.netPayableAmount ?? order.allocatedAmount;
+      if (existingContract.isEmpty) {
+        final id = await db2.insert('contracts', Contract(
+          contractNumber: order.contractControlNumber,
+          egpNumber: order.egpProjectId,
+          orderId: orderId,
+          contractType: order.orderType == 'จ้าง' ? 'ใบสั่งจ้าง' : (order.orderType == 'ซื้อ' ? 'ใบสั่งซื้อ' : null),
+          contractAmount: contractAmount,
+          vendorName: order.vendorName,
+          startDate: order.dateContractSigned,
+        ).toMap());
+        await AuditService.instance.log(
+          db2,
+          action: 'สร้าง',
+          tableLabel: 'บริหารสัญญา',
+          description: '${order.contractControlNumber ?? order.projectName ?? "ไม่มีเลขที่สัญญา"} (สร้างอัตโนมัติ) #$id',
+        );
+      } else {
+        final existing = Contract.fromMap(existingContract.first);
+        await db2.update(
+          'contracts',
+          {
+            'contract_number': order.contractControlNumber,
+            'egp_number': order.egpProjectId,
+            'vendor_name': order.vendorName,
+            'contract_amount': contractAmount,
+            'start_date': order.dateContractSigned,
+          },
+          where: 'id = ?',
+          whereArgs: [existing.id],
+        );
       }
       return orderId;
     });

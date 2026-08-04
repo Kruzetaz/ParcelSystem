@@ -8,6 +8,7 @@
 // progress bar ในการ์ดแต่ละใบ, ธีมน้ำเงิน-ทอง-เทาอ่อน
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 import '../data/procurement_repository.dart';
 import '../models/procurement_order.dart';
@@ -15,7 +16,38 @@ import '../models/budget.dart';
 import '../models/school_settings.dart';
 import 'app_sidebar.dart' show AppMode;
 import '../services/toast_service.dart';
+import '../services/document_generator.dart';
 import '../utils/money_format.dart';
+
+/// ปุ่มลัดเสริมที่ผู้ใช้เลือกเพิ่ม/ลดเองได้ในเมนูด่วน — แยกจาก 5 ปุ่มพื้นฐาน
+/// (สร้างใหม่/แผนงบ/ตั้งค่า/ตั้งค่า AI/รีเฟรช) ที่บังคับแสดงตลอด
+class _OptionalQuickAction {
+  final String id;
+  final IconData icon;
+  final String label;
+  final AppMode mode;
+  const _OptionalQuickAction({required this.id, required this.icon, required this.label, required this.mode});
+}
+
+const _optionalQuickActionsCatalog = [
+  _OptionalQuickAction(id: 'easy_wizard', icon: Icons.auto_awesome_outlined, label: 'Easy Wizard', mode: AppMode.easyWizard),
+  _OptionalQuickAction(id: 'procurement_calendar', icon: Icons.event_note_outlined, label: 'ปฏิทินงานพัสดุ', mode: AppMode.procurementCalendar),
+  _OptionalQuickAction(id: 'tor', icon: Icons.description_outlined, label: 'TOR/คุณลักษณะ', mode: AppMode.tor),
+  _OptionalQuickAction(id: 'contracts', icon: Icons.article_outlined, label: 'บริหารสัญญา', mode: AppMode.contracts),
+  _OptionalQuickAction(id: 'guarantees', icon: Icons.shield_outlined, label: 'หลักประกัน', mode: AppMode.guarantees),
+  _OptionalQuickAction(id: 'inspections', icon: Icons.fact_check_outlined, label: 'ตรวจรับพัสดุ', mode: AppMode.inspections),
+  _OptionalQuickAction(id: 'document_hub', icon: Icons.file_copy_outlined, label: 'สร้างเอกสารราชการ', mode: AppMode.documentHub),
+  _OptionalQuickAction(id: 'order_register', icon: Icons.numbers_outlined, label: 'ทะเบียนคุมเลขที่', mode: AppMode.orderRegister),
+  _OptionalQuickAction(id: 'control_log', icon: Icons.receipt_long_outlined, label: 'ทะเบียนคุมเลขบันทึก/TOR', mode: AppMode.controlLog),
+  _OptionalQuickAction(id: 'fixed_assets', icon: Icons.inventory_2_outlined, label: 'ทะเบียนครุภัณฑ์', mode: AppMode.fixedAssets),
+  _OptionalQuickAction(id: 'repair_history', icon: Icons.build_outlined, label: 'ประวัติซ่อมครุภัณฑ์', mode: AppMode.repairHistory),
+  _OptionalQuickAction(id: 'materials', icon: Icons.inventory_outlined, label: 'วัสดุ/คลังพัสดุ', mode: AppMode.materials),
+  _OptionalQuickAction(id: 'annual_count', icon: Icons.checklist_outlined, label: 'ตรวจนับประจำปี', mode: AppMode.annualCount),
+  _OptionalQuickAction(id: 'disposals', icon: Icons.delete_sweep_outlined, label: 'จำหน่ายพัสดุ', mode: AppMode.disposals),
+  _OptionalQuickAction(id: 'reports', icon: Icons.bar_chart_outlined, label: 'รายงาน/สตง.', mode: AppMode.reports),
+];
+
+const _quickActionsPrefsKey = 'dashboard_quick_actions_v1';
 
 enum _OrderFilter { all, draft, completed, underFiveK, w804UnderFiftyK, missingEgp }
 
@@ -31,12 +63,16 @@ class DashboardScreen extends StatefulWidget {
   final void Function(ProcurementOrder order) onEditOrder;
   // ให้ quick-action grid สลับไปหน้าแผนงบ/ตั้งค่าโรงเรียนได้ตรงๆ โดยไม่ต้องผ่าน sidebar
   final void Function(AppMode mode) onNavigate;
+  // ปุ่มลัด "สร้างเอกสาร" บนการ์ดแต่ละใบ — พาไปหน้ารวมศูนย์เอกสารพร้อมเลือก
+  // รายการนี้ไว้ล่วงหน้า
+  final void Function(ProcurementOrder order) onGenerateDocument;
 
   const DashboardScreen({
     super.key,
     required this.onCreateNew,
     required this.onEditOrder,
     required this.onNavigate,
+    required this.onGenerateDocument,
   });
 
   @override
@@ -53,17 +89,101 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = true;
   String _query = '';
   _OrderFilter _filter = _OrderFilter.all;
+  // กันกดปุ่ม "ดูตัวอย่าง" ซ้ำตอนกำลังสร้างไฟล์อยู่ — เก็บ id รายการที่กำลังสร้าง
+  int? _previewingOrderId;
+
+  // โหมดเลือกหลายรายการ — เปิดแล้วแต่ละการ์ดจะมี checkbox ให้ติ๊กเลือก เพื่อกด
+  // "สร้างเอกสาร" ให้หลายรายการพร้อมกันทีเดียว (เช่นตอนต้องออกเอกสารทั้งชุด
+  // รายการ ว.804 ≤50,000 บาท จำนวนมากพร้อมกัน)
+  bool _selectionMode = false;
+  final Set<int> _selectedOrderIds = {};
+  bool _bulkGenerating = false;
+
+  // ปุ่มลัดเสริมที่ผู้ใช้เลือกเปิดไว้ในเมนูด่วน — จำไว้ในเครื่องนี้ (ไม่ผูกกับ
+  // โรงเรียน/ผู้ใช้คนอื่น) โหลดตอนเปิดหน้าครั้งแรก
+  Set<String> _enabledQuickActionIds = {};
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadQuickActionPrefs();
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadQuickActionPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _enabledQuickActionIds = (prefs.getStringList(_quickActionsPrefsKey) ?? []).toSet());
+  }
+
+  Future<void> _saveQuickActionPrefs(Set<String> ids) async {
+    setState(() => _enabledQuickActionIds = ids);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_quickActionsPrefsKey, ids.toList());
+  }
+
+  /// เปิดกล่องแก้ไขเมนูด่วน — 5 ปุ่มพื้นฐานติ๊กค้างไว้แก้ไม่ได้ ส่วนปุ่มเสริมอื่นๆ
+  /// เลือกเพิ่ม/ลดได้อิสระ
+  Future<void> _openQuickActionsEditor() async {
+    var draft = Set<String>.from(_enabledQuickActionIds);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('แก้ไขเมนูด่วน'),
+          content: SizedBox(
+            width: 380,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('5 ปุ่มพื้นฐาน (บังคับแสดงเสมอ)',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  for (final label in const ['สร้างใหม่', 'แผนงบ', 'ตั้งค่า', 'ตั้งค่า AI', 'รีเฟรช'])
+                    CheckboxListTile(
+                      value: true,
+                      onChanged: null,
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(label, style: const TextStyle(fontSize: 13)),
+                    ),
+                  const Divider(height: 20),
+                  const Text('ปุ่มเสริม (เลือกเพิ่ม/ลดได้ตามต้องการ)',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  for (final a in _optionalQuickActionsCatalog)
+                    CheckboxListTile(
+                      value: draft.contains(a.id),
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(a.label, style: const TextStyle(fontSize: 13)),
+                      secondary: Icon(a.icon, size: 18),
+                      onChanged: (v) => setDialogState(() {
+                        if (v == true) {
+                          draft.add(a.id);
+                        } else {
+                          draft.remove(a.id);
+                        }
+                      }),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('บันทึก')),
+          ],
+        ),
+      ),
+    );
+    if (saved == true) await _saveQuickActionPrefs(draft);
   }
 
   Future<void> _load() async {
@@ -110,6 +230,101 @@ class _DashboardScreenState extends State<DashboardScreen> {
         showAppToast('ลบเอกสารไม่สำเร็จ: $e', isError: true);
       }
     }
+  }
+
+  /// ปุ่มลัด "ดูตัวอย่าง" — สร้างเอกสารหลัก (บันทึกขอใช้งบประมาณ ชุดเต็ม) แล้ว
+  /// เปิดด้วย Word ให้ทันที โดยไม่ต้องไปหน้า "สร้างเอกสารราชการ" ก่อน
+  Future<void> _previewOrder(ProcurementOrder order) async {
+    if (order.id == null) return;
+    final school = _school;
+    if (school == null) {
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      return;
+    }
+    setState(() => _previewingOrderId = order.id);
+    try {
+      final items = await _repo.getItems(order.id!);
+      await DocumentGenerator.generateAndOpen(order: order, school: school, items: items);
+      if (!mounted) return;
+      showAppToast('เปิดตัวอย่างเอกสารแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('สร้างตัวอย่างเอกสารไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _previewingOrderId = null);
+    }
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      _selectedOrderIds.clear();
+    });
+  }
+
+  void _toggleOrderSelected(ProcurementOrder order) {
+    if (order.id == null) return;
+    setState(() {
+      if (_selectedOrderIds.contains(order.id)) {
+        _selectedOrderIds.remove(order.id);
+      } else {
+        _selectedOrderIds.add(order.id!);
+      }
+    });
+  }
+
+  /// เลือกทั้งหมด/ยกเลิกทั้งหมดเฉพาะรายการที่กรองอยู่ตอนนี้ (สลับกันไปมา)
+  void _toggleSelectAllFiltered() {
+    final ids = _filteredOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
+    setState(() {
+      if (_selectedOrderIds.containsAll(ids) && ids.isNotEmpty) {
+        _selectedOrderIds.removeAll(ids);
+      } else {
+        _selectedOrderIds.addAll(ids);
+      }
+    });
+  }
+
+  /// ปุ่มลัด "สร้างเอกสาร" แบบเลือกหลายรายการ — สร้างเอกสารหลักของทุกรายการที่
+  /// ติ๊กไว้รวดเดียว (ไม่เปิด Word ทีละไฟล์เพราะจะเปิดหน้าต่างรัวเกินไปถ้าเลือก
+  /// เยอะ) เสร็จแล้วเปิดโฟลเดอร์ที่เก็บไฟล์ให้ครั้งเดียว
+  Future<void> _bulkGenerateSelected() async {
+    final school = _school;
+    if (school == null) {
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      return;
+    }
+    final selectedOrders = _orders.where((o) => _selectedOrderIds.contains(o.id)).toList();
+    if (selectedOrders.isEmpty) return;
+
+    setState(() => _bulkGenerating = true);
+    var successCount = 0;
+    String? lastFolderPath;
+    for (final order in selectedOrders) {
+      try {
+        final items = await _repo.getItems(order.id!);
+        final file = await DocumentGenerator.generate(order: order, school: school, items: items);
+        lastFolderPath = file.parent.path;
+        successCount++;
+      } catch (_) {
+        // ข้ามรายการที่สร้างไม่สำเร็จ ไปต่อรายการถัดไป แล้วสรุปจำนวนที่สำเร็จ
+        // ให้ดูตอนจบแทน ไม่ให้ทั้งชุดหยุดกลางคันเพราะรายการเดียวมีปัญหา
+      }
+    }
+    if (!mounted) return;
+    setState(() => _bulkGenerating = false);
+    final failCount = selectedOrders.length - successCount;
+    showAppToast(
+      failCount == 0
+          ? 'สร้างเอกสารสำเร็จ $successCount ฉบับ'
+          : 'สร้างเอกสารสำเร็จ $successCount ฉบับ (ไม่สำเร็จ $failCount รายการ)',
+      isError: failCount > 0 && successCount == 0,
+    );
+    if (lastFolderPath != null) await DocumentGenerator.openFolder(lastFolderPath);
+    setState(() {
+      _selectionMode = false;
+      _selectedOrderIds.clear();
+    });
   }
 
   // ─────────────────────────────────────────
@@ -219,7 +434,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final list = <_DashboardAlert>[];
     if (_missingEgpCount > 0) {
       list.add(_DashboardAlert(
-        message: 'พบรายการไม่มีเลขที่ e-GP จำนวน $_missingEgpCount รายการ',
+        message: 'พบรายการไม่มีเลขที่ e-GP $_missingEgpCount รายการ — ต้องกรอกตาม ม.23 พ.ร.บ.จัดซื้อจัดจ้างฯ 2560',
         filter: _OrderFilter.missingEgp,
       ));
     }
@@ -272,7 +487,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 _buildFilterTabs(colors),
                                 const SizedBox(height: 14),
                                 _buildSearchBar(),
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 10),
+                                _buildSelectionBar(colors),
+                                const SizedBox(height: 8),
                                 _buildList(colors),
                               ],
                             ),
@@ -514,9 +731,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'เมนูด่วน',
-            style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'เมนูด่วน',
+                  style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant, fontWeight: FontWeight.w600),
+                ),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: _openQuickActionsEditor,
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(Icons.tune, size: 16, color: colors.onSurfaceVariant),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           GridView.count(
@@ -526,6 +757,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
             children: [
+              // 5 ปุ่มพื้นฐาน — บังคับแสดงเสมอ แก้ไข/ลบออกจากเมนูด่วนไม่ได้
               _quickActionTile(
                 colors: colors,
                 icon: Icons.add_circle_outline,
@@ -556,6 +788,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 label: 'รีเฟรช',
                 onTap: _load,
               ),
+              // ปุ่มเสริมที่ผู้ใช้เลือกเปิดไว้เอง (กดไอคอนรูปเฟืองด้านบนเพื่อแก้ไข)
+              for (final a in _optionalQuickActionsCatalog)
+                if (_enabledQuickActionIds.contains(a.id))
+                  _quickActionTile(
+                    colors: colors,
+                    icon: a.icon,
+                    label: a.label,
+                    onTap: () => widget.onNavigate(a.mode),
+                  ),
             ],
           ),
         ],
@@ -954,6 +1195,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  /// แถบสลับโหมด "เลือกหลายรายการ" — ปิดอยู่โชว์แค่ปุ่มเปิดโหมดเล็กๆ ชิดขวา
+  /// เปิดแล้วโชว์เป็นแถบเต็ม บอกจำนวนที่เลือก + ปุ่มเลือกทั้งหมด/สร้างเอกสาร/ยกเลิก
+  Widget _buildSelectionBar(ColorScheme colors) {
+    if (!_selectionMode) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: _toggleSelectionMode,
+          icon: const Icon(Icons.checklist_outlined, size: 18),
+          label: const Text('เลือกหลายรายการ'),
+        ),
+      );
+    }
+    final filteredIds = _filteredOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
+    final allSelected = filteredIds.isNotEmpty && _selectedOrderIds.containsAll(filteredIds);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'เลือกแล้ว ${_selectedOrderIds.length} รายการ',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurfaceVariant),
+            ),
+          ),
+          TextButton(
+            onPressed: _bulkGenerating ? null : _toggleSelectAllFiltered,
+            child: Text(allSelected ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด (${filteredIds.length})'),
+          ),
+          const SizedBox(width: 4),
+          FilledButton.icon(
+            onPressed: (_selectedOrderIds.isEmpty || _bulkGenerating) ? null : _bulkGenerateSelected,
+            icon: _bulkGenerating
+                ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                : const Icon(Icons.description_outlined, size: 18),
+            label: Text(_bulkGenerating ? 'กำลังสร้าง...' : 'สร้างเอกสาร'),
+          ),
+          const SizedBox(width: 4),
+          TextButton(
+            onPressed: _bulkGenerating ? null : _toggleSelectionMode,
+            child: const Text('ยกเลิก'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildList(ColorScheme colors) {
     if (_loading) {
       return const Padding(
@@ -1028,7 +1320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => widget.onEditOrder(order),
+          onTap: _selectionMode ? () => _toggleOrderSelected(order) : () => widget.onEditOrder(order),
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -1036,8 +1328,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Row(
                   children: [
+                    if (_selectionMode) ...[
+                      Checkbox(
+                        value: order.id != null && _selectedOrderIds.contains(order.id),
+                        onChanged: order.id == null ? null : (_) => _toggleOrderSelected(order),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                     _statusBadge(colors, isCompleted),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1073,11 +1372,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: TextStyle(fontWeight: FontWeight.w600, color: colors.primary),
                         ),
                       ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                      tooltip: 'ลบ',
-                      onPressed: () => _confirmDelete(order),
-                    ),
+                    // ปุ่มลัดใช้งานนอกระบบ 3 ปุ่ม: ดูตัวอย่างเอกสาร / สร้างเอกสาร / ลบ
+                    // — ไม่ต้องเปิดการ์ดเข้าไปแก้ไขก่อนถึงจะทำสิ่งเหล่านี้ได้
+                    // ซ่อนไว้ตอนอยู่ในโหมดเลือกหลายรายการ กันกดพลาดโดนลบ/สร้าง
+                    // เอกสารทีละใบขณะกำลังจะติ๊กเลือกหลายรายการ
+                    if (!_selectionMode) ...[
+                      _previewingOrderId == order.id
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: SizedBox(
+                                width: 18, height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : IconButton(
+                              icon: const Icon(Icons.visibility_outlined),
+                              iconSize: 20,
+                              visualDensity: VisualDensity.compact,
+                              color: colors.onSurfaceVariant,
+                              tooltip: 'ดูตัวอย่างเอกสาร',
+                              onPressed: () => _previewOrder(order),
+                            ),
+                      IconButton(
+                        icon: const Icon(Icons.description_outlined),
+                        iconSize: 20,
+                        visualDensity: VisualDensity.compact,
+                        color: colors.onSurfaceVariant,
+                        tooltip: 'สร้างเอกสาร',
+                        onPressed: () => widget.onGenerateDocument(order),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        iconSize: 20,
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'ลบ',
+                        onPressed: () => _confirmDelete(order),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -1121,13 +1452,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // ปุ่มบอกสถานะแบบมีข้อความอ่านออกชัดเจน (ไม่ใช่แค่จุดสีที่ต้องเดา)
   Widget _statusBadge(ColorScheme colors, bool isCompleted) {
+    final color = isCompleted ? Colors.green.shade600 : colors.tertiary;
+    final label = isCompleted ? 'เสร็จสิ้น' : 'กำลังดำเนินการ';
     return Container(
-      width: 10,
-      height: 10,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isCompleted ? Colors.green : colors.tertiary,
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7, height: 7,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+          ),
+        ],
       ),
     );
   }

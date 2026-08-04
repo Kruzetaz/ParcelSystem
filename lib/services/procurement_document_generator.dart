@@ -29,6 +29,10 @@ enum ProcurementDocumentType {
   deliveryNote, // ใบส่งมอบงาน
   disbursementMemo, // บันทึกขออนุมัติเบิกจ่าย
   requisition, // ใบเบิกพัสดุ
+  // เอกสารสั่งซื้อ/สั่งจ้างจริงที่ส่งให้ร้านค้า — แยกจาก contractOrderReport
+  // ซึ่งเป็นบันทึกขออนุมัติภายในเท่านั้น ใช้ template เดียวกันทั้งซื้อและจ้าง
+  // (สลับคำว่า "ซื้อ"/"จ้าง" ด้วย {{order_type}} เหมือน contractOrderReport)
+  purchaseOrder, // ใบสั่งซื้อ/ใบสั่งจ้าง (PO/WO)
 }
 
 class ProcurementDocumentGenerator {
@@ -45,6 +49,8 @@ class ProcurementDocumentGenerator {
         'assets/templates/disbursement_memo_template.docx',
     ProcurementDocumentType.requisition:
         'assets/templates/requisition_template.docx',
+    ProcurementDocumentType.purchaseOrder:
+        'assets/templates/purchase_order_template.docx',
   };
 
   static const Map<ProcurementDocumentType, String> _outputPrefixes = {
@@ -54,6 +60,7 @@ class ProcurementDocumentGenerator {
     ProcurementDocumentType.deliveryNote: 'ใบส่งมอบงาน',
     ProcurementDocumentType.disbursementMemo: 'บันทึกขออนุมัติเบิกจ่าย',
     ProcurementDocumentType.requisition: 'ใบเบิกพัสดุ',
+    ProcurementDocumentType.purchaseOrder: 'ใบสั่งซื้อสั่งจ้าง',
   };
 
   static Future<File> generate({

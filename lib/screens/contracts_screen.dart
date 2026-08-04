@@ -292,33 +292,49 @@ class _ContractsScreenState extends State<ContractsScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 12),
                         child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
                       )
-                    : PopupMenuButton<ProcurementDocumentType>(
-                        icon: Icon(Icons.description_outlined, color: colors.primary),
-                        tooltip: 'ออกเอกสาร Word',
-                        onSelected: _exportingId != null ? null : (type) => _exportWord(c, type),
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(
-                            value: ProcurementDocumentType.contractOrderReport,
-                            child: Text('รายงานขอซื้อ/ขอจ้าง'),
+                    : Row(
+                        children: [
+                          // ปุ่มลัด "ดูตัวอย่าง" — ออกเอกสารหลักของสัญญา (รายงาน
+                          // ขอซื้อ/ขอจ้าง) ให้ทันทีในคลิกเดียว ไม่ต้องเลือกจากเมนู
+                          IconButton(
+                            icon: const Icon(Icons.visibility_outlined),
+                            iconSize: 20,
+                            visualDensity: VisualDensity.compact,
+                            color: colors.onSurfaceVariant,
+                            tooltip: 'ดูตัวอย่างเอกสาร',
+                            onPressed: () => _exportWord(c, ProcurementDocumentType.contractOrderReport),
                           ),
-                          PopupMenuItem(
-                            value: ProcurementDocumentType.contractAnnouncement,
-                            child: Text('ประกาศผู้ชนะการเสนอราคา'),
-                          ),
-                          PopupMenuItem(
-                            value: ProcurementDocumentType.quotation,
-                            child: Text('ใบเสนอราคา'),
-                          ),
-                          PopupMenuItem(
-                            value: ProcurementDocumentType.deliveryNote,
-                            child: Text('ใบส่งมอบงาน'),
+                          PopupMenuButton<ProcurementDocumentType>(
+                            icon: Icon(Icons.description_outlined, color: colors.primary, size: 20),
+                            tooltip: 'สร้างเอกสาร (เลือกประเภท)',
+                            onSelected: _exportingId != null ? null : (type) => _exportWord(c, type),
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: ProcurementDocumentType.contractOrderReport,
+                                child: Text('รายงานขอซื้อ/ขอจ้าง'),
+                              ),
+                              PopupMenuItem(
+                                value: ProcurementDocumentType.contractAnnouncement,
+                                child: Text('ประกาศผู้ชนะการเสนอราคา'),
+                              ),
+                              PopupMenuItem(
+                                value: ProcurementDocumentType.quotation,
+                                child: Text('ใบเสนอราคา'),
+                              ),
+                              PopupMenuItem(
+                                value: ProcurementDocumentType.deliveryNote,
+                                child: Text('ใบส่งมอบงาน'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
               ],
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                iconSize: 20,
+                visualDensity: VisualDensity.compact,
                 tooltip: 'ลบ',
                 onPressed: () => _confirmDelete(c),
               ),
@@ -377,6 +393,38 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
     _vendorNameCtrl.dispose();
     _installmentCtrl.dispose();
     super.dispose();
+  }
+
+  /// เลือก "รายการจัดซื้อจัดจ้างที่เกี่ยวข้อง" แล้ว — ดึงข้อมูลที่มีอยู่แล้วใน
+  /// รายการนั้น (เลขที่คุมสัญญา, เลขที่ e-GP, ผู้ขาย, วงเงิน, วันที่เซ็นสัญญา)
+  /// มาเติมให้อัตโนมัติทั้งหมดทันทีที่เลือก (ทับของเดิมในช่องนั้นๆ ถ้ามี) —
+  /// ปลอดภัยเพราะฟังก์ชันนี้ทำงานเฉพาะตอนผู้ใช้เปลี่ยน dropdown เองเท่านั้น
+  /// ไม่ได้รันตอนเปิดฟอร์มแก้ไขสัญญาเดิม จึงไม่มีทางไปทับข้อมูลโดยไม่ตั้งใจ
+  void _onOrderSelected(int? orderId) {
+    setState(() => _orderId = orderId);
+    if (orderId == null) return;
+    ProcurementOrder? order;
+    for (final o in widget.orders) {
+      if (o.id == orderId) { order = o; break; }
+    }
+    if (order == null) return;
+    final selectedOrder = order;
+    setState(() {
+      if (selectedOrder.contractControlNumber?.trim().isNotEmpty ?? false) {
+        _contractNumberCtrl.text = selectedOrder.contractControlNumber!;
+      }
+      if (selectedOrder.egpProjectId?.trim().isNotEmpty ?? false) {
+        _egpNumberCtrl.text = selectedOrder.egpProjectId!;
+      }
+      if (selectedOrder.vendorName?.trim().isNotEmpty ?? false) {
+        _vendorNameCtrl.text = selectedOrder.vendorName!;
+      }
+      final amount = selectedOrder.currentOrderPrice ?? selectedOrder.netPayableAmount ?? selectedOrder.allocatedAmount;
+      if (amount != null) _contractAmountCtrl.text = amount.toStringAsFixed(2);
+      if (selectedOrder.dateContractSigned?.trim().isNotEmpty ?? false) {
+        _startDate = selectedOrder.dateContractSigned;
+      }
+    });
   }
 
   Future<void> _pickDate({required bool isStart}) async {
@@ -454,6 +502,8 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'รายการจัดซื้อจัดจ้างที่เกี่ยวข้อง', border: OutlineInputBorder(), isDense: true,
+                      helperText: 'เลือกแล้วระบบจะดึงเลขที่คุมสัญญา/e-GP/ผู้ขาย/วงเงินจากรายการนี้มาเติมให้อัตโนมัติทันที (ทับข้อมูลเดิมในช่องนั้นถ้ามี)',
+                      helperMaxLines: 2,
                     ),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับเอกสาร)')),
@@ -465,7 +515,7 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                             ),
                           )),
                     ],
-                    onChanged: (v) => setState(() => _orderId = v),
+                    onChanged: _onOrderSelected,
                   ),
                 ),
                 Padding(

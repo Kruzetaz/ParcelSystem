@@ -23,6 +23,8 @@ import 'contracts_screen.dart';
 import 'guarantees_screen.dart';
 import 'inspections_screen.dart';
 import 'fixed_assets_screen.dart';
+import 'repair_history_screen.dart';
+import 'procurement_calendar_screen.dart';
 import 'materials_screen.dart';
 import 'annual_count_screen.dart';
 import 'disposals_screen.dart';
@@ -55,6 +57,13 @@ class _AppShellState extends State<AppShell> {
   // existingOrder สำหรับกรณีกดแก้ไขจาก dashboard
   ProcurementOrder? _editingOrder;
 
+  // รายการที่เลือกไว้ล่วงหน้าตอนกดปุ่มลัด "สร้างเอกสาร" จากการ์ดใน Dashboard —
+  // ให้หน้า "สร้างเอกสารราชการ" เปิดมาพร้อมเลือกรายการนี้ไว้แล้วเลย
+  int? _docHubInitialOrderId;
+
+  // ครุภัณฑ์ที่เลือกไว้ล่วงหน้าตอนกดปุ่มลัด "ดูครุภัณฑ์" จากหน้าประวัติซ่อม
+  int? _fixedAssetsInitialSelectedId;
+
   final _repo = ProcurementRepository();
   SchoolSettings? _school;
 
@@ -85,6 +94,10 @@ class _AppShellState extends State<AppShell> {
       _mode = newMode;
       _editingOrder = editingOrder;
       _wizardIsDirty = false;
+      // เคลียร์รายการที่เลือกล่วงหน้าไว้ทุกครั้งที่ไม่ได้ไปหน้าเอกสารโดยตรง กัน
+      // ค่าเก่าค้างจากปุ่มลัดครั้งก่อนไปโผล่ตอนเข้าเมนู "สร้างเอกสารราชการ" ปกติ
+      if (newMode != AppMode.documentHub) _docHubInitialOrderId = null;
+      if (newMode != AppMode.fixedAssets) _fixedAssetsInitialSelectedId = null;
     });
     // กลับมาจากหน้าตั้งค่า → โหลดข้อมูลโรงเรียนใหม่ เผื่อมีการแก้ไข
     if (leavingSettings) _loadSchool();
@@ -138,6 +151,22 @@ class _AppShellState extends State<AppShell> {
   // (แยกจาก onCreateNew/onEditOrder เพราะสองตัวนั้นตั้งใจไปแค่ newOrder เท่านั้น)
   void _onDashboardNavigate(AppMode mode) {
     _requestModeChange(mode);
+  }
+
+  // ปุ่มลัด "สร้างเอกสาร" บนการ์ดรายการใน Dashboard/ทะเบียนคุมเลขบันทึก — พาไป
+  // หน้ารวมศูนย์เอกสารพร้อมเลือกรายการนี้ไว้ล่วงหน้าให้เลย
+  void _onGenerateDocumentForOrder(int? orderId) {
+    _docHubInitialOrderId = orderId;
+    _requestModeChange(AppMode.documentHub);
+  }
+
+  void _onDashboardGenerateDocument(ProcurementOrder order) => _onGenerateDocumentForOrder(order.id);
+
+  // ปุ่มลัด "ดูครุภัณฑ์" ในหน้าประวัติซ่อม — พาไปหน้าทะเบียนครุภัณฑ์พร้อมเลือก
+  // ชิ้นนี้ไว้ล่วงหน้า
+  void _onViewAssetFromRepairHistory(int assetId) {
+    _fixedAssetsInitialSelectedId = assetId;
+    _requestModeChange(AppMode.fixedAssets);
   }
 
   Future<void> _onBackupPressed() async {
@@ -281,7 +310,10 @@ class _AppShellState extends State<AppShell> {
           onCreateNew: _onDashboardCreateNew,
           onEditOrder: _onDashboardEditOrder,
           onNavigate: _onDashboardNavigate,
+          onGenerateDocument: _onDashboardGenerateDocument,
         );
+      case AppMode.procurementCalendar:
+        return const ProcurementCalendarScreen();
       case AppMode.newOrder:
         return OrderWizardScreen(
           existingOrder: _editingOrder,
@@ -301,13 +333,21 @@ class _AppShellState extends State<AppShell> {
       case AppMode.inspections:
         return const InspectionsScreen();
       case AppMode.documentHub:
-        return const DocumentHubScreen();
+        return DocumentHubScreen(
+          key: ValueKey('doc_hub_$_docHubInitialOrderId'),
+          initialOrderId: _docHubInitialOrderId,
+        );
       case AppMode.orderRegister:
         return const OrderRegisterScreen();
       case AppMode.controlLog:
-        return const ControlLogScreen();
+        return ControlLogScreen(onGenerateDocument: _onGenerateDocumentForOrder);
       case AppMode.fixedAssets:
-        return const FixedAssetsScreen();
+        return FixedAssetsScreen(
+          key: ValueKey('fixed_assets_$_fixedAssetsInitialSelectedId'),
+          initialSelectedId: _fixedAssetsInitialSelectedId,
+        );
+      case AppMode.repairHistory:
+        return RepairHistoryScreen(onViewAsset: _onViewAssetFromRepairHistory);
       case AppMode.materials:
         return const MaterialsScreen();
       case AppMode.annualCount:

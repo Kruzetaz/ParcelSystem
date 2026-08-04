@@ -925,6 +925,41 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     }
   }
 
+  /// ปุ่ม dropdown เลือกจากทำเนียบบุคลากรโดยตรง (คู่กับช่องพิมพ์/autocomplete
+  /// เดิม) — เผื่อผู้ใช้อยากกดเลือกแทนพิมพ์ในบางครั้ง เลือกแล้วเติมทั้งชื่อ+
+  /// ตำแหน่งให้ทันที (ทับตำแหน่งเดิมในช่องเสมอ ต่างจาก autofill ตอนพิมพ์ที่ไม่ทับ
+  /// เพราะการกดเลือกจากรายการถือเป็นความตั้งใจของผู้ใช้ชัดเจนกว่าการพิมพ์ชื่อผ่าน)
+  Widget _personnelPickerButton({
+    required TextEditingController nameCtrl,
+    required TextEditingController posCtrl,
+    required ProcurementOrder Function(ProcurementOrder, String) applyName,
+    required ProcurementOrder Function(ProcurementOrder, String) applyPosition,
+  }) {
+    return PopupMenuButton<Personnel>(
+      icon: const Icon(Icons.people_alt_outlined, size: 20),
+      tooltip: 'เลือกจากทำเนียบบุคลากร',
+      enabled: _personnel.isNotEmpty,
+      itemBuilder: (ctx) => [
+        for (final p in _personnel)
+          PopupMenuItem(
+            value: p,
+            child: Text(
+              (p.position?.trim().isNotEmpty ?? false) ? '${p.name} — ${p.position}' : p.name,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      onSelected: (p) {
+        final pos = p.position ?? '';
+        setState(() {
+          nameCtrl.text = p.name;
+          posCtrl.text = pos;
+        });
+        widget.onChanged((d) => applyPosition(applyName(d, p.name), pos));
+      },
+    );
+  }
+
   @override
   void didUpdateWidget(covariant _Tab2Officers oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -1002,7 +1037,14 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _ownerNameCtrl,
-                    decoration: _inputDecoration('ชื่อเจ้าของงบ/โครงการ'),
+                    decoration: _inputDecoration('ชื่อเจ้าของงบ/โครงการ').copyWith(
+                      suffixIcon: _personnelPickerButton(
+                        nameCtrl: _ownerNameCtrl,
+                        posCtrl: _ownerPositionCtrl,
+                        applyName: (d, v) => d.copyWith(ownerName: v),
+                        applyPosition: (d, v) => d.copyWith(ownerPosition: v),
+                      ),
+                    ),
                     onChanged: (v) {
                       widget.onChanged((d) => d.copyWith(ownerName: v));
                       _autofillPositionFromPersonnel(v, _ownerPositionCtrl,
@@ -1030,7 +1072,14 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _specCreatorNameCtrl,
-                    decoration: _inputDecoration('ผู้จัดทำรายละเอียดคุณลักษณะ (สเปค)'),
+                    decoration: _inputDecoration('ผู้จัดทำรายละเอียดคุณลักษณะ (สเปค)').copyWith(
+                      suffixIcon: _personnelPickerButton(
+                        nameCtrl: _specCreatorNameCtrl,
+                        posCtrl: _specCreatorPositionCtrl,
+                        applyName: (d, v) => d.copyWith(specCreatorName: v),
+                        applyPosition: (d, v) => d.copyWith(specCreatorPosition: v),
+                      ),
+                    ),
                     onChanged: (v) {
                       widget.onChanged((d) => d.copyWith(specCreatorName: v));
                       _autofillPositionFromPersonnel(v, _specCreatorPositionCtrl,
@@ -1068,7 +1117,14 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _inspector1Ctrl,
-                    decoration: _inputDecoration(isCommittee ? 'กรรมการคนที่ 1' : 'ผู้ตรวจรับพัสดุ'),
+                    decoration: _inputDecoration(isCommittee ? 'กรรมการคนที่ 1' : 'ผู้ตรวจรับพัสดุ').copyWith(
+                      suffixIcon: _personnelPickerButton(
+                        nameCtrl: _inspector1Ctrl,
+                        posCtrl: _inspector1PosCtrl,
+                        applyName: (d, v) => d.copyWith(inspector1: v),
+                        applyPosition: (d, v) => d.copyWith(inspector1Pos: v),
+                      ),
+                    ),
                     onChanged: (v) {
                       widget.onChanged((d) => d.copyWith(inspector1: v));
                       _autofillPositionFromPersonnel(v, _inspector1PosCtrl,
@@ -1097,7 +1153,14 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personName',
                       presetOptions: _personnelNames,
                       controller: _inspector2Ctrl,
-                      decoration: _inputDecoration('กรรมการคนที่ 2'),
+                      decoration: _inputDecoration('กรรมการคนที่ 2').copyWith(
+                        suffixIcon: _personnelPickerButton(
+                          nameCtrl: _inspector2Ctrl,
+                          posCtrl: _inspector2PosCtrl,
+                          applyName: (d, v) => d.copyWith(inspector2: v),
+                          applyPosition: (d, v) => d.copyWith(inspector2Pos: v),
+                        ),
+                      ),
                       onChanged: (v) {
                         widget.onChanged((d) => d.copyWith(inspector2: v));
                         _autofillPositionFromPersonnel(v, _inspector2PosCtrl,
@@ -1125,7 +1188,14 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personName',
                       presetOptions: _personnelNames,
                       controller: _inspector3Ctrl,
-                      decoration: _inputDecoration('กรรมการคนที่ 3'),
+                      decoration: _inputDecoration('กรรมการคนที่ 3').copyWith(
+                        suffixIcon: _personnelPickerButton(
+                          nameCtrl: _inspector3Ctrl,
+                          posCtrl: _inspector3PosCtrl,
+                          applyName: (d, v) => d.copyWith(inspector3: v),
+                          applyPosition: (d, v) => d.copyWith(inspector3Pos: v),
+                        ),
+                      ),
                       onChanged: (v) {
                         widget.onChanged((d) => d.copyWith(inspector3: v));
                         _autofillPositionFromPersonnel(v, _inspector3PosCtrl,

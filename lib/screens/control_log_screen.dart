@@ -7,7 +7,9 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/control_log_entry.dart';
+import '../models/school_settings.dart';
 import '../services/control_log_export_service.dart';
+import '../services/document_generator.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
@@ -24,7 +26,11 @@ const _controlLogOptionalColumns = [
 ];
 
 class ControlLogScreen extends StatefulWidget {
-  const ControlLogScreen({super.key});
+  // ปุ่มลัด "สร้างเอกสาร" ในแต่ละแถว — พาไปหน้ารวมศูนย์เอกสารพร้อมเลือกรายการ
+  // อ้างอิง (orderId) ของแถวนั้นไว้ล่วงหน้า
+  final void Function(int orderId) onGenerateDocument;
+
+  const ControlLogScreen({super.key, required this.onGenerateDocument});
   @override
   State<ControlLogScreen> createState() => _ControlLogScreenState();
 }
@@ -32,12 +38,16 @@ class ControlLogScreen extends StatefulWidget {
 class _ControlLogScreenState extends State<ControlLogScreen> {
   final _repo = ProcurementRepository();
   List<ControlLogEntry> _entries = [];
+  SchoolSettings? _school;
   bool _loading = true;
   bool _exporting = false;
   String? _fiscalYearFilter;
   String? _docTypeFilter;
   Set<String> _visibleColumns = _controlLogOptionalColumns.toSet();
   final _scrollCtrl = ScrollController();
+  // กันกดปุ่ม "ดูตัวอย่าง" ซ้ำตอนกำลังสร้างไฟล์อยู่ — ใช้เลขที่ควบคุมของแถว
+  // เป็น key เพราะแถวไม่มี id ของตัวเอง (เป็น view model รวมจากหลายตาราง)
+  String? _previewingKey;
 
   @override
   void initState() {
@@ -54,11 +64,40 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final entries = await _repo.getControlLogEntries();
+    final school = await _repo.getSchoolSettings();
     if (!mounted) return;
     setState(() {
       _entries = entries;
+      _school = school;
       _loading = false;
     });
+  }
+
+  /// ปุ่มลัด "ดูตัวอย่าง" — สร้างเอกสารหลักของรายการอ้างอิงแล้วเปิดด้วย Word ทันที
+  Future<void> _previewEntry(ControlLogEntry e) async {
+    if (e.orderId == null) return;
+    final school = _school;
+    if (school == null) {
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      return;
+    }
+    setState(() => _previewingKey = e.controlNumber);
+    try {
+      final order = await _repo.getOrder(e.orderId!);
+      if (order == null) {
+        showAppToast('ไม่พบรายการอ้างอิงนี้แล้ว (อาจถูกลบไปแล้ว)', isError: true);
+        return;
+      }
+      final items = await _repo.getItems(order.id!);
+      await DocumentGenerator.generateAndOpen(order: order, school: school, items: items);
+      if (!mounted) return;
+      showAppToast('เปิดตัวอย่างเอกสารแล้ว');
+    } catch (err) {
+      if (!mounted) return;
+      showAppToast('สร้างตัวอย่างเอกสารไม่สำเร็จ: $err', isError: true);
+    } finally {
+      if (mounted) setState(() => _previewingKey = null);
+    }
   }
 
   List<String> get _fiscalYears =>
@@ -201,7 +240,7 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
           controller: _scrollCtrl,
           scrollDirection: Axis.horizontal,
           child: SizedBox(
-            width: 1320,
+            width: 1408,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -237,6 +276,8 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                         const SizedBox(width: 8),
                         SizedBox(width: 140, child: Text('ผู้รับผิดชอบหลัก', style: headerStyle)),
                       ],
+                      const SizedBox(width: 8),
+                      SizedBox(width: 80, child: Text('จัดการ', style: headerStyle)),
                     ],
                   ),
                 ),
@@ -283,6 +324,44 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
             const SizedBox(width: 8),
             SizedBox(width: 140, child: Text(e.responsiblePerson ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
           ],
+          const SizedBox(width: 8),
+          // ปุ่มลัด "ดูตัวอย่าง"/"สร้างเอกสาร" — ใช้ได้เฉพาะแถวที่ผูกกับรายการ
+          // จัดซื้อจัดจ้างจริง (orderId) เท่านั้น ไม่มีปุ่มลบเพราะแถวนี้ไม่ใช่
+          // ข้อมูลของตัวเอง เป็นแค่มุมมองรวมจากหน้าต้นทาง ต้องไปลบที่ต้นทาง
+          SizedBox(
+            width: 80,
+            child: e.orderId == null
+                ? null
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _previewingKey == e.controlNumber
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                            )
+                          : IconButton(
+                              icon: const Icon(Icons.visibility_outlined),
+                              iconSize: 17,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                              tooltip: 'ดูตัวอย่างเอกสาร',
+                              onPressed: () => _previewEntry(e),
+                            ),
+                      IconButton(
+                        icon: const Icon(Icons.description_outlined),
+                        iconSize: 17,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        color: colors.primary,
+                        tooltip: 'สร้างเอกสาร',
+                        onPressed: () => widget.onGenerateDocument(e.orderId!),
+                      ),
+                    ],
+                  ),
+          ),
         ],
       ),
     );

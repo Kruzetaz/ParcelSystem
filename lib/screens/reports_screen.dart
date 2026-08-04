@@ -14,6 +14,10 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/audit_log_entry.dart';
+import '../models/procurement_order.dart';
+import '../models/school_settings.dart';
+import '../services/monthly_procurement_summary_export_service.dart';
+import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 
@@ -46,6 +50,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<Map<String, dynamic>> _monthlyRows = [];
   List<_ChecklistItem> _checklist = [];
   List<AuditLogEntry> _auditLog = [];
+  List<ProcurementOrder> _orders = [];
+  SchoolSettings? _school;
+  // กันกดส่งออกซ้ำตอนกำลังสร้างไฟล์อยู่ — เก็บชื่อเดือนที่กำลังสร้าง
+  String? _exportingMonth;
 
   @override
   void initState() {
@@ -61,6 +69,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final contracts = await _repo.getAllContracts();
     final assets = await _repo.getAllFixedAssets();
     final auditLog = await _repo.getAuditLog();
+    final school = await _repo.getSchoolSettings();
 
     // สรุปรายเดือน — รวมยอด usedBudget ตามเดือนของ dateOrderCreated
     final monthlyTotals = List<double>.filled(13, 0);
@@ -73,7 +82,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
     final monthlyRows = [
       for (var m = 1; m <= 12; m++)
-        {'month': _thaiMonths[m], 'count': monthlyCounts[m], 'total': monthlyTotals[m]},
+        {'monthIndex': m, 'month': _thaiMonths[m], 'count': monthlyCounts[m], 'total': monthlyTotals[m]},
     ];
 
     // สตง. checklist — ตรวจแค่ข้อมูลครบไหม (data completeness) ไม่ใช่ความถูกต้องทางกฎหมาย
@@ -115,8 +124,50 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _monthlyRows = monthlyRows;
       _checklist = checklist;
       _auditLog = auditLog;
+      _orders = orders;
+      _school = school;
       _loading = false;
     });
+  }
+
+  /// ปุ่มส่งออก "แบบสรุปผลการจัดซื้อจัดจ้างรายเดือน" ต่อแถวเดือน — กรองเฉพาะ
+  /// รายการที่ตรงเดือนนั้น (นับจาก dateOrderCreated) แล้วส่งออกเป็น Excel
+  Future<void> _exportMonthlySummary(int monthIndex, String monthLabel) async {
+    final ordersInMonth = _orders.where((o) => _monthIndexFromThaiDate(o.dateOrderCreated) == monthIndex).toList();
+    if (ordersInMonth.isEmpty) return;
+    final school = _school;
+    if (school == null || (school.schoolName?.trim().isEmpty ?? true)) {
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      return;
+    }
+    // หา พ.ศ. ที่พบบ่อยที่สุดในกลุ่มเดือนนี้ (เผื่อมีข้อมูลข้ามปีงบปนกัน)
+    final yearCounts = <String, int>{};
+    for (final o in ordersInMonth) {
+      final parts = o.dateOrderCreated?.trim().split(' ');
+      if (parts != null && parts.length == 3) {
+        yearCounts[parts[2]] = (yearCounts[parts[2]] ?? 0) + 1;
+      }
+    }
+    final year = yearCounts.isEmpty
+        ? (DateTime.now().year + 543).toString()
+        : (yearCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+
+    setState(() => _exportingMonth = monthLabel);
+    try {
+      await MonthlyProcurementSummaryExportService.exportAndOpen(
+        orders: ordersInMonth,
+        monthLabel: monthLabel,
+        buddhistYearLabel: year,
+        schoolName: school.schoolName!,
+      );
+      if (!mounted) return;
+      showAppToast('ส่งออกแบบสรุปผลจัดซื้อจัดจ้างแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('ส่งออกไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _exportingMonth = null);
+    }
   }
 
   @override
@@ -127,6 +178,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       icon: Icons.bar_chart_outlined,
       steps: const [
         '"รายงานรายเดือน" สรุปยอดใช้จ่ายตามกลุ่มงาน/หมวดหมู่ในแต่ละเดือนของปีงบประมาณ',
+        'กดไอคอนดาวน์โหลดท้ายแถวเดือนที่มีรายการ เพื่อส่งออก "แบบสรุปผลการจัดซื้อจัดจ้างรายเดือน" (ตามแบบที่ส่งหน่วยงานกำกับ) เป็นไฟล์ Excel — "เหตุผลที่คัดเลือก" เติมข้อความมาตรฐานให้ก่อน แก้ไขในไฟล์ที่ได้เองได้ถ้ากรณีนั้นมีเหตุผลอื่น',
         '"ตรวจสอบ สตง." เช็คแค่ว่าข้อมูลกรอกครบตามที่จำเป็นหรือไม่ (data completeness) ไม่ใช่การรับรองความถูกต้องทางกฎหมาย ต้องตรวจสอบตามระเบียบพัสดุจริงอีกครั้งก่อนใช้อ้างอิง',
         '"Audit Trail" บันทึกประวัติการสร้าง/แก้ไข/ลบของข้อมูลส่วนใหญ่ในระบบ แต่ไม่ครอบคลุมทุกตารางย่อย (เช่น รายการพัสดุแต่ละแถวในคำสั่งซื้อ)',
         'สลับดูรายงานแต่ละแบบได้ที่แถบด้านบน',
@@ -211,12 +263,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildMonthRow(ColorScheme colors, Map<String, dynamic> row, double maxTotal) {
     final total = row['total'] as double;
+    final count = row['count'] as int;
+    final monthLabel = row['month'] as String;
     final ratio = maxTotal > 0 ? (total / maxTotal).clamp(0.0, 1.0) : 0.0;
+    final isExporting = _exportingMonth == monthLabel;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Row(
         children: [
-          SizedBox(width: 90, child: Text(row['month'] as String, style: const TextStyle(fontSize: 13))),
+          SizedBox(width: 90, child: Text(monthLabel, style: const TextStyle(fontSize: 13))),
           Expanded(
             child: Stack(
               children: [
@@ -230,7 +285,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           const SizedBox(width: 10),
           SizedBox(width: 100, child: Text('${formatBaht(total)} บาท', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
-          SizedBox(width: 60, child: Text('${row['count']} รายการ', textAlign: TextAlign.right, style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant))),
+          SizedBox(width: 60, child: Text('$count รายการ', textAlign: TextAlign.right, style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant))),
+          const SizedBox(width: 4),
+          isExporting
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.file_download_outlined),
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  color: colors.primary,
+                  tooltip: 'ส่งออกแบบสรุปผลจัดซื้อจัดจ้าง (กวจ.)',
+                  onPressed: count == 0 ? null : () => _exportMonthlySummary(row['monthIndex'] as int, monthLabel),
+                ),
         ],
       ),
     );

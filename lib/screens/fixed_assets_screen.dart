@@ -11,6 +11,8 @@ import 'package:path_provider/path_provider.dart';
 import '../data/procurement_repository.dart';
 import '../models/asset_event.dart';
 import '../models/fixed_asset.dart';
+import '../services/asset_control_ledger_export_service.dart';
+import '../services/depreciation_schedule_export_service.dart';
 import '../services/toast_service.dart';
 import '../utils/app_folder_name.dart';
 import '../utils/money_format.dart';
@@ -56,7 +58,10 @@ Future<String> _copyPhotoLocally(String sourcePath) async {
 }
 
 class FixedAssetsScreen extends StatefulWidget {
-  const FixedAssetsScreen({super.key});
+  // เปิดมาจากปุ่มลัด "ดูครุภัณฑ์" ในหน้าประวัติซ่อม — ให้เลือกชิ้นนี้ไว้ล่วงหน้า
+  final int? initialSelectedId;
+
+  const FixedAssetsScreen({super.key, this.initialSelectedId});
   @override
   State<FixedAssetsScreen> createState() => _FixedAssetsScreenState();
 }
@@ -72,7 +77,8 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _selectedId = widget.initialSelectedId;
+    _load(keepSelected: widget.initialSelectedId);
   }
 
   Future<void> _load({int? keepSelected}) async {
@@ -99,6 +105,42 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
         final dep = calcDepreciation(a, _parseThaiDate(a.acquiredDate));
         return s + (dep?.netBookValue ?? a.totalValue);
       });
+
+  /// ครุภัณฑ์ที่กรอกอายุการใช้งานไว้ครบพอจะคำนวณตารางค่าเสื่อมราคารายปีได้
+  List<FixedAsset> get _assetsWithDepreciation =>
+      _assets.where((a) => (a.usefulLifeYears ?? 0) > 0 && a.totalValue > 0).toList();
+
+  bool _exportingDepreciation = false;
+
+  Future<void> _exportDepreciationSchedule() async {
+    setState(() => _exportingDepreciation = true);
+    try {
+      await DepreciationScheduleExportService.exportAndOpen(_assetsWithDepreciation);
+      if (!mounted) return;
+      showAppToast('สร้างตารางค่าเสื่อมราคาแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('สร้างตารางไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _exportingDepreciation = false);
+    }
+  }
+
+  bool _exportingLedger = false;
+
+  Future<void> _exportAssetControlLedger() async {
+    setState(() => _exportingLedger = true);
+    try {
+      await AssetControlLedgerExportService.exportAndOpen(_assets, parseDate: _parseThaiDate);
+      if (!mounted) return;
+      showAppToast('สร้างทะเบียนคุมทรัพย์สินแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('สร้างทะเบียนไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _exportingLedger = false);
+    }
+  }
 
   Future<void> _openForm({FixedAsset? existing}) async {
     final saved = await showDialog<bool>(
@@ -138,10 +180,15 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     return GuideFabOverlay(
       title: 'วิธีใช้หน้าทะเบียนครุภัณฑ์',
       icon: Icons.inventory_2_outlined,
+      // มุมขวาบนมีปุ่ม "พิมพ์ตารางค่าเสื่อมราคา" อยู่แล้ว และมุมขวาล่างมีปุ่ม
+      // "เพิ่มครุภัณฑ์" อยู่แล้ว ย้ายปุ่มไกด์ไปมุมซ้ายบนแทน (ไม่มีอะไรชน)
+      corner: Alignment.topLeft,
       steps: const [
         'สลับมุมมองตาราง/กริดรูปภาพได้ที่ปุ่มมุมขวาของรายการ — มุมมองกริดเหมาะกับตอนต้องดูรูปครุภัณฑ์ประกอบ',
         'กดที่รายการในตารางเพื่อเปิดแผงรายละเอียดด้านขวา ดูประวัติการใช้งาน/ซ่อมบำรุงของครุภัณฑ์ชิ้นนั้น',
         'กรอกผู้ขาย/ประเภทเงิน/วิธีการได้มา/อายุการใช้งาน ให้ครบเพื่อให้ตรงกับแบบฟอร์มทะเบียนคุมครุภัณฑ์ของราชการ — ถ้ากรอกอายุการใช้งาน ระบบจะคำนวณค่าเสื่อมราคาโดยประมาณให้อัตโนมัติ (เป็นค่าประมาณการ ไม่ใช่ตัวเลขบัญชีที่รับรองอย่างเป็นทางการ)',
+        'กด "พิมพ์ตารางค่าเสื่อมราคา" มุมขวาบนเพื่อส่งออกตารางค่าเสื่อมราคารายปีของครุภัณฑ์ทุกชิ้นที่กรอกอายุการใช้งานไว้แล้ว เป็นไฟล์ Excel พิมพ์ได้ (แสดงทุกปีตั้งแต่ปีที่ 1 จนครบอายุการใช้งาน)',
+        'กด "ทะเบียนคุมทรัพย์สิน" เพื่อส่งออกทะเบียนคุมครุภัณฑ์ทุกชิ้นเป็นไฟล์ Excel ตามแบบฟอร์มทะเบียนคุมทรัพย์สินของราชการ (ประเภทเงิน/วิธีการได้มา/ค่าเสื่อมราคา/มูลค่าสุทธิ ครบตามที่กรอกไว้)',
         'กดปุ่ม "ค้นหาราคากลาง (สำนักงบประมาณ)" ในฟอร์มเพิ่ม/แก้ไข เพื่อค้นหาชื่อ+ราคากลางจากบัญชีราคามาตรฐานครุภัณฑ์มาเติมให้อัตโนมัติ (เป็นราคาประมาณการเบื้องต้น ควรตรวจสอบราคากลางจริงก่อนใช้อ้างอิงในเอกสารราชการ)',
         'รูปถ่ายครุภัณฑ์ที่แนบไว้ เก็บเป็นไฟล์ในเครื่องนี้เท่านั้น ไม่ได้อัปโหลดขึ้น cloud ที่ใดทั้งสิ้น',
         'กด "เพิ่มครุภัณฑ์" มุมขวาล่างเพื่อลงทะเบียนรายการใหม่',
@@ -155,6 +202,29 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: (_assets.isEmpty || _exportingLedger) ? null : _exportAssetControlLedger,
+                            icon: _exportingLedger
+                                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                                : const Icon(Icons.receipt_long_outlined, size: 18),
+                            label: Text(_exportingLedger ? 'กำลังสร้าง...' : 'ทะเบียนคุมทรัพย์สิน'),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: (_assetsWithDepreciation.isEmpty || _exportingDepreciation)
+                                ? null
+                                : _exportDepreciationSchedule,
+                            icon: _exportingDepreciation
+                                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                                : const Icon(Icons.print_outlined, size: 18),
+                            label: Text(_exportingDepreciation ? 'กำลังสร้าง...' : 'พิมพ์ตารางค่าเสื่อมราคา'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
                       _buildSummaryCards(colors),
                       const SizedBox(height: 16),
                       Expanded(
