@@ -18,33 +18,47 @@ class CalcEngine {
   }
 
   // ─────────────────────────────────────────
-  // คำนวณภาษีจากราคารวม
+  // คำนวณภาษีจากยอดรวมที่กรอก (ยอดรวมที่กรอกในตารางรายการถือเป็นยอดที่รวม VAT
+  // ไว้แล้วเสมอ — ตรงกับที่ร้านค้าคำนวณในบิลจริง เช่น ยอดจ่ายสุทธิ 1,000 บาท
+  // แยกเป็นรวมเงิน 934.58 + VAT 65.42 ระบบจึง "แยก" VAT ออกจากยอดที่กรอก
+  // แทนที่จะ "บวกเพิ่ม" เข้าไปเหมือนเดิม)
   // ─────────────────────────────────────────
 
-  static double calcVat(double subtotal) => subtotal * vatRate;
+  /// แยกยอดก่อน VAT ออกจากยอดรวมที่มี VAT รวมอยู่แล้ว (totalInclVat / (1+rate))
+  static double calcPreVat(double totalInclVat, {double rate = vatRate}) =>
+      totalInclVat / (1 + rate);
 
-  static double calcWithholding(double subtotal) => subtotal * withholdingRate;
+  /// แยกจำนวนเงิน VAT ออกจากยอดรวมที่มี VAT รวมอยู่แล้ว
+  static double calcVat(double totalInclVat, {double rate = vatRate}) =>
+      totalInclVat - calcPreVat(totalInclVat, rate: rate);
+
+  /// หัก ณ ที่จ่าย คำนวณจากยอดก่อน VAT เสมอ (ตามระเบียบจริง)
+  static double calcWithholding(double preVatAmount, {double rate = withholdingRate}) =>
+      preVatAmount * rate;
 
   /// คืน map ครบทุก field ที่ต้องบันทึกลง DB
-  static Map<String, double> calcAll(double subtotal) {
-    return calcAllWithRates(subtotal, vatRate: vatRate, withholdingRate: withholdingRate);
+  static Map<String, double> calcAll(double totalInclVat) {
+    return calcAllWithRates(totalInclVat, vatRate: vatRate, withholdingRate: withholdingRate);
   }
 
-  /// คำนวณด้วย rate ที่กรอกเองต่อบิล
+  /// คำนวณด้วย rate ที่กรอกเองต่อบิล — [totalInclVat] คือยอดรวมจากตารางรายการ
+  /// (จำนวน x ราคาต่อหน่วย รวมทุกแถว) ซึ่งถือว่า "รวม VAT ไว้แล้ว" ถ้าอัตรา VAT
+  /// เป็น 0 (ไม่มีภาษีในบิล) ค่าที่ได้จะเท่ากับยอดที่กรอกพอดี ไม่มีผลกระทบ
   static Map<String, double> calcAllWithRates(
-    double subtotal, {
+    double totalInclVat, {
     required double vatRate,
     required double withholdingRate,
   }) {
-    final vat = subtotal * vatRate;
-    final withholding = subtotal * withholdingRate;
-    final net = subtotal + vat - withholding;
+    final preVat = calcPreVat(totalInclVat, rate: vatRate);
+    final vat = totalInclVat - preVat;
+    final withholding = preVat * withholdingRate;
+    final net = totalInclVat - withholding;
     return {
-      'subtotal_before_vat': subtotal,
+      'subtotal_before_vat': preVat,
       'vat_amount': vat,
       'tax_withholding_amount': withholding,
       'net_payable_amount': net,
-      'current_order_price': subtotal + vat,
+      'current_order_price': totalInclVat,
     };
   }
 

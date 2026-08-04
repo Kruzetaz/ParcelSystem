@@ -332,7 +332,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
             children: [
               _Tab1SchoolBudget(draft: _draft, onChanged: _updateDraft, repo: _repo),
               _Tab2Officers(draft: _draft, onChanged: _updateDraft),
-              _Tab3VendorTerms(draft: _draft, onChanged: _updateDraft),
+              _Tab3VendorTerms(draft: _draft, onChanged: _updateDraft, itemsSubtotal: _itemsSubtotal),
               _Tab4Items(
                 initialItems: _items,
                 itemsController: _itemsTableController,
@@ -1274,8 +1274,9 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
 class _Tab3VendorTerms extends StatefulWidget {
   final ProcurementOrder draft;
   final void Function(ProcurementOrder Function(ProcurementOrder)) onChanged;
+  final double itemsSubtotal;
 
-  const _Tab3VendorTerms({required this.draft, required this.onChanged});
+  const _Tab3VendorTerms({required this.draft, required this.onChanged, required this.itemsSubtotal});
 
   @override
   State<_Tab3VendorTerms> createState() => _Tab3VendorTermsState();
@@ -1301,6 +1302,11 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   late final TextEditingController _penaltyRateCtrl;
   late final TextEditingController _vatRateCtrl;
   late final TextEditingController _withholdingRateCtrl;
+  late final TextEditingController _vatAmountCtrl;
+  late final TextEditingController _withholdingAmountCtrl;
+  // กันไม่ให้ช่อง %/บาท ของ VAT และหัก ณ ที่จ่าย อัปเดตวนกลับไปกลับมาเป็นลูป
+  // เวลาช่องหนึ่งถูกแก้แล้วเขียนกลับเข้าอีกช่องด้วยโค้ด (ไม่ใช่ผู้ใช้พิมพ์เอง)
+  bool _syncingTaxFields = false;
 
   // เพิ่มคอนโทรลเลอร์สำหรับตัวแปรเลขที่เอกสารส่งมอบ
   late final TextEditingController _deliveryDocNumberCtrl;
@@ -1331,8 +1337,68 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _withholdingRateCtrl = TextEditingController(
       text: (d.withholdingTaxRate * 100).toStringAsFixed(0),
     );
+    _vatAmountCtrl = TextEditingController();
+    _withholdingAmountCtrl = TextEditingController();
     _deliveryDocNumberCtrl = TextEditingController(text: d.deliveryDocNumber);
     _loadVendors();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshTaxAmountFields());
+  }
+
+  @override
+  void didUpdateWidget(covariant _Tab3VendorTerms oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // ยอดรวม items เปลี่ยน (เช่น กลับมาจากแท็บ 4 ที่เพิ่ง แก้รายการ) — ฐานคำนวณ
+    // เปลี่ยน ต้องรีเฟรชช่องจำนวนเงิน (บาท) ของ VAT/หัก ณ ที่จ่ายให้ตรงกับ % เดิม
+    if (oldWidget.itemsSubtotal != widget.itemsSubtotal) {
+      _refreshTaxAmountFields();
+    }
+  }
+
+  /// คำนวณยอด VAT/หัก ณ ที่จ่าย เป็นจำนวนเงิน (บาท) จาก % ปัจจุบัน + ยอดรวม
+  /// items แล้วเติมลงช่อง "จำนวนเงิน" ให้ดูตรงกัน — ไม่แตะช่อง % เลย
+  void _refreshTaxAmountFields() {
+    final s = widget.itemsSubtotal;
+    final vRate = widget.draft.vatRate;
+    final wRate = widget.draft.withholdingTaxRate;
+    final preVat = s > 0 ? s / (1 + vRate) : 0.0;
+    final vatAmt = s - preVat;
+    final whAmt = preVat * wRate;
+    _syncingTaxFields = true;
+    _vatAmountCtrl.text = s > 0 ? vatAmt.toStringAsFixed(2) : '';
+    _withholdingAmountCtrl.text = s > 0 ? whAmt.toStringAsFixed(2) : '';
+    _syncingTaxFields = false;
+  }
+
+  /// ผู้ใช้พิมพ์จำนวนเงิน VAT ที่เห็นในบิลจริงเข้ามาตรงๆ — ย้อนคำนวณเป็น % แล้ว
+  /// เติมกลับช่อง % ให้ (rate = VAT / ยอดก่อน VAT = VAT / (ยอดรวม - VAT))
+  void _onVatAmountChanged(String v) {
+    if (_syncingTaxFields) return;
+    final amount = double.tryParse(v);
+    final s = widget.itemsSubtotal;
+    if (amount == null || s <= 0 || s - amount <= 0) return;
+    final rate = amount / (s - amount);
+    _syncingTaxFields = true;
+    _vatRateCtrl.text = (rate * 100).toStringAsFixed(2);
+    _syncingTaxFields = false;
+    widget.onChanged((d) => d.copyWith(vatRate: rate));
+    _refreshTaxAmountFields();
+  }
+
+  /// ผู้ใช้พิมพ์จำนวนเงินหัก ณ ที่จ่ายที่เห็นในบิลจริงเข้ามาตรงๆ — ย้อนคำนวณ
+  /// เป็น % จากยอดก่อน VAT (ตามระเบียบจริงที่หัก ณ ที่จ่ายคิดจากฐานก่อน VAT)
+  void _onWithholdingAmountChanged(String v) {
+    if (_syncingTaxFields) return;
+    final amount = double.tryParse(v);
+    final s = widget.itemsSubtotal;
+    final vRate = widget.draft.vatRate;
+    final preVat = s > 0 ? s / (1 + vRate) : 0.0;
+    if (amount == null || preVat <= 0) return;
+    final rate = amount / preVat;
+    _syncingTaxFields = true;
+    _withholdingRateCtrl.text = (rate * 100).toStringAsFixed(2);
+    _syncingTaxFields = false;
+    widget.onChanged((d) => d.copyWith(withholdingTaxRate: rate));
+    _refreshTaxAmountFields();
   }
 
   Future<void> _loadVendors() async {
@@ -1386,6 +1452,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _penaltyRateCtrl.dispose();
     _vatRateCtrl.dispose();
     _withholdingRateCtrl.dispose();
+    _vatAmountCtrl.dispose();
+    _withholdingAmountCtrl.dispose();
     _deliveryDocNumberCtrl.dispose();
     super.dispose();
   }
@@ -1537,6 +1605,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
             const SizedBox(height: 24),
             _sectionTitle(colors, 'ภาษี / ค่าธรรมเนียม'),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: TextFormField(
@@ -1550,8 +1619,19 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                       final pct = double.tryParse(v);
                       if (pct != null) {
                         widget.onChanged((d) => d.copyWith(vatRate: pct / 100));
+                        _refreshTaxAmountFields();
                       }
                     },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 110,
+                  child: TextFormField(
+                    controller: _vatAmountCtrl,
+                    decoration: _inputDecoration('จำนวนเงิน').copyWith(isDense: true, hintText: 'บาท'),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: _onVatAmountChanged,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1567,15 +1647,29 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                       final pct = double.tryParse(v);
                       if (pct != null) {
                         widget.onChanged((d) => d.copyWith(withholdingTaxRate: pct / 100));
+                        _refreshTaxAmountFields();
                       }
                     },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 110,
+                  child: TextFormField(
+                    controller: _withholdingAmountCtrl,
+                    decoration: _inputDecoration('จำนวนเงิน').copyWith(isDense: true, hintText: 'บาท'),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: _onWithholdingAmountChanged,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              'กรอก 0 ถ้าไม่มีภาษีในบิลนี้',
+              'กรอก 0 ถ้าไม่มีภาษีในบิลนี้ — ราคาต่อหน่วยในตารางรายการ (แท็บ 4) ถือว่ารวม VAT ไว้แล้ว '
+              'ระบบจะแยกยอดก่อนภาษีออกจากยอดรวมให้อัตโนมัติ ไม่ได้บวก VAT เพิ่มเข้าไปอีก\n'
+              'ไม่แน่ใจว่าร้านหักกี่ % ให้พิมพ์จำนวนเงินจริงจากบิล (ช่องเล็กด้านขวา) แทนได้เลย ระบบจะคำนวณ % ให้เอง '
+              '(ต้องกรอกรายการพัสดุในแท็บ 4 ให้เสร็จก่อน ถึงจะคำนวณได้)',
               style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),

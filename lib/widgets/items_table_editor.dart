@@ -74,7 +74,9 @@ class ItemsTableEditor extends StatefulWidget {
   final List<ProcurementItem> initialItems;
 
   /// เรียกทุกครั้งที่ข้อมูลในตารางเปลี่ยน (พิมพ์/เพิ่ม/ลบแถว)
-  /// ส่งกลับ items ที่ valid ทั้งหมด + ยอดรวมสุทธิของ items (ก่อน VAT)
+  /// ส่งกลับ items ที่ valid ทั้งหมด + ยอดรวมของ items (ราคาต่อหน่วยที่กรอก
+  /// ถือว่า "รวม VAT ไว้แล้ว" เสมอ ตรงกับที่ร้านค้าคิดในบิลจริง — CalcEngine
+  /// จะเป็นคนแยก VAT ออกจากยอดนี้ตอนบันทึก ไม่ใช่บวก VAT เพิ่มเข้าไปอีก)
   final void Function(List<ProcurementItem> items, double subtotal) onChanged;
 
   final ItemsTableEditorController? controller;
