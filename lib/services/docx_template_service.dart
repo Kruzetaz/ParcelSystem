@@ -81,6 +81,7 @@ class DocxTemplateService {
     required Uint8List templateBytes,
     required Map<String, String> fieldValues,
     required List<ProcurementItemData> items,
+    Map<String, bool> conditionalFlags = const {},
   }) {
     final archive = ZipDecoder().decodeBytes(templateBytes);
 
@@ -102,6 +103,11 @@ class DocxTemplateService {
 
     // STEP 2: Clone table rows ตาม items
     xml = _cloneItemRows(xml, items);
+
+    // STEP 2.5: ตัด/เก็บข้อความบางช่วงตามเงื่อนไข (เช่น ย่อหน้าที่ใช้ได้แค่
+    // กรณีผู้ตรวจรับคนเดียว ไม่ใช่คณะกรรมการ) — ต้องทำก่อน replace placeholder
+    // ทั่วไป เพราะ marker เองก็อยู่ในรูป {{if:...}}/{{endif:...}}
+    xml = _applyConditionals(xml, conditionalFlags);
 
     // STEP 3: Replace placeholders ทั้งหมด
     xml = _replacePlaceholders(xml, fieldValues);
@@ -342,6 +348,41 @@ class DocxTemplateService {
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;');
+  }
+
+  /// ตัด/เก็บข้อความบางช่วงในเอกสารตามเงื่อนไข — ใช้เครื่องหมายคู่
+  /// {{if:FLAG}}...{{endif:FLAG}} ที่แทรกไว้เป็น run แยกต่างหากใน template
+  /// (เห็นได้เฉพาะตอนเปิดดู template ดิบ เพราะซ่อนไว้ด้วย w:vanish อยู่แล้ว):
+  /// - FLAG เป็น true  -> เก็บเนื้อหาไว้ ตัดแค่ตัว marker ทั้งสองฝั่งออก
+  /// - FLAG เป็น false -> ตัดทั้งช่วงตั้งแต่ marker เริ่มถึง marker จบทิ้งทั้งหมด
+  ///   (รวมเนื้อหาระหว่างนั้น เช่น ประโยค/บรรทัดที่ใช้ไม่ได้ในกรณีนี้)
+  /// ถ้า template ไม่มี marker คู่นี้อยู่เลย ก็แค่ข้ามไปเฉยๆ ไม่ error
+  static String _applyConditionals(String xml, Map<String, bool> flags) {
+    var result = xml;
+    for (final entry in flags.entries) {
+      final startMarker = '{{if:${entry.key}}}';
+      final endMarker = '{{endif:${entry.key}}}';
+      final startRunPattern = RegExp(
+        '<w:r\\b[^>]*>(?:(?!</w:r>).)*?${RegExp.escape(startMarker)}(?:(?!</w:r>).)*?</w:r>',
+        dotAll: true,
+      );
+      final endRunPattern = RegExp(
+        '<w:r\\b[^>]*>(?:(?!</w:r>).)*?${RegExp.escape(endMarker)}(?:(?!</w:r>).)*?</w:r>',
+        dotAll: true,
+      );
+      final startMatch = startRunPattern.firstMatch(result);
+      final endMatch = endRunPattern.firstMatch(result);
+      if (startMatch == null || endMatch == null) continue;
+
+      if (entry.value) {
+        // ลบจากท้ายไปหน้า (endMatch ก่อน) กัน offset ของ startMatch เพี้ยน
+        result = result.replaceRange(endMatch.start, endMatch.end, '');
+        result = result.replaceRange(startMatch.start, startMatch.end, '');
+      } else {
+        result = result.replaceRange(startMatch.start, endMatch.end, '');
+      }
+    }
+    return result;
   }
 
   static String _cloneItemRows(String xml, List<ProcurementItemData> items) {

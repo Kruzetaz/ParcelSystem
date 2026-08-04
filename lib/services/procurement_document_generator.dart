@@ -91,6 +91,7 @@ class ProcurementDocumentGenerator {
       templateBytes: templateBytes,
       fieldValues: fieldValues,
       items: itemDataList,
+      conditionalFlags: DocumentGenerator.buildConditionalFlags(order),
     );
 
     final docsDir = await getApplicationDocumentsDirectory();

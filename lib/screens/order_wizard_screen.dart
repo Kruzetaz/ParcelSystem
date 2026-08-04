@@ -896,6 +896,16 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     _inspector3PosCtrl = TextEditingController(text: d.inspector3Pos);
 
     _inspectorTitleGroup = d.inspectorTitleGroup ?? 'ผู้ตรวจรับพัสดุ';
+    // ค่า default ด้านบนอยู่แค่ใน state ของ widget นี้เท่านั้น — ถ้า draft ยังไม่
+    // เคยมีค่านี้มาก่อน (order ใหม่ หรือผู้ใช้ไม่เคยแตะปุ่มสลับเลย) แล้วไม่ยิง
+    // onChanged กลับไปเก็บใน draft จริง พอกด "บันทึก" โดยไม่แตะปุ่มนี้เลย
+    // {{inspector_title_group}} ในเอกสารจะว่างเปล่า (ค่าที่บันทึกจริงยังเป็น
+    // null อยู่) ทั้งที่ UI โชว์ว่าเลือก "ผู้ตรวจรับคนเดียว" ไว้แล้วก็ตาม
+    if (d.inspectorTitleGroup == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onChanged((draft) => draft.copyWith(inspectorTitleGroup: _inspectorTitleGroup));
+      });
+    }
     _loadSchoolInfo();
     _loadPersonnel();
   }

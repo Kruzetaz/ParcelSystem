@@ -75,6 +75,7 @@ class DocumentGenerator {
       templateBytes: templateBytes,
       fieldValues: fieldValues,
       items: itemDataList,
+      conditionalFlags: buildConditionalFlags(order),
     );
 
     // STEP 5: บันทึกไฟล์ลงโฟลเดอร์ Documents/<ชื่อโรงเรียน>_Documents
@@ -146,6 +147,21 @@ class DocumentGenerator {
     SchoolSettings s,
   ) =>
       _buildFieldMap(o, s);
+
+  /// ธงเงื่อนไขสำหรับตัดข้อความบางช่วงในเอกสารตามข้อมูลของ order — ใช้ร่วมกันทั้ง
+  /// master_template.docx และ template ย่อยอื่นๆ ที่มีข้อความช่วงเดียวกันซ้ำอยู่
+  /// (เช่น ContractOrderReport) เพื่อไม่ให้ผู้ใช้ต้องลบทิ้งเองทุกครั้งที่สร้างเอกสาร
+  static Map<String, bool> buildConditionalFlags(ProcurementOrder o) {
+    final isSingleInspector = o.inspectorTitleGroup != 'คณะกรรมการตรวจรับ';
+    return {
+      // ย่อหน้า "อนุมัติแต่งตั้ง {{inspector_1}}...เป็นผู้ตรวจรับพัสดุ" ใช้ได้
+      // แค่กรณีตรวจรับคนเดียว — ระบุชื่อคนเดียวตรงๆ ใช้กับคณะกรรมการไม่ได้
+      'single_inspector_only': isSingleInspector,
+      // บรรทัด "ลงนามในคำสั่งแต่งตั้ง{{inspector_title_group}}" ใช้แทนกันกับ
+      // ย่อหน้าด้านบน (ไม่ใช่โชว์คู่กัน) — โชว์เฉพาะตอนเป็นคณะกรรมการเท่านั้น
+      'committee_only': !isSingleInspector,
+    };
+  }
 
   static Map<String, String> _buildFieldMap(
     ProcurementOrder o,
