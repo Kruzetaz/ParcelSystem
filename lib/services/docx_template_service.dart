@@ -434,7 +434,11 @@ class DocxTemplateService {
       if (!rowXml.contains('{{item_name}}')) continue;
 
       foundAnySeed = true;
-      buffer.write(xml.substring(lastEnd, m.start));
+      final prefix = xml.substring(lastEnd, m.start);
+      // ทำให้แถวหัวตาราง (แถวสุดท้ายก่อนแถว seed) เป็น header row ที่ซ้ำ
+      // ขึ้นทุกหน้าอัตโนมัติเวลาตารางยาวเกิน 1 หน้า — ทำที่นี่แทนการพึ่ง
+      // ให้ผู้ใช้ไปกด "Repeat Header Rows" เองใน Word ทุกครั้งที่ generate ใหม่
+      buffer.write(_markLastRowAsHeader(prefix));
 
       if (items.isNotEmpty) {
         for (var i = 0; i < items.length; i++) {
@@ -467,5 +471,39 @@ class DocxTemplateService {
 
     buffer.write(xml.substring(lastEnd));
     return buffer.toString();
+  }
+
+  /// หา <w:tr>...</w:tr> ตัวสุดท้ายใน [segment] (ควรเป็นแถวหัวตารางที่อยู่
+  /// ติดกับแถว seed ของรายการพัสดุ) แล้วใส่ <w:tblHeader/> ไว้ใน <w:trPr>
+  /// ของแถวนั้น เพื่อให้ Word ซ้ำแถวนี้เป็นหัวตารางอัตโนมัติทุกหน้า
+  static String _markLastRowAsHeader(String segment) {
+    final rowPattern = RegExp(r'<w:tr\b[^>]*>.*?</w:tr>', dotAll: true);
+    final matches = rowPattern.allMatches(segment).toList();
+    if (matches.isEmpty) return segment;
+
+    final lastMatch = matches.last;
+    var row = lastMatch.group(0)!;
+
+    if (row.contains('<w:tblHeader')) {
+      return segment; // ตั้งไว้แล้ว ไม่ต้องทำซ้ำ
+    }
+
+    if (row.contains('<w:trPr>')) {
+      row = row.replaceFirst('<w:trPr>', '<w:trPr><w:tblHeader/>');
+    } else if (row.contains('<w:trPr/>')) {
+      row = row.replaceFirst('<w:trPr/>', '<w:trPr><w:tblHeader/></w:trPr>');
+    } else {
+      // ไม่มี <w:trPr> เลย ให้แทรกไว้ทันทีหลังแท็กเปิด <w:tr ...>
+      final openTagMatch = RegExp(r'^<w:tr\b[^>]*>').firstMatch(row)!;
+      row = row.replaceRange(
+        openTagMatch.end,
+        openTagMatch.end,
+        '<w:trPr><w:tblHeader/></w:trPr>',
+      );
+    }
+
+    return segment.substring(0, lastMatch.start) +
+        row +
+        segment.substring(lastMatch.end);
   }
 }
