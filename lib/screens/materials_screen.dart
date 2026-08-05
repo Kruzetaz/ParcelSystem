@@ -160,6 +160,26 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     }
   }
 
+  /// คัดลอกวัสดุเป็นรายการใหม่ — คัดลอกข้อมูลบรรยาย (ชื่อ/รหัส/หน่วย/ราคา/ที่เก็บ/
+  /// จำนวนอย่างสูง-ต่ำ) มาตรงๆ แต่เริ่มยอดรับ-จ่ายที่ 0 ใหม่เสมอ (ไม่ใช่ล้างข้อมูล
+  /// บรรยาย แต่ยอดสต๊อกเป็นประวัติจริงของชิ้นเดิม เอามาใช้กับของชิ้นใหม่ไม่ได้)
+  Future<void> _duplicateMaterial(MaterialItem m) async {
+    try {
+      final map = m.toMap();
+      map.remove('id');
+      map['name'] = '${m.name} (สำเนา)';
+      map['stock_in'] = 0.0;
+      map['stock_out'] = 0.0;
+      await _repo.insertMaterial(MaterialItem.fromMap(map));
+      if (!mounted) return;
+      showAppToast('คัดลอกวัสดุแล้ว');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('คัดลอกวัสดุไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
   Future<void> _adjustStock(MaterialItem m, {required bool isIn}) async {
     final qtyCtrl = TextEditingController();
     final counterpartyCtrl = TextEditingController();
@@ -434,7 +454,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                   SizedBox(width: 80, child: Text('จ่ายออก', style: headerStyle, textAlign: TextAlign.right)),
                   SizedBox(width: 80, child: Text('คงเหลือ', style: headerStyle, textAlign: TextAlign.right)),
                   SizedBox(width: 100, child: Text('มูลค่ารวม', style: headerStyle, textAlign: TextAlign.right)),
-                  const SizedBox(width: 176),
+                  const SizedBox(width: 206),
                 ],
               ),
             ),
@@ -467,14 +487,51 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             ),
             SizedBox(width: 100, child: Text(formatBaht(m.totalValue), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
             SizedBox(
-              width: 176,
+              width: 206,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(icon: const Icon(Icons.history, size: 20), tooltip: 'ดูประวัติรับ-จ่าย', onPressed: () => _viewHistory(m)),
-                  IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.green, size: 20), tooltip: 'รับเข้า', onPressed: () => _adjustStock(m, isIn: true)),
-                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.orange, size: 20), tooltip: 'เบิกจ่าย', onPressed: () => _adjustStock(m, isIn: false)),
-                  IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20), onPressed: () => _confirmDelete(m)),
+                  IconButton(
+                    icon: const Icon(Icons.history, size: 18),
+                    tooltip: 'ดูประวัติรับ-จ่าย',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _viewHistory(m),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, color: Colors.green, size: 18),
+                    tooltip: 'รับเข้า',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _adjustStock(m, isIn: true),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline, color: Colors.orange, size: 18),
+                    tooltip: 'เบิกจ่าย',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _adjustStock(m, isIn: false),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_all_outlined, size: 18),
+                    tooltip: 'คัดลอกวัสดุ',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    visualDensity: VisualDensity.compact,
+                    color: colors.onSurfaceVariant,
+                    onPressed: () => _duplicateMaterial(m),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                    tooltip: 'ลบ',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _confirmDelete(m),
+                  ),
                 ],
               ),
             ),

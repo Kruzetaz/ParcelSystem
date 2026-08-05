@@ -130,6 +130,25 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     }
   }
 
+  /// คัดลอกแผนงบเป็นรายการใหม่ทั้งใบ — คัดลอกทุกช่องมาตรงๆ ไม่ล้างอะไรเลย
+  /// เติมแค่ "(สำเนา)" ต่อชื่อโครงการ ให้ผู้ใช้แก้ไขเองว่าช่องไหนต้องเปลี่ยน
+  /// (ไม่พาเข้าฟอร์มแก้ไขอัตโนมัติ — กดแก้เองตอนพร้อม)
+  Future<void> _duplicateBudget(Budget budget) async {
+    try {
+      final map = budget.toMap();
+      map.remove('id');
+      map['project_name'] =
+          '${(budget.projectName?.trim().isNotEmpty ?? false) ? budget.projectName! : "(ไม่มีชื่อโครงการ)"} (สำเนา)';
+      await _repo.insertBudget(Budget.fromMap(map));
+      if (!mounted) return;
+      showAppToast('คัดลอกแผนงบแล้ว');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('คัดลอกแผนงบไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
   Future<void> _confirmDeleteAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -933,9 +952,20 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: remainColor)),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+              icon: const Icon(Icons.copy_all_outlined, size: 18),
+              tooltip: 'คัดลอกแผนงบ',
+              onPressed: () => _duplicateBudget(b),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              visualDensity: VisualDensity.compact,
+              color: colors.onSurfaceVariant,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
               tooltip: 'ลบ',
               onPressed: () => _confirmDelete(b),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
               visualDensity: VisualDensity.compact,
             ),
           ],
@@ -1019,7 +1049,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             if (_visibleColumns.contains('ผู้รับผิดชอบ')) const SizedBox(width: 110),
             if (_visibleColumns.contains('วงเงิน')) const SizedBox(width: 110),
             const SizedBox(width: 110),
-            const SizedBox(width: 40),
+            const SizedBox(width: 68),
           ],
         ),
       ),
@@ -1061,11 +1091,28 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: remainColor)),
                 ),
                 SizedBox(
-                  width: 40,
-                  child: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
-                    onPressed: () => _confirmDelete(b),
-                    visualDensity: VisualDensity.compact,
+                  width: 68,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.copy_all_outlined, size: 16),
+                        tooltip: 'คัดลอกแผนงบ',
+                        onPressed: () => _duplicateBudget(b),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        visualDensity: VisualDensity.compact,
+                        color: colors.onSurfaceVariant,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 16),
+                        tooltip: 'ลบ',
+                        onPressed: () => _confirmDelete(b),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
                   ),
                 ),
               ],

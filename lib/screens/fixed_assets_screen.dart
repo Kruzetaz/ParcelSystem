@@ -174,6 +174,26 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     }
   }
 
+  /// คัดลอกครุภัณฑ์เป็นรายการใหม่ทั้งชิ้น — เหมาะกับตอนซื้อของแบบเดียวกันหลายชิ้น
+  /// พร้อมกัน (เช่น โต๊ะ 10 ตัว) คัดลอกทุกช่องมาตรงๆ ไม่ล้างอะไรเลย เติมแค่
+  /// "(สำเนา)" ต่อชื่อ ให้ไปแก้เลขครุภัณฑ์/จำนวนเองทีหลัง — ไม่คัดลอกรูปถ่ายและ
+  /// ประวัติซ่อมแซม/โอนย้าย เพราะเป็นข้อมูลเฉพาะของชิ้นเดิมจริงๆ
+  Future<void> _duplicateAsset(FixedAsset a) async {
+    try {
+      final map = a.toMap();
+      map.remove('id');
+      map['name'] = '${a.name} (สำเนา)';
+      map['photo_path'] = null;
+      await _repo.insertFixedAsset(FixedAsset.fromMap(map));
+      if (!mounted) return;
+      showAppToast('คัดลอกครุภัณฑ์แล้ว');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('คัดลอกครุภัณฑ์ไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -517,7 +537,19 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                   label: const Text('จำหน่ายพัสดุ'),
                   style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
                 ),
-                IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent), onPressed: () => _confirmDelete(a)),
+                OutlinedButton.icon(
+                  onPressed: () => _duplicateAsset(a),
+                  icon: const Icon(Icons.copy_all_outlined, size: 16),
+                  label: const Text('คัดลอก'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                  tooltip: 'ลบ',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _confirmDelete(a),
+                ),
               ],
             ),
             const SizedBox(height: 16),

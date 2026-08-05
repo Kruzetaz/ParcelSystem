@@ -85,6 +85,27 @@ class _ContractsScreenState extends State<ContractsScreen> {
     }
   }
 
+  /// คัดลอกสัญญาเป็นรายการใหม่ — คัดลอกทุกช่องมาตรงๆ ไม่ล้างอะไรเลย เติมแค่
+  /// "(สำเนา)" ต่อเลขที่สัญญา ให้ไปแก้เองว่าช่องไหนต้องเปลี่ยน — **ไม่ผูกกับ
+  /// รายการจัดซื้อจัดจ้างเดิม** (order_id เป็นค่าว่าง) กันสัญญาสำเนาไปทับ/แย่ง
+  /// การ auto-sync ข้อมูลจากรายการเดิม (สัญญาแต่ละใบผูกกับ order ได้แค่ 1 ใบ)
+  Future<void> _duplicateContract(Contract c) async {
+    try {
+      final map = c.toMap();
+      map.remove('id');
+      map['order_id'] = null;
+      map['contract_number'] =
+          '${(c.contractNumber?.trim().isNotEmpty ?? false) ? c.contractNumber! : "(ไม่มีเลขที่)"} (สำเนา)';
+      await _repo.insertContract(Contract.fromMap(map));
+      if (!mounted) return;
+      showAppToast('คัดลอกสัญญาแล้ว');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('คัดลอกสัญญาไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
   Future<void> _exportWord(Contract c, ProcurementDocumentType type) async {
     final order = c.orderId != null ? _ordersById[c.orderId] : null;
     if (order == null) {
@@ -298,14 +319,16 @@ class _ContractsScreenState extends State<ContractsScreen> {
                           // ขอซื้อ/ขอจ้าง) ให้ทันทีในคลิกเดียว ไม่ต้องเลือกจากเมนู
                           IconButton(
                             icon: const Icon(Icons.visibility_outlined),
-                            iconSize: 20,
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                             visualDensity: VisualDensity.compact,
                             color: colors.onSurfaceVariant,
                             tooltip: 'ดูตัวอย่างเอกสาร',
                             onPressed: () => _exportWord(c, ProcurementDocumentType.contractOrderReport),
                           ),
                           PopupMenuButton<ProcurementDocumentType>(
-                            icon: Icon(Icons.description_outlined, color: colors.primary, size: 20),
+                            icon: Icon(Icons.description_outlined, color: colors.primary, size: 18),
                             tooltip: 'สร้างเอกสาร (เลือกประเภท)',
                             onSelected: _exportingId != null ? null : (type) => _exportWord(c, type),
                             itemBuilder: (_) => const [
@@ -332,8 +355,20 @@ class _ContractsScreenState extends State<ContractsScreen> {
               ],
               const SizedBox(width: 4),
               IconButton(
+                icon: const Icon(Icons.copy_all_outlined),
+                iconSize: 18,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                visualDensity: VisualDensity.compact,
+                color: colors.onSurfaceVariant,
+                tooltip: 'คัดลอกสัญญา',
+                onPressed: () => _duplicateContract(c),
+              ),
+              IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                iconSize: 20,
+                iconSize: 18,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                 visualDensity: VisualDensity.compact,
                 tooltip: 'ลบ',
                 onPressed: () => _confirmDelete(c),

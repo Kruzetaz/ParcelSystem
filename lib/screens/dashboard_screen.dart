@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 import '../data/procurement_repository.dart';
+import '../models/procurement_item.dart';
 import '../models/procurement_order.dart';
 import '../models/budget.dart';
 import '../models/school_settings.dart';
@@ -252,6 +253,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
       showAppToast('สร้างตัวอย่างเอกสารไม่สำเร็จ: $e', isError: true);
     } finally {
       if (mounted) setState(() => _previewingOrderId = null);
+    }
+  }
+
+  // กันกดปุ่ม "คัดลอกโครงการ" ซ้ำตอนกำลังคัดลอกอยู่ — เก็บ id รายการที่กำลังคัดลอก
+  int? _duplicatingOrderId;
+
+  /// คัดลอกโครงการทั้งใบ (รวมรายการพัสดุ) เป็นรายการใหม่แยกต่างหาก — คัดลอกทุก
+  /// ช่องมาตรงๆ ไม่ล้างอะไรทั้งสิ้น (รวมเลขที่เอกสาร/วันที่/สถานะ) ให้ผู้ใช้เป็น
+  /// คนแก้เองว่าช่องไหนต้องเปลี่ยน — เติมแค่ "(สำเนา)" ต่อชื่อโครงการกันสับสนกับ
+  /// ต้นฉบับเท่านั้น ไม่พาไปหน้าแก้ไขให้อัตโนมัติ ผู้ใช้กดเข้าไปเองตอนพร้อม
+  Future<void> _duplicateOrder(ProcurementOrder order) async {
+    if (order.id == null) return;
+    setState(() => _duplicatingOrderId = order.id);
+    try {
+      final items = await _repo.getItems(order.id!);
+
+      final map = order.toMap();
+      map.remove('id');
+      map['project_name'] =
+          '${(order.projectName?.trim().isNotEmpty ?? false) ? order.projectName! : "(ไม่มีชื่อโครงการ)"} (สำเนา)';
+      final duplicateOrder = ProcurementOrder.fromMap(map);
+      final duplicateItems = items
+          .map((it) => ProcurementItem(
+                itemName: it.itemName,
+                quantity: it.quantity,
+                unit: it.unit,
+                unitPrice: it.unitPrice,
+                totalPrice: it.totalPrice,
+              ))
+          .toList();
+
+      await _repo.saveOrderWithItems(duplicateOrder, duplicateItems);
+      if (!mounted) return;
+      showAppToast('คัดลอกโครงการแล้ว');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('คัดลอกโครงการไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _duplicatingOrderId = null);
     }
   }
 
@@ -1379,15 +1420,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (!_selectionMode) ...[
                       _previewingOrderId == order.id
                           ? const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              padding: EdgeInsets.symmetric(horizontal: 8),
                               child: SizedBox(
-                                width: 18, height: 18,
+                                width: 16, height: 16,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               ),
                             )
                           : IconButton(
                               icon: const Icon(Icons.visibility_outlined),
-                              iconSize: 20,
+                              iconSize: 18,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                               visualDensity: VisualDensity.compact,
                               color: colors.onSurfaceVariant,
                               tooltip: 'ดูตัวอย่างเอกสาร',
@@ -1395,15 +1438,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                       IconButton(
                         icon: const Icon(Icons.description_outlined),
-                        iconSize: 20,
+                        iconSize: 18,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                         visualDensity: VisualDensity.compact,
                         color: colors.onSurfaceVariant,
                         tooltip: 'สร้างเอกสาร',
                         onPressed: () => widget.onGenerateDocument(order),
                       ),
+                      _duplicatingOrderId == order.id
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: SizedBox(
+                                width: 16, height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : IconButton(
+                              icon: const Icon(Icons.copy_all_outlined),
+                              iconSize: 18,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                              visualDensity: VisualDensity.compact,
+                              color: colors.onSurfaceVariant,
+                              tooltip: 'คัดลอกโครงการ',
+                              onPressed: () => _duplicateOrder(order),
+                            ),
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                        iconSize: 20,
+                        iconSize: 18,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                         visualDensity: VisualDensity.compact,
                         tooltip: 'ลบ',
                         onPressed: () => _confirmDelete(order),
