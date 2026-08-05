@@ -95,6 +95,11 @@ class ItemsTableEditor extends StatefulWidget {
 class _ItemsTableEditorState extends State<ItemsTableEditor> {
   final List<_ItemRowControllers> _rows = [];
 
+  // โหมดเลือกหลายรายการ — เปิดแล้วคอลัมน์ "ลำดับ" จะกลายเป็น checkbox ให้ติ๊ก
+  // เลือกได้ทีละหลายแถว เพื่อลบพร้อมกันทีเดียว แทนการกดถังขยะทีละแถว
+  bool _selectionMode = false;
+  final Set<int> _selectedIndices = {};
+
   @override
   void initState() {
     super.initState();
@@ -178,6 +183,90 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
     _notifyChanged();
   }
 
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      _selectedIndices.clear();
+    });
+  }
+
+  void _toggleRowSelected(int index) {
+    setState(() {
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+      } else {
+        _selectedIndices.add(index);
+      }
+    });
+  }
+
+  void _toggleSelectAll() {
+    setState(() {
+      if (_selectedIndices.length == _rows.length) {
+        _selectedIndices.clear();
+      } else {
+        _selectedIndices
+          ..clear()
+          ..addAll(List.generate(_rows.length, (i) => i));
+      }
+    });
+  }
+
+  Future<bool> _confirmBulkDelete(String message) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('ยืนยันการลบ'),
+            content: Text(message),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('ลบ'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  /// ลบเฉพาะแถวที่ติ๊กเลือกไว้ — เหลืออย่างน้อย 1 แถวว่างเสมอถ้าลบจนหมด
+  Future<void> _deleteSelected() async {
+    if (_selectedIndices.isEmpty) return;
+    final confirmed = await _confirmBulkDelete('ต้องการลบ ${_selectedIndices.length} รายการที่เลือกไว้ใช่หรือไม่?');
+    if (!confirmed) return;
+    setState(() {
+      final sorted = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
+      for (final i in sorted) {
+        _rows[i].dispose();
+        _rows.removeAt(i);
+      }
+      if (_rows.isEmpty) _rows.add(_ItemRowControllers());
+      _selectedIndices.clear();
+      _selectionMode = false;
+    });
+    _notifyChanged();
+  }
+
+  /// ลบรายการทั้งหมดในตารางรวดเดียว ไม่ต้องเลือกทีละแถว — เหลือแถวว่างไว้ 1 แถว
+  Future<void> _deleteAllRows() async {
+    final hasContent = _rows.any((r) => r.itemName.text.trim().isNotEmpty);
+    if (!hasContent) return;
+    final confirmed = await _confirmBulkDelete('ต้องการลบรายการพัสดุทั้งหมด ${_rows.length} รายการใช่หรือไม่?');
+    if (!confirmed) return;
+    setState(() {
+      for (final r in _rows) {
+        r.dispose();
+      }
+      _rows.clear();
+      _rows.add(_ItemRowControllers());
+      _selectedIndices.clear();
+      _selectionMode = false;
+    });
+    _notifyChanged();
+  }
+
   double get _grandTotal =>
       _rows.fold<double>(0, (sum, r) => sum + (r.itemName.text.trim().isEmpty ? 0 : r.total));
 
@@ -187,6 +276,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _buildToolbarRow(colors),
+        const SizedBox(height: 6),
         _buildHeaderRow(colors),
         const Divider(height: 1),
         ListView.separated(
@@ -227,13 +318,61 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
     );
   }
 
+  /// แถบเครื่องมือเหนือตาราง — สลับโหมดเลือกหลายรายการ + ปุ่มลบที่เลือก/ลบทั้งหมด
+  Widget _buildToolbarRow(ColorScheme colors) {
+    final hasContent = _rows.any((r) => r.itemName.text.trim().isNotEmpty) || _rows.length > 1;
+    if (!_selectionMode) {
+      return Row(
+        children: [
+          TextButton.icon(
+            onPressed: _rows.isEmpty ? null : _toggleSelectionMode,
+            icon: const Icon(Icons.checklist_outlined, size: 18),
+            label: const Text('เลือกหลายรายการ'),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: hasContent ? _deleteAllRows : null,
+            icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.redAccent),
+            label: const Text('ลบทั้งหมด', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      );
+    }
+    final allSelected = _rows.isNotEmpty && _selectedIndices.length == _rows.length;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Checkbox(value: allSelected, onChanged: (_) => _toggleSelectAll()),
+          Text('เลือกแล้ว ${_selectedIndices.length} รายการ',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurfaceVariant)),
+          const Spacer(),
+          TextButton(
+            onPressed: _selectedIndices.isEmpty ? null : _deleteSelected,
+            child: const Text('ลบที่เลือก', style: TextStyle(color: Colors.redAccent)),
+          ),
+          TextButton(onPressed: _toggleSelectionMode, child: const Text('ยกเลิก')),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeaderRow(ColorScheme colors) {
     final style = TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: colors.onSurfaceVariant);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          SizedBox(width: 46, child: Text('ลำดับ', style: style, softWrap: false, overflow: TextOverflow.visible)),
+          SizedBox(
+            width: 46,
+            child: _selectionMode
+                ? Text('เลือก', style: style, softWrap: false, overflow: TextOverflow.visible)
+                : Text('ลำดับ', style: style, softWrap: false, overflow: TextOverflow.visible),
+          ),
           Expanded(flex: 4, child: Text('ชื่อรายการ', style: style)),
           SizedBox(width: 90, child: Text('จำนวน', style: style)),
           SizedBox(width: 80, child: Text('หน่วย', style: style)),
@@ -254,7 +393,12 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
         children: [
           SizedBox(
             width: 46,
-            child: Text('${index + 1}', style: TextStyle(color: colors.onSurfaceVariant)),
+            child: _selectionMode
+                ? Checkbox(
+                    value: _selectedIndices.contains(index),
+                    onChanged: (_) => _toggleRowSelected(index),
+                  )
+                : Text('${index + 1}', style: TextStyle(color: colors.onSurfaceVariant)),
           ),
           Expanded(
             flex: 4,
@@ -332,11 +476,13 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
           ),
           SizedBox(
             width: 40,
-            child: IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              tooltip: 'ลบรายการ',
-              onPressed: () => _removeRow(index),
-            ),
+            child: _selectionMode
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    tooltip: 'ลบรายการ',
+                    onPressed: () => _removeRow(index),
+                  ),
           ),
         ],
       ),
