@@ -94,6 +94,16 @@ class DocxTemplateService {
 
     String xml = utf8.decode(docFile.content as List<int>);
 
+    // STEP -1: แยก run ที่มีหลาย {{...}} ติดกันออกเป็นคนละ run — ป้องกันบั๊ก
+    // ที่เจอจริง: เปิด template ใน Word แล้วแก้ไข/บันทึกจุดอื่นที่ไม่เกี่ยวกันเลย
+    // Word จะ "ทำความสะอาด" เอกสารทุกครั้งที่ save โดยรวม run ที่ format
+    // เหมือนกันทุกอย่างเข้าด้วยกัน (เช่น marker เงื่อนไข 2 ตัวติดกันที่ font/ขนาด/
+    // ซ่อนไว้เหมือนกันทุกอย่าง) ทำให้ {{if:x}}{{endif:x}} ไปติดอยู่ใน <w:t>
+    // เดียวกัน แล้วตอนตัด marker ตัวหนึ่งออกจะพาอีกตัวที่แอบอยู่ใน run เดียวกัน
+    // หายไปด้วย — ขั้นตอนนี้แยกกลับให้เป็นคนละ run เสมอ ก่อนประมวลผลอะไรทั้งสิ้น
+    // ทำให้ไม่ต้องพึ่งว่า template ต้องคงสภาพเดิมเป๊ะๆ ตลอดไป
+    xml = _splitMergedMarkerRuns(xml);
+
     // STEP 0: Merge run ที่ถูก Word ตัดขาดกลาง {{placeholder}} — เฉพาะ
     // กลุ่ม run ที่จำเป็นจริงๆ เท่านั้น ไม่แตะ run อื่นในย่อหน้าเลย
     xml = _mergeSplitPlaceholderRuns(xml);
@@ -160,6 +170,33 @@ class DocxTemplateService {
 
   static String _sanitizeFilename(String input) {
     return input.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+  }
+
+  /// แยก run เดียวที่มีหลาย {{...}} ต่อกันแบบไม่มีข้อความอื่นคั่น (เช่น
+  /// "{{endif:a}}{{if:b}}") ออกเป็นคนละ run ต่อ marker หนึ่งตัว — คงค่า rPr
+  /// (font/ขนาด/ซ่อน) เดิมไว้ทุกตัว กันบั๊ก Word รวม run ที่ format เหมือนกัน
+  /// เข้าด้วยกันตอน save ทำให้ตัด marker ตัวเดียวแล้วพา marker ข้างเคียงหายไปด้วย
+  static String _splitMergedMarkerRuns(String xml) {
+    final runPattern = RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true);
+    return xml.replaceAllMapped(runPattern, (m) {
+      final run = m.group(0)!;
+      final tMatch = RegExp(r'<w:t[^>]*>(.*?)</w:t>', dotAll: true).firstMatch(run);
+      if (tMatch == null) return run;
+      final text = tMatch.group(1)!;
+      final tokens = RegExp(r'\{\{[^{}]+\}\}').allMatches(text).map((t) => t.group(0)!).toList();
+      // ต้องมีมากกว่า 1 marker และเนื้อหาทั้งหมดใน run นี้ประกอบด้วย marker
+      // ล้วนๆ ต่อกัน (ไม่มีข้อความอื่นแทรกอยู่) ถึงจะปลอดภัยที่จะแยก — ถ้ามี
+      // ข้อความอื่นปนอยู่ด้วย (เช่น "ก่อน {{a}}") ให้ข้ามไป ไม่ยุ่งกับมัน
+      if (tokens.length < 2 || tokens.join() != text) return run;
+
+      final rprMatch = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true).firstMatch(run);
+      final rpr = rprMatch?.group(0) ?? '';
+      final buffer = StringBuffer();
+      for (final token in tokens) {
+        buffer.write('<w:r>$rpr<w:t>$token</w:t></w:r>');
+      }
+      return buffer.toString();
+    });
   }
 
   /// รวมเฉพาะกลุ่ม <w:r> ที่ประกอบกันเป็น {{placeholder}} ที่ถูก Word ตัดขาด
