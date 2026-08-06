@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/contract.dart';
 import '../models/procurement_order.dart';
+import '../services/fiscal_year_controller.dart';
 import '../services/procurement_document_generator.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
@@ -38,11 +39,20 @@ class _ContractsScreenState extends State<ContractsScreen> {
   void initState() {
     super.initState();
     _load();
+    FiscalYearController.instance.addListener(_onFiscalYearChanged);
   }
+
+  @override
+  void dispose() {
+    FiscalYearController.instance.removeListener(_onFiscalYearChanged);
+    super.dispose();
+  }
+
+  void _onFiscalYearChanged() => _load();
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final contracts = await _repo.getAllContracts();
+    final contracts = await _repo.getAllContracts(fiscalYear: FiscalYearController.instance.viewingYear);
     final orders = await _repo.getAllOrders();
     if (!mounted) return;
     setState(() {

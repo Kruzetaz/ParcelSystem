@@ -163,8 +163,15 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                   Expanded(
                     child: _orders.isEmpty
                         ? Center(
-                            child: Text('ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ',
-                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15)),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.numbers_outlined, size: 64, color: colors.onSurfaceVariant),
+                                const SizedBox(height: 12),
+                                Text('ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ',
+                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15)),
+                              ],
+                            ),
                           )
                         : SingleChildScrollView(
                             child: Column(

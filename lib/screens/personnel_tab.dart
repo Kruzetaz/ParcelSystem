@@ -252,10 +252,17 @@ class _PersonnelTabState extends State<PersonnelTab> {
                     ? const Center(child: CircularProgressIndicator())
                     : _filtered.isEmpty
                         ? Center(
-                            child: Text(
-                              _people.isEmpty ? 'ยังไม่มีข้อมูลบุคลากร\nกด "เพิ่มบุคลากร" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ตรงกับคำค้นหา',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.badge_outlined, size: 64, color: colors.onSurfaceVariant),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _people.isEmpty ? 'ยังไม่มีข้อมูลบุคลากร\nกด "เพิ่มบุคลากร" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ตรงกับคำค้นหา',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                                ),
+                              ],
                             ),
                           )
                         : Column(

@@ -224,10 +224,17 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
                     ? const Center(child: CircularProgressIndicator())
                     : _filtered.isEmpty
                         ? Center(
-                            child: Text(
-                              _vendors.isEmpty ? 'ยังไม่มีข้อมูลร้านค้า\nกด "เพิ่มร้านค้า" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ตรงกับคำค้นหา',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.storefront_outlined, size: 64, color: colors.onSurfaceVariant),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _vendors.isEmpty ? 'ยังไม่มีข้อมูลร้านค้า\nกด "เพิ่มร้านค้า" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ตรงกับคำค้นหา',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                                ),
+                              ],
                             ),
                           )
                         : Column(

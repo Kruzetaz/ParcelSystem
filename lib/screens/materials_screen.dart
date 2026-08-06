@@ -347,10 +347,17 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                     Expanded(
                       child: _filtered.isEmpty
                           ? Center(
-                              child: Text(
-                                _materials.isEmpty ? 'ยังไม่มีวัสดุ\nกด "เพิ่มวัสดุ" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ค้นหา',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.inventory_outlined, size: 64, color: colors.onSurfaceVariant),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _materials.isEmpty ? 'ยังไม่มีวัสดุ\nกด "เพิ่มวัสดุ" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ค้นหา',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                  ),
+                                ],
                               ),
                             )
                           : (_viewMode == _MaterialViewMode.table ? _buildTable(colors) : _buildGrid(colors)),

@@ -17,6 +17,7 @@ import '../models/asset_event.dart';
 import '../models/asset_repair_entry.dart';
 import '../models/material_item.dart';
 import '../models/material_transaction.dart';
+import '../models/procurement_installment.dart';
 import '../models/annual_count.dart';
 import '../models/disposal.dart';
 import '../models/audit_log_entry.dart';
@@ -236,9 +237,22 @@ class ProcurementRepository {
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'TOR/คุณลักษณะเฉพาะ', description: doc.title);
   }
 
-  Future<List<TorDocument>> getAllTorDocuments() async {
+  /// [fiscalYear] กรองเฉพาะ TOR ที่ผูกกับโครงการของปีงบนั้น (join ผ่าน
+  /// order_id) — TOR ที่ยังไม่ได้ผูกกับโครงการเลย (order_id ว่าง เช่น ร่าง TOR
+  /// ที่สร้างไว้ก่อนเลือกโครงการ) จะ "โชว์เสมอทุกปีงบ" ไม่ถูกกรองออก เพราะยัง
+  /// ไม่ได้เป็นของปีไหนเป็นพิเศษ ซ่อนไปจะทำของหายจากสายตาโดยไม่มีเหตุผล
+  Future<List<TorDocument>> getAllTorDocuments({String? fiscalYear}) async {
     final db = await _db.database;
-    final rows = await db.query('tor_documents', orderBy: 'id DESC');
+    if (fiscalYear == null) {
+      final rows = await db.query('tor_documents', orderBy: 'id DESC');
+      return rows.map(TorDocument.fromMap).toList();
+    }
+    final rows = await db.rawQuery('''
+      SELECT t.* FROM tor_documents t
+      LEFT JOIN procurement_orders o ON t.order_id = o.id
+      WHERE t.order_id IS NULL OR o.fiscal_year = ?
+      ORDER BY t.id DESC
+    ''', [fiscalYear]);
     return rows.map(TorDocument.fromMap).toList();
   }
 
@@ -290,9 +304,21 @@ class ProcurementRepository {
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'บริหารสัญญา', description: contract.contractNumber ?? 'สัญญา #${contract.id}');
   }
 
-  Future<List<Contract>> getAllContracts() async {
+  /// [fiscalYear] กรองเฉพาะสัญญาที่ผูกกับโครงการของปีงบนั้น — สัญญาที่ยังไม่ได้
+  /// ผูกโครงการ (order_id ว่าง) โชว์เสมอทุกปีงบเหมือนกัน (ดูเหตุผลเดียวกับ
+  /// getAllTorDocuments ด้านบน)
+  Future<List<Contract>> getAllContracts({String? fiscalYear}) async {
     final db = await _db.database;
-    final rows = await db.query('contracts', orderBy: 'id DESC');
+    if (fiscalYear == null) {
+      final rows = await db.query('contracts', orderBy: 'id DESC');
+      return rows.map(Contract.fromMap).toList();
+    }
+    final rows = await db.rawQuery('''
+      SELECT c.* FROM contracts c
+      LEFT JOIN procurement_orders o ON c.order_id = o.id
+      WHERE c.order_id IS NULL OR o.fiscal_year = ?
+      ORDER BY c.id DESC
+    ''', [fiscalYear]);
     return rows.map(Contract.fromMap).toList();
   }
 
@@ -319,9 +345,22 @@ class ProcurementRepository {
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'หลักประกัน', description: g.counterpartyName ?? 'หลักประกัน #${g.id}');
   }
 
-  Future<List<Guarantee>> getAllGuarantees() async {
+  /// [fiscalYear] กรองผ่านสัญญา → โครงการ (guarantees ไม่มี order_id ตรงๆ
+  /// ต้อง join ผ่าน contracts อีกที) — หลักประกันที่ยังไม่ได้ผูกสัญญา หรือผูก
+  /// สัญญาที่ยังไม่ได้ผูกโครงการ โชว์เสมอทุกปีงบเหมือนกัน
+  Future<List<Guarantee>> getAllGuarantees({String? fiscalYear}) async {
     final db = await _db.database;
-    final rows = await db.query('guarantees', orderBy: 'id DESC');
+    if (fiscalYear == null) {
+      final rows = await db.query('guarantees', orderBy: 'id DESC');
+      return rows.map(Guarantee.fromMap).toList();
+    }
+    final rows = await db.rawQuery('''
+      SELECT g.* FROM guarantees g
+      LEFT JOIN contracts c ON g.contract_id = c.id
+      LEFT JOIN procurement_orders o ON c.order_id = o.id
+      WHERE g.contract_id IS NULL OR c.order_id IS NULL OR o.fiscal_year = ?
+      ORDER BY g.id DESC
+    ''', [fiscalYear]);
     return rows.map(Guarantee.fromMap).toList();
   }
 
@@ -348,9 +387,20 @@ class ProcurementRepository {
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ตรวจรับพัสดุ', description: i.inspectionNumber ?? 'ตรวจรับ #${i.id}');
   }
 
-  Future<List<Inspection>> getAllInspections() async {
+  /// [fiscalYear] กรองเฉพาะรายการตรวจรับที่ผูกกับโครงการของปีงบนั้น — รายการ
+  /// ที่ยังไม่ได้ผูกโครงการ (order_id ว่าง) โชว์เสมอทุกปีงบเหมือนกัน
+  Future<List<Inspection>> getAllInspections({String? fiscalYear}) async {
     final db = await _db.database;
-    final rows = await db.query('inspections', orderBy: 'id DESC');
+    if (fiscalYear == null) {
+      final rows = await db.query('inspections', orderBy: 'id DESC');
+      return rows.map(Inspection.fromMap).toList();
+    }
+    final rows = await db.rawQuery('''
+      SELECT i.* FROM inspections i
+      LEFT JOIN procurement_orders o ON i.order_id = o.id
+      WHERE i.order_id IS NULL OR o.fiscal_year = ?
+      ORDER BY i.id DESC
+    ''', [fiscalYear]);
     return rows.map(Inspection.fromMap).toList();
   }
 
@@ -588,11 +638,103 @@ class ProcurementRepository {
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'จัดซื้อจัดจ้าง', description: order.projectName ?? 'เอกสาร #${order.id}');
   }
 
-  /// ดึงออร์เดอร์ทั้งหมด (สำหรับ Dashboard) เรียงล่าสุดขึ้นก่อน
-  Future<List<ProcurementOrder>> getAllOrders() async {
+  /// ดึงออร์เดอร์ทั้งหมด (สำหรับ Dashboard) เรียงล่าสุดขึ้นก่อน — ใส่
+  /// [fiscalYear] เพื่อกรองเฉพาะปีงบนั้น (ใช้กับฟีเจอร์สลับดูปีงบเก่า) ไม่ใส่
+  /// ก็ได้ตามปกติเพื่อดึงมาทั้งหมดทุกปี (เช่น ตอนค้นหาข้ามปี)
+  Future<List<ProcurementOrder>> getAllOrders({String? fiscalYear}) async {
     final db = await _db.database;
-    final rows = await db.query('procurement_orders', orderBy: 'id DESC');
+    final rows = await db.query(
+      'procurement_orders',
+      where: fiscalYear != null ? 'fiscal_year = ?' : null,
+      whereArgs: fiscalYear != null ? [fiscalYear] : null,
+      orderBy: 'id DESC',
+    );
     return rows.map(ProcurementOrder.fromMap).toList();
+  }
+
+  /// รายชื่อปีงบประมาณที่มีโครงการอยู่จริงในระบบ (distinct, เรียงใหม่ไปเก่า) —
+  /// ใช้ทำ dropdown สลับปีงบใน AppBar ให้เห็นเฉพาะปีที่มีข้อมูลจริงเท่านั้น
+  /// (บวกปีงบปัจจุบันเสมอ แม้ยังไม่มีข้อมูลเลยก็ตาม — ทำที่ฝั่ง UI แยกอีกที)
+  Future<List<String>> getDistinctOrderFiscalYears() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      "SELECT DISTINCT fiscal_year FROM procurement_orders "
+      "WHERE fiscal_year IS NOT NULL AND fiscal_year != '' "
+      "ORDER BY fiscal_year DESC",
+    );
+    return rows.map((r) => r['fiscal_year'] as String).toList();
+  }
+
+  /// รวมปีงบที่มีข้อมูลจริงจากทั้ง "โครงการ" และ "แผนงบประมาณ" — ปีที่เพิ่งตั้ง
+  /// แผนงบไว้ล่วงหน้าแต่ยังไม่มีโครงการ/จัดซื้อเลย (เช่น เพิ่งเริ่มวางแผนปีงบ
+  /// ถัดไป) ก็ยังต้องโผล่เป็นตัวเลือกให้สลับกลับมาดูได้ ไม่ใช่แค่ปีที่มีการ
+  /// จัดซื้อจริงแล้วเท่านั้น
+  Future<List<String>> getDistinctFiscalYears() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      "SELECT DISTINCT fiscal_year FROM procurement_orders WHERE fiscal_year IS NOT NULL AND fiscal_year != '' "
+      "UNION "
+      "SELECT DISTINCT fiscal_year FROM budgets WHERE fiscal_year IS NOT NULL AND fiscal_year != '' "
+      "ORDER BY fiscal_year DESC",
+    );
+    return rows.map((r) => r['fiscal_year'] as String).toList();
+  }
+
+  /// นับจำนวนโครงการ/แผนงบที่ผูกกับปีงบนี้ — ใช้โชว์ในกล่องยืนยันก่อนลบ/แก้ไข
+  /// ปีงบ ให้ผู้ใช้เห็นตัวเลขจริงว่ากระทบกี่รายการก่อนกดยืนยัน
+  Future<({int orderCount, int budgetCount})> countFiscalYearData(String year) async {
+    final db = await _db.database;
+    final orderRows = await db.rawQuery(
+      'SELECT COUNT(*) as c FROM procurement_orders WHERE fiscal_year = ?',
+      [year],
+    );
+    final budgetRows = await db.rawQuery(
+      'SELECT COUNT(*) as c FROM budgets WHERE fiscal_year = ?',
+      [year],
+    );
+    return (
+      orderCount: (orderRows.first['c'] as int?) ?? 0,
+      budgetCount: (budgetRows.first['c'] as int?) ?? 0,
+    );
+  }
+
+  /// เปลี่ยนเลขปีงบของ "โครงการ" และ "แผนงบ" ทั้งหมดที่ติดอยู่กับปีเก่า ไปเป็น
+  /// ปีใหม่ — ใช้แก้ตอนพิมพ์ปีงบผิด (เช่น ตั้งใจ 2570 แต่พิมพ์เป็น 2571) โดยไม่
+  /// ต้องลบแล้วสร้างใหม่ทุกรายการ ขอบเขตจงใจแค่ 2 ตารางนี้ (ไม่แตะ
+  /// annual_counts ซึ่งเป็นคนละฟีเจอร์ — ตรวจนับพัสดุประจำปี ไม่เกี่ยวกับ
+  /// ตัวสลับปีงบดูโครงการ/แผนงบตัวนี้)
+  Future<void> renameFiscalYear(String oldYear, String newYear) async {
+    final db = await _db.database;
+    await db.transaction((txn) async {
+      await txn.update('procurement_orders', {'fiscal_year': newYear}, where: 'fiscal_year = ?', whereArgs: [oldYear]);
+      await txn.update('budgets', {'fiscal_year': newYear}, where: 'fiscal_year = ?', whereArgs: [oldYear]);
+    });
+    await AuditService.instance.log(
+      db,
+      action: 'แก้ไข',
+      tableLabel: 'ปีงบประมาณ',
+      description: 'เปลี่ยนปีงบ $oldYear เป็น $newYear (ทุกโครงการ/แผนงบที่เกี่ยวข้อง)',
+    );
+  }
+
+  /// ลบโครงการ + แผนงบทั้งหมดของปีงบนี้ทิ้งถาวร — ใช้ deleteOrder() รายตัวแทน
+  /// DELETE ตรงๆ เพราะ deleteOrder() จัดการเลิกผูก contracts/inspections/
+  /// tor_documents ที่เชื่อมกับ order_id ไว้ให้ก่อนแล้ว (กัน FOREIGN KEY
+  /// constraint บล็อกการลบเงียบๆ) ขอบเขตเหมือน renameFiscalYear คือไม่แตะ
+  /// annual_counts
+  Future<void> deleteFiscalYear(String year) async {
+    final db = await _db.database;
+    final orderRows = await db.query('procurement_orders', columns: ['id'], where: 'fiscal_year = ?', whereArgs: [year]);
+    for (final row in orderRows) {
+      await deleteOrder(row['id'] as int);
+    }
+    await db.delete('budgets', where: 'fiscal_year = ?', whereArgs: [year]);
+    await AuditService.instance.log(
+      db,
+      action: 'ลบ',
+      tableLabel: 'ปีงบประมาณ',
+      description: 'ลบปีงบ $year ทั้งหมด (${orderRows.length} โครงการ)',
+    );
   }
 
   Future<ProcurementOrder?> getOrder(int id) async {
@@ -608,13 +750,24 @@ class ProcurementRepository {
   }
 
   /// ค้นหาออร์เดอร์จากเลขที่/ชื่อโครงการ/ชื่อร้านค้า
-  Future<List<ProcurementOrder>> searchOrders(String query) async {
+  Future<List<ProcurementOrder>> searchOrders(String query, {String? fiscalYear}) async {
     final db = await _db.database;
+    // วงเล็บรอบเงื่อนไข OR ทั้งหมด — ถ้าไม่ครอบไว้ SQL จะตีความ AND ท้ายสุด
+    // (fiscal_year = ?) ผูกกับแค่เงื่อนไข OR ตัวสุดท้าย (vendor_name) เท่านั้น
+    // ตาม operator precedence ปกติของ SQL (AND แน่นกว่า OR) ทำให้กรองปีงบ
+    // ไม่ครบทุกเงื่อนไขค้นหา
+    final where = StringBuffer(
+      '(procurement_number LIKE ? OR order_number LIKE ? OR project_name LIKE ? OR activity_name LIKE ? OR vendor_name LIKE ?)',
+    );
+    final whereArgs = List<Object?>.filled(5, '%$query%');
+    if (fiscalYear != null) {
+      where.write(' AND fiscal_year = ?');
+      whereArgs.add(fiscalYear);
+    }
     final rows = await db.query(
       'procurement_orders',
-      where:
-          'procurement_number LIKE ? OR order_number LIKE ? OR project_name LIKE ? OR activity_name LIKE ? OR vendor_name LIKE ?',
-      whereArgs: List.filled(5, '%$query%'),
+      where: where.toString(),
+      whereArgs: whereArgs,
       orderBy: 'id DESC',
     );
     return rows.map(ProcurementOrder.fromMap).toList();
@@ -946,5 +1099,88 @@ class ProcurementRepository {
     }
 
     return entries;
+  }
+
+  // ─────────────────────────────────────────
+  // PROCUREMENT INSTALLMENTS (งวดการเบิกจ่าย — สัญญาต่อเนื่องหลายเดือน
+  // เช่น จ้างเหมาประกอบอาหารกลางวัน)
+  // ─────────────────────────────────────────
+
+  Future<List<ProcurementInstallment>> getInstallments(int orderId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'procurement_installments',
+      where: 'order_id = ?',
+      whereArgs: [orderId],
+      orderBy: 'period_no ASC',
+    );
+    return rows.map(ProcurementInstallment.fromMap).toList();
+  }
+
+  /// รายชื่อ order ที่เป็น "สัญญาต่อเนื่องหลายเดือน" — ใช้แสดงในหน้า
+  /// "สัญญาต่อเนื่อง/อาหารกลางวัน" แยกต่างหากจาก order ปกติ นับทั้ง order
+  /// ที่ติ๊กธง is_recurring_contract ไว้ (ทางหลัก) และ order ที่มีงวดการ
+  /// เบิกจ่ายอยู่แล้วแต่ยังไม่ได้ติ๊กธง (กันข้อมูลเก่าก่อนมีธงนี้ตกหล่น)
+  Future<List<ProcurementOrder>> getRecurringContractOrders() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT id FROM procurement_orders WHERE is_recurring_contract = 1
+      UNION
+      SELECT DISTINCT order_id AS id FROM procurement_installments
+      ORDER BY id DESC
+    ''');
+    final orders = <ProcurementOrder>[];
+    for (final row in rows) {
+      final orderId = row['id'] as int;
+      final orderRows = await db.query('procurement_orders', where: 'id = ?', whereArgs: [orderId]);
+      if (orderRows.isNotEmpty) orders.add(ProcurementOrder.fromMap(orderRows.first));
+    }
+    return orders;
+  }
+
+  Future<int> saveInstallment(ProcurementInstallment installment) async {
+    final db = await _db.database;
+    if (installment.id == null) {
+      final id = await db.insert('procurement_installments', installment.toMap());
+      await AuditService.instance.log(
+        db,
+        action: 'สร้าง',
+        tableLabel: 'งวดการเบิกจ่าย',
+        description: 'งวดที่ ${installment.periodNo} (order #${installment.orderId})',
+      );
+      return id;
+    } else {
+      await db.update(
+        'procurement_installments',
+        installment.toMap(),
+        where: 'id = ?',
+        whereArgs: [installment.id],
+      );
+      await AuditService.instance.log(
+        db,
+        action: 'แก้ไข',
+        tableLabel: 'งวดการเบิกจ่าย',
+        description: 'งวดที่ ${installment.periodNo} (order #${installment.orderId})',
+      );
+      return installment.id!;
+    }
+  }
+
+  Future<void> deleteInstallment(int id) async {
+    final db = await _db.database;
+    await db.delete('procurement_installments', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'งวดการเบิกจ่าย', description: 'งวด #$id');
+  }
+
+  /// ตั้ง/ถอนธง "สัญญาต่อเนื่องหลายเดือน" ให้ order ที่มีอยู่แล้วโดยตรง
+  /// (ไม่ต้องเปิด wizard ทั้งหน้าแค่เพื่อแก้ค่านี้ค่าเดียว)
+  Future<void> setRecurringContractFlag(int orderId, bool value) async {
+    final db = await _db.database;
+    await db.update(
+      'procurement_orders',
+      {'is_recurring_contract': value ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
   }
 }

@@ -53,6 +53,7 @@ class ProcurementOrder {
   final String? vendorProvince;
   final String? vendorPhone;
   final String? vendorTaxId;
+  final String? vendorPostalCode;
 
   // ข้อมูลเอกสารหลักฐานที่ใช้ส่งมอบเพื่อการตรวจรับ (เพิ่มใหม่ปี 2026)
   final String? deliveryDocType;    // {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
@@ -94,6 +95,10 @@ class ProcurementOrder {
   final double progressPercent;
   final String currentStatus; // 'DRAFT' | 'COMPLETED'
 
+  // สัญญาแบบต่อเนื่องหลายเดือน (เช่น อาหารกลางวัน) — ตั้งได้จาก Tab 1 ของ
+  // wizard แล้วไปโผล่อัตโนมัติในหน้า "สัญญาต่อเนื่อง/อาหารกลางวัน"
+  final bool isRecurringContract;
+
   const ProcurementOrder({
     this.id,
     this.budgetId,
@@ -134,6 +139,7 @@ class ProcurementOrder {
     this.vendorProvince,
     this.vendorPhone,
     this.vendorTaxId,
+    this.vendorPostalCode,
     this.deliveryDocType,
     this.deliveryDocNumber,
     this.currentOrderPrice,
@@ -163,6 +169,7 @@ class ProcurementOrder {
     this.dateDisbursement,
     this.progressPercent = 0.0,
     this.currentStatus = 'DRAFT',
+    this.isRecurringContract = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -205,6 +212,7 @@ class ProcurementOrder {
         'vendor_province': vendorProvince,
         'vendor_phone': vendorPhone,
         'vendor_tax_id': vendorTaxId,
+        'vendor_postal_code': vendorPostalCode,
         'delivery_doc_type': deliveryDocType,
         'delivery_doc_number': deliveryDocNumber,
         'current_order_price': currentOrderPrice,
@@ -234,6 +242,7 @@ class ProcurementOrder {
         'date_disbursement': dateDisbursement,
         'progress_percent': progressPercent,
         'current_status': currentStatus,
+        'is_recurring_contract': isRecurringContract ? 1 : 0,
       };
 
   factory ProcurementOrder.fromMap(Map<String, dynamic> m) => ProcurementOrder(
@@ -276,6 +285,7 @@ class ProcurementOrder {
         vendorProvince: m['vendor_province'] as String?,
         vendorPhone: m['vendor_phone'] as String?,
         vendorTaxId: m['vendor_tax_id'] as String?,
+        vendorPostalCode: m['vendor_postal_code'] as String?,
         deliveryDocType: m['delivery_doc_type'] as String?,
         deliveryDocNumber: m['delivery_doc_number'] as String?,
         currentOrderPrice: (m['current_order_price'] as num?)?.toDouble(),
@@ -305,6 +315,7 @@ class ProcurementOrder {
         dateDisbursement: m['date_disbursement'] as String?,
         progressPercent: (m['progress_percent'] as num?)?.toDouble() ?? 0.0,
         currentStatus: m['current_status'] as String? ?? 'DRAFT',
+        isRecurringContract: (m['is_recurring_contract'] as int? ?? 0) == 1,
       );
 
   ProcurementOrder copyWith({
@@ -347,6 +358,7 @@ class ProcurementOrder {
     String? vendorProvince,
     String? vendorPhone,
     String? vendorTaxId,
+    String? vendorPostalCode,
     String? deliveryDocType,
     String? deliveryDocNumber,
     double? currentOrderPrice,
@@ -376,6 +388,7 @@ class ProcurementOrder {
     String? dateDisbursement,
     double? progressPercent,
     String? currentStatus,
+    bool? isRecurringContract,
   }) {
     return ProcurementOrder(
       id: id ?? this.id,
@@ -417,6 +430,7 @@ class ProcurementOrder {
       vendorProvince: vendorProvince ?? this.vendorProvince,
       vendorPhone: vendorPhone ?? this.vendorPhone,
       vendorTaxId: vendorTaxId ?? this.vendorTaxId,
+      vendorPostalCode: vendorPostalCode ?? this.vendorPostalCode,
       deliveryDocType: deliveryDocType ?? this.deliveryDocType,
       deliveryDocNumber: deliveryDocNumber ?? this.deliveryDocNumber,
       currentOrderPrice: currentOrderPrice ?? this.currentOrderPrice,
@@ -446,6 +460,7 @@ class ProcurementOrder {
       dateDisbursement: dateDisbursement ?? this.dateDisbursement,
       progressPercent: progressPercent ?? this.progressPercent,
       currentStatus: currentStatus ?? this.currentStatus,
+      isRecurringContract: isRecurringContract ?? this.isRecurringContract,
     );
   }
 }
@@ -470,3 +485,26 @@ String procurementMethodForAmount(double amount) {
   if (amount <= 500000) return 'เฉพาะเจาะจง';
   return 'ประกาศเชิญชวนทั่วไป (e-bidding)';
 }
+
+/// ตัวเลือกวิธี/ระเบียบการจัดซื้อจัดจ้าง ที่แสดงใน Dropdown ของ Wizard
+/// ตอนนี้เปิดใช้งานจริงเฉพาะ 'เฉพาะเจาะจง' (ค่า default เดิมของระบบ) เพราะ
+/// ต้องรอยืนยันถ้อยคำ/เลขหนังสือเวียนที่ถูกต้องจากผู้ใช้ก่อนต่อเข้ากับเอกสารจริง
+/// — ตัวเลือกอื่นแสดงไว้เป็น "เร็วๆ นี้" (ปิดกดไม่ได้) เพื่อให้เห็นแผนล่วงหน้า
+class ProcurementMethodOption {
+  final String value;
+  final String label;
+  final bool enabled;
+  const ProcurementMethodOption(this.value, this.label, {this.enabled = true});
+}
+
+const procurementMethodOptions = [
+  ProcurementMethodOption('เฉพาะเจาะจง', 'ปกติ (เฉพาะเจาะจง)'),
+  ProcurementMethodOption('ย้อนหลัง', 'ย้อนหลัง', enabled: false),
+  ProcurementMethodOption('ว.804', 'ว.804 (ไม่เกิน 50,000 บาท)', enabled: false),
+  ProcurementMethodOption(
+    'เร่งด่วน ข้อ 79 วรรค 2',
+    'จำเป็นเร่งด่วน ข้อ 79 วรรค 2',
+    enabled: false,
+  ),
+  ProcurementMethodOption('ว.119', 'ว.119', enabled: false),
+];

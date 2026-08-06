@@ -17,7 +17,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 27;
+  static const int _version = 30;
 
   Database? _db;
 
@@ -440,6 +440,47 @@ class AppDatabase {
             ''');
           } catch (_) {}
         }
+        if (oldVersion < 28) {
+          // งวดการเบิกจ่ายสำหรับสัญญาแบบต่อเนื่องหลายเดือน (เช่น จ้างเหมา
+          // ประกอบอาหารกลางวัน) — 1 order สร้างชุดเอกสารซ้ำได้หลายงวด
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS procurement_installments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                period_no INTEGER NOT NULL,
+                period_label TEXT,
+                amount REAL,
+                amount_th TEXT,
+                date_delivery TEXT,
+                date_inspection TEXT,
+                date_disbursement TEXT,
+                inspection_result TEXT,
+                has_penalty INTEGER NOT NULL DEFAULT 0,
+                penalty_amount REAL,
+                control_number_inspection TEXT,
+                FOREIGN KEY (order_id) REFERENCES procurement_orders(id) ON DELETE CASCADE
+              )
+            ''');
+          } catch (_) {}
+        }
+        if (oldVersion < 29) {
+          // ธงบอกว่าโครงการนี้เป็น "สัญญาต่อเนื่องหลายเดือน" (เช่น อาหาร
+          // กลางวัน) — ตั้งจาก Tab 1 ของ wizard แล้วให้ไปโผล่อัตโนมัติในหน้า
+          // "สัญญาต่อเนื่อง/อาหารกลางวัน" โดยไม่ต้องมาเลือกเพิ่มเองอีกที
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders ADD COLUMN is_recurring_contract INTEGER NOT NULL DEFAULT 0',
+            );
+          } catch (_) {}
+        }
+        if (oldVersion < 30) {
+          // รหัสไปรษณีย์ของผู้ขาย/ผู้รับจ้าง — ต้องใช้ในใบสำคัญรับเงินบางแบบ
+          // (ที่อยู่แบบเต็มรวมรหัสไปรษณีย์) แต่เดิมไม่มีเก็บไว้ที่ order เลย
+          try {
+            await db.execute('ALTER TABLE procurement_orders ADD COLUMN vendor_postal_code TEXT');
+          } catch (_) {}
+        }
       },
     );
   }
@@ -554,6 +595,7 @@ class AppDatabase {
         vendor_province TEXT,
         vendor_phone TEXT,
         vendor_tax_id TEXT,
+        vendor_postal_code TEXT,
 
         -- ข้อมูลเอกสารหลักฐานที่ใช้ส่งมอบเพื่อการตรวจรับ (เพิ่มใหม่ปี 2026)
         delivery_doc_type TEXT,    -- {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
@@ -591,6 +633,10 @@ class AppDatabase {
         progress_percent REAL DEFAULT 0.0,
         current_status TEXT DEFAULT 'DRAFT' CHECK(current_status IN ('DRAFT', 'COMPLETED')),
 
+        -- สัญญาแบบต่อเนื่องหลายเดือน (เช่น อาหารกลางวัน) — ตั้งได้จาก Tab 1
+        -- ของ wizard แล้วไปโผล่อัตโนมัติในหน้า "สัญญาต่อเนื่อง/อาหารกลางวัน"
+        is_recurring_contract INTEGER NOT NULL DEFAULT 0,
+
         FOREIGN KEY (budget_id) REFERENCES budgets(id)
       )
     ''');
@@ -605,6 +651,29 @@ class AppDatabase {
         unit TEXT,
         unit_price REAL NOT NULL,
         total_price REAL NOT NULL,
+        FOREIGN KEY (order_id) REFERENCES procurement_orders(id) ON DELETE CASCADE
+      )
+    ''');
+
+    // ── ตารางงวดการเบิกจ่าย (สำหรับสัญญาแบบต่อเนื่องหลายเดือน เช่น
+    //    จ้างเหมาประกอบอาหารกลางวัน) — 1 order มีได้หลายงวด แต่ละงวดสร้าง
+    //    ชุดเอกสาร ใบส่งมอบงาน/ใบตรวจรับพัสดุ/บันทึกเบิกจ่าย/ใบสำคัญรับเงิน
+    //    แยกกัน โดยใช้จำนวนเงิน+วันที่ของงวดนั้นแทนยอดรวมทั้งสัญญา
+    await db.execute('''
+      CREATE TABLE procurement_installments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        period_no INTEGER NOT NULL,
+        period_label TEXT,
+        amount REAL,
+        amount_th TEXT,
+        date_delivery TEXT,
+        date_inspection TEXT,
+        date_disbursement TEXT,
+        inspection_result TEXT,
+        has_penalty INTEGER NOT NULL DEFAULT 0,
+        penalty_amount REAL,
+        control_number_inspection TEXT,
         FOREIGN KEY (order_id) REFERENCES procurement_orders(id) ON DELETE CASCADE
       )
     ''');

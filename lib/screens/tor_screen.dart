@@ -7,6 +7,7 @@ import '../data/procurement_repository.dart';
 import '../models/procurement_order.dart';
 import '../models/tor_document.dart';
 import '../models/tor_template.dart';
+import '../services/fiscal_year_controller.dart';
 import '../services/tor_document_generator.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
@@ -41,11 +42,20 @@ class _TorScreenState extends State<TorScreen> {
   void initState() {
     super.initState();
     _load();
+    FiscalYearController.instance.addListener(_onFiscalYearChanged);
   }
+
+  @override
+  void dispose() {
+    FiscalYearController.instance.removeListener(_onFiscalYearChanged);
+    super.dispose();
+  }
+
+  void _onFiscalYearChanged() => _load();
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final list = await _repo.getAllTorDocuments();
+    final list = await _repo.getAllTorDocuments(fiscalYear: FiscalYearController.instance.viewingYear);
     final orders = await _repo.getAllOrders();
     if (!mounted) return;
     setState(() {

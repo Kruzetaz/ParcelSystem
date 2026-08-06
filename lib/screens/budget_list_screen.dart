@@ -12,6 +12,7 @@ import '../data/procurement_repository.dart';
 import '../models/budget.dart';
 import '../models/work_group.dart';
 import '../services/budget_import_service.dart';
+import '../services/fiscal_year_controller.dart';
 import '../services/toast_service.dart';
 import '../widgets/budget_import_dialog.dart';
 import '../utils/money_format.dart';
@@ -72,18 +73,23 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     _searchCtrl.addListener(() {
       setState(() => _searchQuery = _searchCtrl.text.trim());
     });
+    // สลับปีงบที่ AppBar ต้องทำให้หน้านี้โหลดใหม่ตามปีที่เลือกด้วยเช่นกัน
+    FiscalYearController.instance.addListener(_onFiscalYearChanged);
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     _bulkPersonCtrl.dispose();
+    FiscalYearController.instance.removeListener(_onFiscalYearChanged);
     super.dispose();
   }
 
+  void _onFiscalYearChanged() => _load();
+
   Future<void> _load() async {
     setState(() => _loading = true);
-    final list = await _repo.getAllBudgets();
+    final list = await _repo.getAllBudgets(fiscalYear: FiscalYearController.instance.viewingYear);
     final groups = await _repo.getAllWorkGroups(activeOnly: true);
     if (!mounted) return;
     setState(() {
@@ -563,6 +569,38 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   bool get _hasActiveFilter =>
       _searchQuery.isNotEmpty || _selectedDepartment != null || _selectedProject != null;
 
+  /// แบนเนอร์เตือนสั้นๆ ตอนกำลังดูปีงบเก่าอยู่ — ใช้ตัวย่อกว่า Dashboard เพราะ
+  /// หน้านี้เข้าถึงได้ตรงจาก sidebar ไม่ได้ผ่าน Dashboard เสมอไป กันสับสน
+  Widget _buildOldYearNotice(ColorScheme colors) {
+    final fy = FiscalYearController.instance;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            fy.isViewingFutureYear ? Icons.event_note_outlined : Icons.history_outlined,
+            size: 18,
+            color: Colors.amber.shade800,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              fy.isViewingFutureYear
+                  ? 'กำลังวางแผนงบปีงบ ${fy.viewingYear} ล่วงหน้า (ยังไม่ถึงปีนี้จริง) — สลับกลับปีปัจจุบันได้ที่ป้ายปีงบมุมขวาบน'
+                  : 'กำลังดูแผนงบปีงบ ${fy.viewingYear} (ปีเก่า) — สลับกลับปีปัจจุบันได้ที่ป้ายปีงบมุมขวาบน',
+              style: TextStyle(fontSize: 12.5, color: Colors.amber.shade900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -590,6 +628,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (!FiscalYearController.instance.isViewingCurrentYear) ...[
+                    _buildOldYearNotice(colors),
+                    const SizedBox(height: 12),
+                  ],
                   _buildFilterBar(colors),
                   const SizedBox(height: 12),
                   Wrap(
@@ -1150,7 +1192,9 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
   void initState() {
     super.initState();
     final b = widget.existing;
-    _fiscalYear = TextEditingController(text: b?.fiscalYear ?? '');
+    // เพิ่มใหม่ (ไม่มี existing) — เติมปีงบที่กำลังดูอยู่ให้เลย กันพิมพ์ผิด/ลืม
+    // กรอก (เช่น ตอนสลับไปวางแผนปีงบถัดไปล่วงหน้าไว้แล้ว ก็ควรลงเป็นปีนั้นเลย)
+    _fiscalYear = TextEditingController(text: b?.fiscalYear ?? FiscalYearController.instance.viewingYear);
     _groupName = (b?.groupName != null && b!.groupName!.isNotEmpty) ? b.groupName : null;
     _projectName = TextEditingController(text: b?.projectName ?? '');
     _activityName = TextEditingController(text: b?.activityName ?? '');

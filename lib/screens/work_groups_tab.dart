@@ -81,8 +81,15 @@ class _WorkGroupsTabState extends State<WorkGroupsTab> {
               ? const Center(child: CircularProgressIndicator())
               : _groups.isEmpty
                   ? Center(
-                      child: Text('ยังไม่มีกลุ่มงาน\nกด "เพิ่มกลุ่มงาน" เพื่อเริ่มต้น',
-                        textAlign: TextAlign.center, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15)),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.groups_outlined, size: 64, color: colors.onSurfaceVariant),
+                          const SizedBox(height: 12),
+                          Text('ยังไม่มีกลุ่มงาน\nกด "เพิ่มกลุ่มงาน" เพื่อเริ่มต้น',
+                            textAlign: TextAlign.center, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15)),
+                        ],
+                      ),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.only(bottom: 80),

@@ -21,6 +21,7 @@ import 'budget_list_screen.dart';
 import 'tor_screen.dart';
 import 'contracts_screen.dart';
 import 'guarantees_screen.dart';
+import 'installment_contracts_screen.dart';
 import 'inspections_screen.dart';
 import 'fixed_assets_screen.dart';
 import 'repair_history_screen.dart';
@@ -37,6 +38,8 @@ import '../data/procurement_repository.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup_service.dart';
 import '../services/theme_controller.dart';
+import '../services/font_scale_controller.dart';
+import '../services/fiscal_year_controller.dart';
 import '../services/toast_service.dart';
 import '../utils/app_folder_name.dart';
 
@@ -66,17 +69,31 @@ class _AppShellState extends State<AppShell> {
 
   final _repo = ProcurementRepository();
   SchoolSettings? _school;
+  // ปีงบที่มีโครงการอยู่จริงในระบบ (สำหรับ dropdown สลับปีงบใน AppBar) — โหลด
+  // ตอนเปิดแอปครั้งแรก และรีเฟรชอีกทีตอนกดปุ่ม "รีเฟรชข้อมูล" (พอมีโครงการแรก
+  // ของปีงบใหม่ถูกสร้างขึ้น ปีนั้นจะโผล่มาในตัวเลือกให้เอง)
+  List<String> _fiscalYears = [];
+  // ค่าปลอมใน PopupMenuButton<String> แทนตัวเลือก "เพิ่ม/สลับไปปีงบใหม่..."
+  // (ไม่ใช่ปีงบจริง แค่ใช้แยกแยะว่าเลือกอันนี้ ไม่ใช่ปีที่มีอยู่แล้ว)
+  static const _addNewYearSentinel = '__add_new_fiscal_year__';
 
   @override
   void initState() {
     super.initState();
     _loadSchool();
+    _loadFiscalYears();
   }
 
   Future<void> _loadSchool() async {
     final school = await _repo.getSchoolSettings();
     if (!mounted) return;
     setState(() => _school = school);
+  }
+
+  Future<void> _loadFiscalYears() async {
+    final years = await _repo.getDistinctFiscalYears();
+    if (!mounted) return;
+    setState(() => _fiscalYears = years);
   }
 
   // ─────────────────────────────────────────
@@ -101,6 +118,11 @@ class _AppShellState extends State<AppShell> {
     });
     // กลับมาจากหน้าตั้งค่า → โหลดข้อมูลโรงเรียนใหม่ เผื่อมีการแก้ไข
     if (leavingSettings) _loadSchool();
+    // รีเฟรชรายการปีงบที่มีข้อมูลจริงทุกครั้งที่สลับหน้า — กันปีงบใหม่ที่เพิ่ง
+    // เพิ่มแผนงบ/สร้างโครงการแรกไป (เช่น 2570) ไม่โผล่ใน dropdown ปีงบมุมขวาบน
+    // จนกว่าจะกดปุ่ม "รีเฟรชข้อมูล" เอง — จุดนี้ query เบามาก (แค่ DISTINCT ปีงบ
+    // สองตาราง) ไม่กระทบ performance ที่สลับหน้าบ่อยๆ
+    _loadFiscalYears();
   }
 
   Future<bool> _showDirtyDialog() async {
@@ -224,6 +246,7 @@ class _AppShellState extends State<AppShell> {
         _refreshKey++;
       }
     });
+    _loadFiscalYears();
   }
 
   int _refreshKey = 0;
@@ -332,6 +355,8 @@ class _AppShellState extends State<AppShell> {
         return const GuaranteesScreen();
       case AppMode.inspections:
         return const InspectionsScreen();
+      case AppMode.installmentContracts:
+        return const InstallmentContractsScreen();
       case AppMode.documentHub:
         return DocumentHubScreen(
           key: ValueKey('doc_hub_$_docHubInitialOrderId'),
@@ -363,12 +388,312 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  // แสดงปีงบประมาณ พ.ศ. ปัจจุบันเฉยๆ (คำนวณจากวันที่เครื่องจริง) — ยังไม่ใช่
-  // dropdown เลือกปีงบ เพราะ dashboard ยังไม่รองรับกรองข้อมูลข้ามปีงบ
+  /// ป้ายปีงบฯ ที่ AppBar — เดิมกดแล้วพาไปหน้าแผนงบประมาณตรงๆ ตอนนี้เปลี่ยนเป็น
+  /// dropdown สลับ "ปีงบที่กำลังดูอยู่" แทน (ฟีเจอร์ดูโครงการปีงบเก่าย้อนหลัง) —
+  /// ไม่ลบ/ย้ายข้อมูลปีเก่าออกจากระบบเลย แค่กรองมุมมองที่เห็นในหน้าจอ (ดูใน
+  /// FiscalYearController) ตัวเลือกไปหน้าแผนงบยังกดเข้าถึงได้ตามปกติจาก
+  /// sidebar/เมนูด่วน Dashboard เหมือนเดิม ไม่ได้หายไปไหน
+  ///
+  /// ครอบ ListenableBuilder ของตัวเองเหมือน _fontScaleControls — กันบั๊ค
+  /// เดียวกัน (ค่าเปลี่ยนจริงแต่ป้ายไม่รีเฟรชตาม) ตั้งแต่ต้น
+  /// เปิดกล่องกรอกปีงบใหม่ (เช่น 2570 ตอนยังไม่ถึงปีงบนั้นจริงตามปฏิทิน) —
+  /// ใช้ตอนอยากเริ่มวางแผนงบประมาณของปีถัดไปล่วงหน้าก่อนปีงบจริงจะมาถึง สลับ
+  /// ไปดู "ปีงบใหม่ที่ยังไม่มีข้อมูลอะไรเลย" (ว่างเปล่าเป็นปกติ) แล้วเข้าไปกด
+  /// "เพิ่มแผนงบ" ที่หน้าแผนงบประมาณได้เลย ระบบจะแท็กปีงบให้ถูกต้องอัตโนมัติ
+  /// (ดูช่อง _fiscalYear ในกล่องเพิ่มแผนงบ ที่ default มาจากปีที่กำลังดูอยู่แล้ว)
+  Future<void> _promptAddFiscalYear() async {
+    final ctrl = TextEditingController(
+      text: (int.tryParse(FiscalYearController.instance.currentRealYear) ?? 0) > 0
+          ? (int.parse(FiscalYearController.instance.currentRealYear) + 1).toString()
+          : '',
+    );
+    final year = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('เพิ่ม/สลับไปปีงบใหม่'),
+        content: SizedBox(
+          width: 320,
+          child: TextField(
+            controller: ctrl,
+            keyboardType: TextInputType.number,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'ปีงบประมาณ (พ.ศ.)',
+              hintText: 'เช่น 2570',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('สลับไปดูปีนี้'),
+          ),
+        ],
+      ),
+    );
+    if (year == null || year.isEmpty) return;
+    FiscalYearController.instance.setViewingYear(year);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('สลับไปดูปีงบ $year แล้ว — ยังไม่มีข้อมูลอะไรเลย ไปเพิ่มแผนงบ/สร้างโครงการแรกได้เลย')),
+    );
+  }
+
+  /// แก้ไขปีงบที่พิมพ์ผิด — เปลี่ยนเลขปีของ "โครงการ" และ "แผนงบ" ทั้งหมดที่
+  /// ติดอยู่กับปีเก่าไปเป็นปีใหม่ทีเดียว ไม่ต้องลบแล้วสร้างใหม่ทุกรายการ
+  Future<void> _promptEditFiscalYear(String oldYear) async {
+    final counts = await _repo.countFiscalYearData(oldYear);
+    if (!mounted) return;
+    final ctrl = TextEditingController(text: oldYear);
+    final newYear = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('แก้ไขปีงบ $oldYear'),
+        content: SizedBox(
+          width: 340,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'มีอยู่ ${counts.orderCount} โครงการ และ ${counts.budgetCount} แผนงบ — '
+                'เปลี่ยนปีงบให้ทุกรายการที่มีอยู่นี้พร้อมกัน',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'ปีงบประมาณใหม่ (พ.ศ.)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('บันทึก'),
+          ),
+        ],
+      ),
+    );
+    if (newYear == null || newYear.isEmpty || newYear == oldYear) return;
+    await _repo.renameFiscalYear(oldYear, newYear);
+    if (!mounted) return;
+    // ถ้ากำลังดูปีที่เพิ่งเปลี่ยนชื่ออยู่ ต้องสลับตามไปด้วย ไม่งั้นจะค้างดูปีที่
+    // ไม่มีอยู่แล้ว (มุมมองจะว่างเปล่าดูเหมือนข้อมูลหาย ทั้งที่จริงแค่เปลี่ยนชื่อ)
+    if (FiscalYearController.instance.viewingYear == oldYear) {
+      FiscalYearController.instance.setViewingYear(newYear);
+    }
+    await _loadFiscalYears();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('เปลี่ยนปีงบ $oldYear เป็น $newYear แล้ว')),
+    );
+  }
+
+  /// ลบปีงบทั้งปีทิ้งถาวร (โครงการ+แผนงบทั้งหมดของปีนั้น) — ใช้ตอนเผลอสร้างปีงบ
+  /// ผิดไปเลยแล้วอยากล้างทิ้งไปเริ่มใหม่ ย้ำเตือนแรงเพราะกู้คืนไม่ได้
+  Future<void> _promptDeleteFiscalYear(String year) async {
+    final counts = await _repo.countFiscalYearData(year);
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('ลบปีงบ $year ทิ้งถาวร?'),
+        content: Text(
+          'จะลบ ${counts.orderCount} โครงการ และ ${counts.budgetCount} แผนงบของปีงบ $year ทิ้งทั้งหมด\n\n'
+          'การลบนี้กู้คืนไม่ได้ ต้องการดำเนินการต่อหรือไม่?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ลบทิ้งถาวร'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _repo.deleteFiscalYear(year);
+    if (!mounted) return;
+    // ถ้ากำลังดูปีที่เพิ่งลบไปอยู่ ต้องสลับกลับปีปัจจุบันทันที กันค้างมองปีที่
+    // ไม่มีข้อมูลอะไรเหลือแล้ว
+    if (FiscalYearController.instance.viewingYear == year) {
+      FiscalYearController.instance.resetToCurrentYear();
+    }
+    await _loadFiscalYears();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('ลบปีงบ $year ทิ้งแล้ว')),
+    );
+  }
+
   Widget _fiscalYearBadge(ColorScheme colors) {
-    final buddhistYear = DateTime.now().year + 543;
+    return ListenableBuilder(
+      listenable: FiscalYearController.instance,
+      builder: (context, _) {
+        final fy = FiscalYearController.instance;
+        final isCurrent = fy.isViewingCurrentYear;
+        // รวมปีที่มีข้อมูลจริง + ปีปัจจุบัน (ต้องมีให้เลือกเสมอแม้ยังไม่มี
+        // โครงการเลยก็ตาม) แล้วเรียงใหม่ไปเก่า ไม่ซ้ำ
+        final years = {fy.currentRealYear, ..._fiscalYears}.toList()
+          ..sort((a, b) => b.compareTo(a));
+
+        return PopupMenuButton<String>(
+          tooltip: 'สลับดูปีงบประมาณ',
+          onSelected: (year) {
+            if (year == _addNewYearSentinel) {
+              _promptAddFiscalYear();
+            } else {
+              fy.setViewingYear(year);
+            }
+          },
+          itemBuilder: (context) => [
+            for (final year in years)
+              PopupMenuItem(
+                value: year,
+                child: Row(
+                  children: [
+                    Icon(
+                      year == fy.viewingYear ? Icons.check_circle : Icons.circle_outlined,
+                      size: 16,
+                      color: year == fy.viewingYear ? colors.primary : colors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        children: [
+                          Text('ปีงบฯ $year'),
+                          if (year == fy.currentRealYear)
+                            Text('(ปัจจุบัน)', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    // ปีงบปัจจุบันจริง (คำนวณจากปฏิทินเครื่อง) แก้ไข/ลบไม่ได้ —
+                    // ไม่ใช่ข้อมูลที่ "สร้างขึ้น" ให้แก้ แถมลบไปก็จะกลับมาเองอยู่
+                    // ดี เพราะคำนวณสดทุกครั้ง ปล่อยว่างไว้กันสับสน
+                    if (year != fy.currentRealYear) ...[
+                      // ใส่พื้นหลังวงกลมให้ไอคอนชัดเจน — เดิมเป็นไอคอนลอยๆ สี
+                      // เทา/แดงอ่อนบนพื้นป็อปอัพสีขาว กลืนจนแทบมองไม่เห็นว่า
+                      // เป็นปุ่มกดได้
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerHighest,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.edit_outlined, size: 16, color: colors.onSurfaceVariant),
+                          tooltip: 'แก้ไขปีงบ $year',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _promptEditFiscalYear(year);
+                          },
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                          tooltip: 'ลบปีงบ $year',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _promptDeleteFiscalYear(year);
+                          },
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value: _addNewYearSentinel,
+              child: Row(
+                children: [
+                  Icon(Icons.add, size: 16, color: colors.primary),
+                  const SizedBox(width: 10),
+                  Text('เพิ่ม/สลับไปปีงบใหม่...', style: TextStyle(color: colors.primary)),
+                ],
+              ),
+            ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isCurrent ? colors.onPrimary.withValues(alpha: 0.12) : Colors.amber.shade200,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isCurrent ? Icons.calendar_today_outlined : Icons.history_outlined,
+                  size: 14,
+                  color: isCurrent ? colors.onPrimary : Colors.amber.shade900,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'ปีงบฯ ${fy.viewingYear}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: isCurrent ? colors.onPrimary : Colors.amber.shade900,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(Icons.arrow_drop_down, size: 18, color: isCurrent ? colors.onPrimary : Colors.amber.shade900),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// ปุ่ม A-/A+ ปรับขนาดตัวอักษรทั้งระบบ (มีผลกับทุกหน้าจอ ผ่าน MediaQuery.
+  /// textScaler ที่ครอบไว้ระดับ MaterialApp ใน main.dart) — กดค้างที่ตัวเลข
+  /// เปอร์เซ็นต์ตรงกลางเพื่อรีเซ็ตกลับ 100% ได้เร็วๆ ไม่ต้องกด A- ไล่ทีละขั้น
+  ///
+  /// [แก้บัค เลข % ค้าง]: เดิมอ่านค่า FontScaleController.instance.scale
+  /// ตรงๆ แบบไม่ subscribe ทำให้กดปุ่มแล้วค่าเปลี่ยนจริง (ฟอนต์ทั้งแอปใหญ่ขึ้น
+  /// จริง — เพราะ MediaQuery ที่ main.dart ครอบทั้งแอปไว้อีกที) แต่ตัวเลข % ที่
+  /// ปุ่มนี้ไม่ขยับ เพราะ widget นี้ไม่มีกลไกบอกให้ rebuild เองเมื่อค่าเปลี่ยน
+  /// (การ rebuild จาก ListenableBuilder ชั้นบนสุดใน main.dart ไปไม่ถึงจุดนี้
+  /// เสมอไป เพราะ Flutter/Navigator เก็บ cache หน้าที่ยังไม่เปลี่ยนไว้) ครอบ
+  /// ด้วย ListenableBuilder ของตัวเองตรงนี้เลย รับประกันว่า rebuild แน่นอน
+  Widget _fontScaleControls(ColorScheme colors) {
+    return ListenableBuilder(
+      listenable: FontScaleController.instance,
+      builder: (context, _) => _fontScaleControlsBody(colors),
+    );
+  }
+
+  Widget _fontScaleControlsBody(ColorScheme colors) {
+    final scale = FontScaleController.instance.scale;
+    final percent = (scale * 100).round();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: colors.onPrimary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -376,11 +701,43 @@ class _AppShellState extends State<AppShell> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.calendar_today_outlined, size: 14, color: colors.onPrimary),
-          const SizedBox(width: 6),
-          Text(
-            'ปีงบฯ $buddhistYear',
-            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: colors.onPrimary),
+          Tooltip(
+            message: 'ลดขนาดตัวอักษร',
+            child: IconButton(
+              icon: const Icon(Icons.text_decrease, size: 18),
+              color: colors.onPrimary,
+              disabledColor: colors.onPrimary.withValues(alpha: 0.3),
+              splashRadius: 18,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+              onPressed: scale <= minFontScale ? null : () => FontScaleController.instance.decrease(),
+            ),
+          ),
+          Tooltip(
+            message: 'กดเพื่อรีเซ็ตขนาดตัวอักษร',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => FontScaleController.instance.reset(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  '$percent%',
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: colors.onPrimary),
+                ),
+              ),
+            ),
+          ),
+          Tooltip(
+            message: 'เพิ่มขนาดตัวอักษร',
+            child: IconButton(
+              icon: const Icon(Icons.text_increase, size: 18),
+              color: colors.onPrimary,
+              disabledColor: colors.onPrimary.withValues(alpha: 0.3),
+              splashRadius: 18,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+              onPressed: scale >= maxFontScale ? null : () => FontScaleController.instance.increase(),
+            ),
           ),
         ],
       ),
@@ -494,11 +851,20 @@ class _AppShellState extends State<AppShell> {
         actions: [
           _fiscalYearBadge(colors),
           const SizedBox(width: 8),
-          Tooltip(
-            message: ThemeController.instance.isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด',
-            child: IconButton(
-              icon: Icon(ThemeController.instance.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-              onPressed: () => ThemeController.instance.toggle(),
+          _fontScaleControls(colors),
+          const SizedBox(width: 4),
+          // ครอบ ListenableBuilder เฉพาะจุดเหมือน _fontScaleControls ด้านบน —
+          // กันบั๊คเดียวกัน (ไอคอนค้างไม่สลับ) เผื่อไว้ แม้ตอนนี้จะดูเหมือน
+          // ทำงานถูกอยู่แล้วก็ตาม เพราะพึ่งพา timing ของ Navigator/route cache
+          // ที่ไม่รับประกันเสมอไป
+          ListenableBuilder(
+            listenable: ThemeController.instance,
+            builder: (context, _) => Tooltip(
+              message: ThemeController.instance.isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด',
+              child: IconButton(
+                icon: Icon(ThemeController.instance.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                onPressed: () => ThemeController.instance.toggle(),
+              ),
             ),
           ),
           Tooltip(

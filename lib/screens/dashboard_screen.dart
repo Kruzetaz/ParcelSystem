@@ -18,6 +18,7 @@ import '../models/school_settings.dart';
 import 'app_sidebar.dart' show AppMode;
 import '../services/toast_service.dart';
 import '../services/document_generator.dart';
+import '../services/fiscal_year_controller.dart';
 import '../utils/money_format.dart';
 
 /// ปุ่มลัดเสริมที่ผู้ใช้เลือกเพิ่ม/ลดเองได้ในเมนูด่วน — แยกจาก 5 ปุ่มพื้นฐาน
@@ -37,6 +38,7 @@ const _optionalQuickActionsCatalog = [
   _OptionalQuickAction(id: 'contracts', icon: Icons.article_outlined, label: 'บริหารสัญญา', mode: AppMode.contracts),
   _OptionalQuickAction(id: 'guarantees', icon: Icons.shield_outlined, label: 'หลักประกัน', mode: AppMode.guarantees),
   _OptionalQuickAction(id: 'inspections', icon: Icons.fact_check_outlined, label: 'ตรวจรับพัสดุ', mode: AppMode.inspections),
+  _OptionalQuickAction(id: 'installment_contracts', icon: Icons.event_repeat_outlined, label: 'สัญญาต่อเนื่องหลายงวด', mode: AppMode.installmentContracts),
   _OptionalQuickAction(id: 'document_hub', icon: Icons.file_copy_outlined, label: 'สร้างเอกสารราชการ', mode: AppMode.documentHub),
   _OptionalQuickAction(id: 'order_register', icon: Icons.numbers_outlined, label: 'ทะเบียนคุมเลขที่', mode: AppMode.orderRegister),
   _OptionalQuickAction(id: 'control_log', icon: Icons.receipt_long_outlined, label: 'ทะเบียนคุมเลขบันทึก/TOR', mode: AppMode.controlLog),
@@ -109,13 +111,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _load();
     _loadQuickActionPrefs();
+    // สลับปีงบที่ AppBar (FiscalYearController) ต้องทำให้ Dashboard โหลดใหม่
+    // ตามปีที่เลือก — ฟังไว้ตรงนี้แทนอ่านค่าตรงๆ ตอน build กันปัญหาเดียวกับที่
+    // เจอมาแล้วกับปุ่มปรับขนาดฟอนต์ (ค่าเปลี่ยนจริงแต่หน้าจอไม่รีเฟรชตาม)
+    FiscalYearController.instance.addListener(_onFiscalYearChanged);
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    FiscalYearController.instance.removeListener(_onFiscalYearChanged);
     super.dispose();
   }
+
+  void _onFiscalYearChanged() => _load();
 
   Future<void> _loadQuickActionPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -189,9 +198,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final orders =
-        _query.trim().isEmpty ? await _repo.getAllOrders() : await _repo.searchOrders(_query.trim());
-    final budgets = await _repo.getAllBudgets();
+    final viewingYear = FiscalYearController.instance.viewingYear;
+    final orders = _query.trim().isEmpty
+        ? await _repo.getAllOrders(fiscalYear: viewingYear)
+        : await _repo.searchOrders(_query.trim(), fiscalYear: viewingYear);
+    final budgets = await _repo.getAllBudgets(fiscalYear: viewingYear);
     final school = await _repo.getSchoolSettings();
     if (!mounted) return;
     setState(() {
@@ -291,6 +302,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (!mounted) return;
       showAppToast('คัดลอกโครงการไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _duplicatingOrderId = null);
+    }
+  }
+
+  /// คัดลอกโครงการของปีงบเก่ามาเริ่มใหม่ในปีงบปัจจุบัน — ต่างจาก
+  /// "คัดลอกโครงการ" ธรรมดา (ที่คัดลอกทุกช่องตรงๆ รวมเลขที่/วันที่เดิม)
+  /// ตรงที่ตัวนี้ล้างข้อมูลที่เป็น "ของงวดนั้นโดยเฉพาะ" ออกทั้งหมด (เลขที่
+  /// เอกสาร/เลขคุมต่างๆ/วันที่ทุกขั้นตอน) เก็บไว้แค่สิ่งที่มักซ้ำกันทุกปี (ผู้ขาย/
+  /// คณะกรรมการ/รายการพัสดุ/ราคา/ชื่อโครงการ) ให้ผู้ใช้กรอกแค่เลขที่และวันที่
+  /// ใหม่ของปีนี้เอง — ใช้ตอนเปิดดูปีงบเก่าอยู่แล้วเจอโครงการที่อยากทำซ้ำทุกปี
+  /// (เช่น จ้างเหมาอาหารกลางวัน, เช่าเน็ตรายปี)
+  Future<void> _copyOrderToCurrentYear(ProcurementOrder order) async {
+    if (order.id == null) return;
+    final currentYear = FiscalYearController.instance.currentRealYear;
+    setState(() => _duplicatingOrderId = order.id);
+    try {
+      final items = await _repo.getItems(order.id!);
+
+      final map = order.toMap();
+      map.remove('id');
+      map['fiscal_year'] = currentYear;
+      // ล้างเลขที่เอกสาร/เลขคุมต่างๆ — เป็นเลขเฉพาะของปีงบเดิม ใช้ซ้ำไม่ได้
+      for (final key in [
+        'procurement_number',
+        'egp_project_id',
+        'contract_control_number',
+        'inspection_control_number',
+      ]) {
+        map[key] = null;
+      }
+      // ล้างวันที่ทุกขั้นตอน — ต้องกรอกใหม่ตามที่เกิดขึ้นจริงของปีนี้
+      for (final key in [
+        'date_memo_used',
+        'date_order_created',
+        'date_quotation',
+        'date_contract_signed',
+        'date_deadline',
+        'date_shipping',
+        'date_inspection',
+        'date_disbursement',
+      ]) {
+        map[key] = null;
+      }
+      final duplicateOrder = ProcurementOrder.fromMap(map);
+      final duplicateItems = items
+          .map((it) => ProcurementItem(
+                itemName: it.itemName,
+                quantity: it.quantity,
+                unit: it.unit,
+                unitPrice: it.unitPrice,
+                totalPrice: it.totalPrice,
+              ))
+          .toList();
+
+      await _repo.saveOrderWithItems(duplicateOrder, duplicateItems);
+      if (!mounted) return;
+      showAppToast('คัดลอกโครงการไปปีงบ $currentYear แล้ว — กรอกเลขที่/วันที่ใหม่ได้เลย');
+      FiscalYearController.instance.resetToCurrentYear();
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('คัดลอกไปปีงบใหม่ไม่สำเร็จ: $e', isError: true);
     } finally {
       if (mounted) setState(() => _duplicatingOrderId = null);
     }
@@ -505,6 +578,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (!FiscalYearController.instance.isViewingCurrentYear) ...[
+                        _buildOldYearBanner(colors),
+                        const SizedBox(height: 14),
+                      ],
                       _buildHeroBanner(colors),
                       if (_alerts.isNotEmpty) ...[
                         const SizedBox(height: 14),
@@ -566,6 +643,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─────────────────────────────────────────
   // HERO BANNER — ชื่อโรงเรียน + ตัวเลขสรุปใหญ่ + วงกลม % ความคืบหน้ารวม
   // ─────────────────────────────────────────
+
+  /// แบนเนอร์เตือนตอนกำลังดูปีงบที่ไม่ใช่ปีปัจจุบัน (เก่ากว่า/ใหม่กว่าก็ได้) —
+  /// กันสับสนคิดว่ากำลังดู/แก้ข้อมูลปีปัจจุบันอยู่ ข้อความปรับตามทิศทาง (ดูปีเก่า
+  /// เพื่ออ้างอิง vs วางแผนปีถัดไปล่วงหน้า) มีปุ่มกลับไปปีปัจจุบันเร็วๆ ในตัวเลย
+  Widget _buildOldYearBanner(ColorScheme colors) {
+    final fy = FiscalYearController.instance;
+    final message = fy.isViewingFutureYear
+        ? 'กำลังดูปีงบ ${fy.viewingYear} (ยังไม่ถึงปีนี้จริง) — เหมาะสำหรับวางแผนงบประมาณ/สร้างโครงการล่วงหน้า '
+            '(ปีปัจจุบันคือ ${fy.currentRealYear})'
+        : 'กำลังดูข้อมูลปีงบ ${fy.viewingYear} (ปีเก่า) — สำหรับดูอ้างอิงเท่านั้น ไม่ใช่ปีงบปัจจุบัน '
+            '(ปีปัจจุบันคือ ${fy.currentRealYear}) เจอโครงการที่อยากทำซ้ำ กดไอคอน 🔼 ที่การ์ดเพื่อคัดลอกไปปีนี้ได้เลย';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(fy.isViewingFutureYear ? Icons.event_note_outlined : Icons.history_outlined, color: Colors.amber.shade800),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(fontSize: 13, color: Colors.amber.shade900),
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.amber.shade200,
+              foregroundColor: Colors.amber.shade900,
+            ),
+            onPressed: () => fy.resetToCurrentYear(),
+            child: const Text('กลับไปปีปัจจุบัน'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildHeroBanner(ColorScheme colors) {
     final total = _orders.length;
@@ -1464,6 +1582,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               tooltip: 'คัดลอกโครงการ',
                               onPressed: () => _duplicateOrder(order),
                             ),
+                      // ปุ่มนี้โผล่เฉพาะตอนกำลังดูปีงบเก่าอยู่เท่านั้น (ดูปีปัจจุบัน
+                      // อยู่แล้ว ใช้ปุ่ม "คัดลอกโครงการ" ปกติด้านบนพอ)
+                      if (!FiscalYearController.instance.isViewingCurrentYear)
+                        IconButton(
+                          icon: const Icon(Icons.move_up_outlined),
+                          iconSize: 18,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          visualDensity: VisualDensity.compact,
+                          color: colors.primary,
+                          tooltip: 'คัดลอกไปปีงบปัจจุบัน (${FiscalYearController.instance.currentRealYear})',
+                          onPressed: () => _copyOrderToCurrentYear(order),
+                        ),
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                         iconSize: 18,

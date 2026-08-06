@@ -385,7 +385,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildAuditTrail(ColorScheme colors) {
     if (_auditLog.isEmpty) {
-      return Center(child: Text('ยังไม่มีประวัติการใช้งาน', style: TextStyle(color: colors.onSurfaceVariant)));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.history_outlined, size: 64, color: colors.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text('ยังไม่มีประวัติการใช้งาน', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+          ],
+        ),
+      );
     }
     return ListView.separated(
       itemCount: _auditLog.length,

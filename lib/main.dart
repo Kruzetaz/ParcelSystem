@@ -6,6 +6,7 @@ import 'data/database.dart';
 import 'screens/license_gate.dart';
 import 'theme/app_theme.dart';
 import 'services/theme_controller.dart';
+import 'services/font_scale_controller.dart';
 import 'widgets/toast_host.dart';
 
 void main() async {
@@ -14,6 +15,7 @@ void main() async {
   databaseFactory = databaseFactoryFfi;
   await AppDatabase.instance.database;
   await ThemeController.instance.load();
+  await FontScaleController.instance.load();
   runApp(const MyApp());
 }
 
@@ -22,7 +24,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeController.instance,
+      listenable: Listenable.merge([ThemeController.instance, FontScaleController.instance]),
       builder: (context, _) {
         return MaterialApp(
           title: 'ระบบจัดซื้อจัดจ้าง',
@@ -38,7 +40,15 @@ class MyApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: const LicenseGate(),
-          builder: (context, child) => ToastHost(child: child ?? const SizedBox()),
+          // ปรับขนาดตัวอักษรทั้งระบบตามที่ผู้ใช้เลือกไว้ (ปุ่ม +/- ที่ AppBar) —
+          // ทำที่ MediaQuery.textScaler ตรงนี้จุดเดียว มีผลกับทุกหน้าจอทั้งแอป
+          // โดยไม่ต้องไปแก้ fontSize ทีละที่ในแต่ละหน้า
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(FontScaleController.instance.scale),
+            ),
+            child: ToastHost(child: child ?? const SizedBox()),
+          ),
         );
       },
     );

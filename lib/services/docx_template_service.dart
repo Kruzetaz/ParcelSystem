@@ -164,6 +164,74 @@ class DocxTemplateService {
     return candidate.writeAsBytes(docxBytes, flush: true);
   }
 
+  /// รวมไฟล์ .docx หลายไฟล์ (bytes ของแต่ละไฟล์ที่ประมวลผลแล้ว) เข้าเป็น
+  /// ไฟล์เดียว ต่อกันตามลำดับที่ส่งเข้ามา คั่นแต่ละส่วนด้วยการขึ้นหน้าใหม่
+  /// — ใช้สำหรับสัญญาต่อเนื่อง (เช่น อาหารกลางวัน) ที่ต้องการเอกสารจัดจ้าง
+  /// ตอนแรก + ชุดเอกสารรายงวดทั้งหมด รวมอยู่ในไฟล์ .docx เดียวกัน เหมือนที่
+  /// โรงเรียนทำเก็บไว้จริง (ไม่ใช่แยกไฟล์คนละใบ)
+  ///
+  /// ใช้ package (styles.xml, ตั้งค่าหน้ากระดาษ ฯลฯ) ของไฟล์ "แรก" เป็นฐาน
+  /// แล้วดึงแค่เนื้อหาใน <w:body> (ไม่รวม <w:sectPr> ท้ายสุด) ของไฟล์ถัดๆ ไป
+  /// มาต่อท้ายก่อน sectPr ของฐาน — ปลอดภัยเพราะทุกเทมเพลตในระบบนี้จัดฟอร์แมต
+  /// แบบ direct-formatting (TH SarabunIT๙ ฝังในแต่ละ run) ไม่ได้พึ่ง named
+  /// style ข้ามไฟล์ และไม่มีรูปภาพ/ไฮเปอร์ลิงก์ที่ต้องจับคู่ relationship ID
+  static Uint8List mergeDocxBodies(List<Uint8List> parts) {
+    if (parts.isEmpty) {
+      throw DocxTemplateException('ไม่มีเอกสารให้รวม');
+    }
+    if (parts.length == 1) return parts.first;
+
+    final baseArchive = ZipDecoder().decodeBytes(parts.first);
+    final baseDocFile = baseArchive.files.firstWhere(
+      (f) => f.name == _documentXmlPath,
+      orElse: () => throw DocxTemplateException('ไฟล์แรกไม่ใช่ .docx ที่ถูกต้อง'),
+    );
+    var baseXml = utf8.decode(baseDocFile.content as List<int>);
+
+    const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+    final buffer = StringBuffer();
+    for (var i = 1; i < parts.length; i++) {
+      final archive = ZipDecoder().decodeBytes(parts[i]);
+      final docFile = archive.files.firstWhere(
+        (f) => f.name == _documentXmlPath,
+        orElse: () => throw DocxTemplateException('เอกสารลำดับที่ ${i + 1} ไม่ใช่ .docx ที่ถูกต้อง'),
+      );
+      final xml = utf8.decode(docFile.content as List<int>);
+      // จับเนื้อหาทั้งหมดใน <w:body> ก่อนถึง <w:sectPr> ตัวสุดท้าย (greedy
+      // .* จะกินไปจนถึง sectPr ตัวท้ายสุดพอดี เผื่อกรณีมี sectPr กลางเอกสาร)
+      final match = RegExp(r'<w:body>(.*)<w:sectPr\b[^>]*>.*?</w:sectPr>\s*</w:body>', dotAll: true)
+          .firstMatch(xml);
+      if (match == null) {
+        throw DocxTemplateException('ไม่พบโครงสร้าง <w:body> ในเอกสารลำดับที่ ${i + 1}');
+      }
+      buffer.write(pageBreak);
+      buffer.write(match.group(1));
+    }
+
+    // แทรกเนื้อหาที่รวมมาทั้งหมด ก่อน <w:sectPr> ของไฟล์ฐาน (ต้องอยู่ท้ายสุด
+    // ของ body เสมอตามสเปก OOXML)
+    final baseSectPrIndex = baseXml.lastIndexOf('<w:sectPr');
+    if (baseSectPrIndex == -1) {
+      throw DocxTemplateException('ไม่พบ <w:sectPr> ในไฟล์ฐาน');
+    }
+    baseXml = baseXml.substring(0, baseSectPrIndex) + buffer.toString() + baseXml.substring(baseSectPrIndex);
+
+    final newDocBytes = utf8.encode(baseXml);
+    final newArchive = Archive();
+    for (final file in baseArchive.files) {
+      if (file.name == _documentXmlPath) {
+        newArchive.addFile(ArchiveFile(file.name, newDocBytes.length, newDocBytes));
+      } else if (file.isFile) {
+        newArchive.addFile(ArchiveFile(file.name, file.content.length, file.content));
+      }
+    }
+    final output = ZipEncoder().encode(newArchive);
+    if (output == null) {
+      throw DocxTemplateException('บีบอัดไฟล์ .docx ที่รวมแล้วไม่สำเร็จ');
+    }
+    return Uint8List.fromList(output);
+  }
+
   // ─────────────────────────────────────────────────────────────────────
   // Internal helpers
   // ─────────────────────────────────────────────────────────────────────

@@ -40,9 +40,10 @@ class DocumentGenerator {
 
   static final NumberFormat _moneyFmt = NumberFormat('#,##0.00', 'en_US');
 
-  /// สร้างไฟล์ .docx จาก template + ข้อมูล order/settings/items
-  /// คืนค่าเป็น File ที่บันทึกเสร็จแล้ว (ยังไม่เปิด)
-  static Future<File> generate({
+  /// ประมวลผล master_template.docx เป็น bytes ล้วนๆ (ไม่เขียนไฟล์) — แยกออก
+  /// มาจาก generate() เพื่อให้เอาไปต่อกับเอกสารอื่นได้ (เช่น รวมกับชุดเอกสาร
+  /// งวดการเบิกจ่ายของสัญญาต่อเนื่องเป็นไฟล์เดียว) โดยไม่ต้องเขียน/อ่านไฟล์ชั่วคราว
+  static Future<Uint8List> generateBytes({
     required ProcurementOrder order,
     required SchoolSettings school,
     required List<ProcurementItem> items,
@@ -71,14 +72,24 @@ class DocumentGenerator {
     final fieldValues = _buildFieldMap(order, school);
 
     // STEP 4: ประมวลผล template
-    final resultBytes = DocxTemplateService.processTemplate(
+    return DocxTemplateService.processTemplate(
       templateBytes: templateBytes,
       fieldValues: fieldValues,
       items: itemDataList,
       conditionalFlags: buildConditionalFlags(order),
     );
+  }
 
-    // STEP 5: บันทึกไฟล์ลงโฟลเดอร์ Documents/<ชื่อโรงเรียน>_Documents
+  /// สร้างไฟล์ .docx จาก template + ข้อมูล order/settings/items
+  /// คืนค่าเป็น File ที่บันทึกเสร็จแล้ว (ยังไม่เปิด)
+  static Future<File> generate({
+    required ProcurementOrder order,
+    required SchoolSettings school,
+    required List<ProcurementItem> items,
+  }) async {
+    final resultBytes = await generateBytes(order: order, school: school, items: items);
+
+    // บันทึกไฟล์ลงโฟลเดอร์ Documents/<ชื่อโรงเรียน>_Documents
     final docsDir = await getApplicationDocumentsDirectory();
     final folderName = await getSchoolDocumentsFolderName();
     final outputDir = '${docsDir.path}/$folderName';
@@ -160,6 +171,13 @@ class DocumentGenerator {
       // บรรทัด "ลงนามในคำสั่งแต่งตั้ง{{inspector_title_group}}" ใช้แทนกันกับ
       // ย่อหน้าด้านบน (ไม่ใช่โชว์คู่กัน) — โชว์เฉพาะตอนเป็นคณะกรรมการเท่านั้น
       'committee_only': !isSingleInspector,
+      // ช่วงท้าย master_template (ใบเสนอราคา → ใบส่งมอบงาน → ใบตรวจรับพัสดุ →
+      // บันทึกข้อความขออนุมัติเบิกจ่าย → ใบเบิกพัสดุ) เป็นชุดเอกสาร "จบในตัว
+      // งวดเดียว" ของการจัดซื้อ/จ้างครั้งเดียว — สัญญาต่อเนื่อง (เช่นอาหาร
+      // กลางวัน) มีเทมเพลตเฉพาะของแต่ละงวดแยกต่างหากอยู่แล้ว (ใบส่งมอบงาน/
+      // ใบตรวจรับ/บันทึกเบิกเงิน/ใบสำคัญรับเงิน แบบรายงวด) จึงต้องตัดชุดนี้ทิ้ง
+      // กันไม่ให้ปนกับชุดเอกสารรายงวดที่ตามมาต่อจากใบสั่งจ้าง
+      'single_purchase_completion_docs': !o.isRecurringContract,
     };
   }
 
@@ -179,6 +197,7 @@ class DocumentGenerator {
       // ปีงบประมาณ
       'fiscal_year': _str(o.fiscalYear),
       'order_type': _str(o.orderType),
+      'procurement_method': _str(o.procurementMethod),
 
       // ข้อมูลโครงการ/กิจกรรม
       'project_name': _str(o.projectName),
@@ -241,6 +260,7 @@ class DocumentGenerator {
       'vendor_province': _str(o.vendorProvince),
       'vendor_phone': _str(o.vendorPhone),
       'vendor_tax_id': _str(o.vendorTaxId),
+      'vendor_postal_code': _str(o.vendorPostalCode),
 
       // เงื่อนไข/ระยะเวลา
       'shipping_days': _intStr(o.shippingDays),

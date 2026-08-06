@@ -336,10 +336,17 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
           Expanded(
             child: _filtered.isEmpty
                 ? Center(
-                    child: Text(
-                      _assets.isEmpty ? 'ยังไม่มีครุภัณฑ์\nกด "เพิ่มครุภัณฑ์" เพื่อเริ่มต้น' : 'ไม่พบรายการในสถานะนี้',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: colors.onSurfaceVariant),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 64, color: colors.onSurfaceVariant),
+                        const SizedBox(height: 12),
+                        Text(
+                          _assets.isEmpty ? 'ยังไม่มีครุภัณฑ์\nกด "เพิ่มครุภัณฑ์" เพื่อเริ่มต้น' : 'ไม่พบรายการในสถานะนี้',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                        ),
+                      ],
                     ),
                   )
                 : (_viewMode == _AssetViewMode.table ? _buildTable(colors) : _buildGrid(colors)),

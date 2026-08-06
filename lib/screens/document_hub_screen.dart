@@ -216,10 +216,17 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
               Expanded(
                 child: _orders.isEmpty
                     ? Center(
-                        child: Text(
-                          'ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ\nไปสร้างรายการก่อนที่หน้า "สร้างใหม่" หรือ "Easy Wizard"',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.file_copy_outlined, size: 64, color: colors.onSurfaceVariant),
+                            const SizedBox(height: 12),
+                            Text(
+                              'ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ\nไปสร้างรายการก่อนที่หน้า "สร้างใหม่" หรือ "Easy Wizard"',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                            ),
+                          ],
                         ),
                       )
                     : GridView.builder(

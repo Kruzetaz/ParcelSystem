@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/guarantee.dart';
 import '../models/contract.dart';
+import '../services/fiscal_year_controller.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
@@ -41,12 +42,24 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
   void initState() {
     super.initState();
     _load();
+    FiscalYearController.instance.addListener(_onFiscalYearChanged);
   }
+
+  @override
+  void dispose() {
+    FiscalYearController.instance.removeListener(_onFiscalYearChanged);
+    super.dispose();
+  }
+
+  void _onFiscalYearChanged() => _load();
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final list = await _repo.getAllGuarantees();
-    final contracts = await _repo.getAllContracts();
+    final viewingYear = FiscalYearController.instance.viewingYear;
+    final list = await _repo.getAllGuarantees(fiscalYear: viewingYear);
+    // กรองสัญญาตามปีงบเดียวกันด้วย — ใช้คำนวณ "สัญญาที่ยังไม่มีหลักประกัน"
+    // (แบนเนอร์แจ้งเตือนด้านบน) ให้สอดคล้องกับปีที่กำลังดูอยู่ ไม่ใช่ปนทุกปี
+    final contracts = await _repo.getAllContracts(fiscalYear: viewingYear);
     if (!mounted) return;
     setState(() {
       _guarantees = list;
@@ -159,10 +172,17 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                           Expanded(
                             child: _filtered.isEmpty
                                 ? Center(
-                                    child: Text(
-                                      _guarantees.isEmpty ? 'ยังไม่มีหลักประกัน\nกด "เพิ่มหลักประกัน" เพื่อเริ่มต้น' : 'ไม่พบรายการในประเภทนี้',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.shield_outlined, size: 64, color: colors.onSurfaceVariant),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          _guarantees.isEmpty ? 'ยังไม่มีหลักประกัน\nกด "เพิ่มหลักประกัน" เพื่อเริ่มต้น' : 'ไม่พบรายการในประเภทนี้',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                        ),
+                                      ],
                                     ),
                                   )
                                 : ListView.separated(

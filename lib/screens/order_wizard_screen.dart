@@ -21,6 +21,7 @@ import '../models/personnel.dart';
 import '../models/procurement_item.dart';
 import '../models/school_settings.dart';
 import '../services/document_generator.dart';
+import '../services/fiscal_year_controller.dart';
 import '../services/gemini_service.dart';
 import '../services/toast_service.dart';
 import '../utils/calc_engine.dart';
@@ -225,7 +226,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
 
     final progress = _computeProgress();
 
-    final orderToSave = _draft.copyWith(
+    var orderToSave = _draft.copyWith(
       currentOrderPrice: calc['current_order_price'],
       totalPriceTh: bahtText,
       subtotalBeforeVat: calc['subtotal_before_vat'],
@@ -239,7 +240,12 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       currentStatus: progress >= 1.0 ? 'COMPLETED' : 'DRAFT',
     );
 
-    await _repo.saveOrderWithItems(orderToSave, _items);
+    final savedId = await _repo.saveOrderWithItems(orderToSave, _items);
+    // ถ้าเป็นโครงการใหม่ (id เดิมยังเป็น null) ต้องเติม id ที่เพิ่ง insert
+    // ได้กลับเข้า draft ทันที ไม่งั้นกด "บันทึก"/"สร้างเอกสาร" ซ้ำในหน้าเดิม
+    // (ยังไม่ได้ปิด wizard) จะ insert แถวใหม่ซ้ำแทนที่จะ update แถวเดิม —
+    // และฟีเจอร์งวดการเบิกจ่าย (Tab 6) ก็ต้องมี order.id ก่อนถึงจะใช้ได้
+    orderToSave = orderToSave.id == null ? orderToSave.copyWith(id: savedId) : orderToSave;
     setState(() => _draft = orderToSave);
 
     // จำข้อมูลร้านค้าไว้ให้เลือกใช้ซ้ำได้ในเอกสารครั้งถัดไป
@@ -253,6 +259,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
         province: orderToSave.vendorProvince,
         phone: orderToSave.vendorPhone,
         taxId: orderToSave.vendorTaxId,
+        postalCode: orderToSave.vendorPostalCode,
       ));
     }
     return orderToSave;
@@ -429,6 +436,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   late final TextEditingController _purposeReasonCtrl;
   String? _orderType; // 'ซื้อ' | 'จ้าง'
   String? _fundType;
+  late String _procurementMethod; // ค่า value จาก procurementMethodOptions
+  late bool _isRecurringContract;
   bool _generatingReason = false;
 
   @override
@@ -444,11 +453,24 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _purposeReasonCtrl = TextEditingController(text: widget.draft.purposeReason);
     _orderType = widget.draft.orderType;
     _fundType = orderFundTypes.contains(widget.draft.fundType) ? widget.draft.fundType : null;
+    _isRecurringContract = widget.draft.isRecurringContract;
+    _procurementMethod = widget.draft.procurementMethod ?? procurementMethodOptions.first.value;
+    if (widget.draft.procurementMethod == null) {
+      // ค่า default ตอนเปิดหน้าครั้งแรกยังไม่ถูกบันทึกลง draft จริง เว้นแต่ผู้ใช้
+      // ไปแตะ dropdown เอง — commit ให้ตั้งแต่ frame แรกกันข้อมูลว่างตอนสร้างเอกสาร
+      // (บั๊กแบบเดียวกับที่เคยเจอกับ inspectorTitleGroup)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onChanged((d) => d.copyWith(procurementMethod: _procurementMethod));
+      });
+    }
     _loadBudgets();
   }
 
   Future<void> _loadBudgets() async {
-    final budgets = await widget.repo.getAllBudgets();
+    // กรองเฉพาะปีงบที่กำลังดูอยู่ตอนนี้ (ป้ายปีงบมุมขวาบน) — กันเลือกแผนงบ
+    // ผิดปีงบเวลามีทั้งปีเก่า/ปีใหม่ปนกันอยู่ในระบบ (ก่อนหน้านี้โชว์ทุกปีปนกัน
+    // ทำให้เผลอเลือกแผนงบคนละปีกับที่กำลังตั้งใจจะสร้างโครงการได้ง่าย)
+    final budgets = await widget.repo.getAllBudgets(fiscalYear: FiscalYearController.instance.viewingYear);
     if (!mounted) return;
     setState(() {
       _budgets = budgets;
@@ -459,7 +481,10 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   // ฟังก์ชันเพิ่มแผนงบประมาณเร่งด่วนในกรณี Dropdown ว่างเปล่า
   Future<void> _showQuickAddBudgetDialog() async {
     final colors = Theme.of(context).colorScheme;
-    final yearCtrl = TextEditingController(text: DateTime.now().year + 543 >= 2569 ? '2569' : '2568');
+    // เดิม hardcode เทียบปี 2568/2569 ตรงๆ ซึ่งจะผิดทันทีตอนขึ้นปีงบ 2570 —
+    // เปลี่ยนไปใช้ปีงบที่กำลังดูอยู่ (FiscalYearController) แทน ถูกต้องทุกปี
+    // อัตโนมัติ ไม่ต้องแก้โค้ดใหม่ทุกปี และตรงกับปีที่ผู้ใช้กำลังดูอยู่จริงด้วย
+    final yearCtrl = TextEditingController(text: FiscalYearController.instance.viewingYear);
     final projCtrl = TextEditingController();
     final actCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
@@ -692,6 +717,53 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 setState(() => _orderType = v);
                 widget.onChanged((d) => d.copyWith(orderType: v));
               },
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle(colors, 'วิธี/ระเบียบการจัดซื้อจัดจ้าง'),
+            DropdownButtonFormField<String>(
+              initialValue: _procurementMethod,
+              decoration: _inputDecoration('เลือกวิธีที่ใช้'),
+              items: [
+                for (final opt in procurementMethodOptions)
+                  DropdownMenuItem(
+                    value: opt.value,
+                    enabled: opt.enabled,
+                    child: Text(
+                      opt.enabled ? opt.label : '${opt.label} (เร็วๆ นี้)',
+                      style: opt.enabled
+                          ? null
+                          : TextStyle(color: colors.onSurface.withValues(alpha: 0.38)),
+                    ),
+                  ),
+              ],
+              onChanged: (v) {
+                if (v == null) return;
+                setState(() => _procurementMethod = v);
+                widget.onChanged((d) => d.copyWith(procurementMethod: v));
+              },
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                border: Border.all(color: colors.outlineVariant),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SwitchListTile(
+                value: _isRecurringContract,
+                onChanged: (v) {
+                  setState(() => _isRecurringContract = v);
+                  widget.onChanged((d) => d.copyWith(isRecurringContract: v));
+                },
+                title: const Text('สัญญาต่อเนื่องหลายเดือน'),
+                subtitle: const Text(
+                  'เช่น จ้างเหมาประกอบอาหารกลางวัน, เช่าอินเทอร์เน็ตรายเดือน — '
+                  'เปิดแล้วโครงการนี้จะไปโผล่ในเมนู "สัญญาต่อเนื่อง/อาหารกลางวัน" '
+                  'เพื่อบริหารงวดจ่ายแยกทุกเดือน',
+                  style: TextStyle(fontSize: 12),
+                ),
+                secondary: const Icon(Icons.restaurant_outlined),
+              ),
             ),
             const SizedBox(height: 24),
             _sectionTitle(colors, 'ข้อมูลเอกสาร'),
@@ -1375,6 +1447,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   late final TextEditingController _vendorProvinceCtrl;
   late final TextEditingController _vendorPhoneCtrl;
   late final TextEditingController _vendorTaxIdCtrl;
+  late final TextEditingController _vendorPostalCodeCtrl;
   late final TextEditingController _shippingDaysCtrl;
   late final TextEditingController _warrantyPeriodCtrl;
   late final TextEditingController _contractControlNumberCtrl;
@@ -1404,6 +1477,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _vendorProvinceCtrl = TextEditingController(text: d.vendorProvince);
     _vendorPhoneCtrl = TextEditingController(text: d.vendorPhone);
     _vendorTaxIdCtrl = TextEditingController(text: d.vendorTaxId);
+    _vendorPostalCodeCtrl = TextEditingController(text: d.vendorPostalCode);
     _shippingDaysCtrl = TextEditingController(text: d.shippingDays?.toString());
     _warrantyPeriodCtrl = TextEditingController(text: d.warrantyPeriod);
     _contractControlNumberCtrl = TextEditingController(text: d.contractControlNumber);
@@ -1512,6 +1586,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
       _vendorProvinceCtrl.text = vendor.province ?? '';
       _vendorPhoneCtrl.text = vendor.phone ?? '';
       _vendorTaxIdCtrl.text = vendor.taxId ?? '';
+      _vendorPostalCodeCtrl.text = vendor.postalCode ?? '';
     });
     widget.onChanged((d) => d.copyWith(
           vendorName: vendor.name,
@@ -1522,6 +1597,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
           vendorProvince: vendor.province,
           vendorPhone: vendor.phone,
           vendorTaxId: vendor.taxId,
+          vendorPostalCode: vendor.postalCode,
         ));
   }
 
@@ -1535,6 +1611,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _vendorProvinceCtrl.dispose();
     _vendorPhoneCtrl.dispose();
     _vendorTaxIdCtrl.dispose();
+    _vendorPostalCodeCtrl.dispose();
     _shippingDaysCtrl.dispose();
     _warrantyPeriodCtrl.dispose();
     _contractControlNumberCtrl.dispose();
@@ -1644,6 +1721,15 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                     controller: _vendorProvinceCtrl,
                     decoration: _inputDecoration('จังหวัด'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorProvince: v)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: MemoryTextField(
+                    fieldKey: 'address.postalCode',
+                    controller: _vendorPostalCodeCtrl,
+                    decoration: _inputDecoration('รหัสไปรษณีย์'),
+                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorPostalCode: v)),
                   ),
                 ),
               ],

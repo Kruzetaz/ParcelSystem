@@ -206,12 +206,19 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                           ? const Center(child: CircularProgressIndicator())
                           : _filtered.isEmpty
                               ? Center(
-                                  child: Text(
-                                    _entries.isEmpty
-                                        ? 'ยังไม่มีเลขที่ควบคุมในระบบ\nกรอกเลขที่เอกสารในหน้า TOR/สัญญา/ตรวจรับ/wizard ก่อน'
-                                        : 'ไม่พบรายการที่ตรงกับตัวกรอง',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.receipt_long_outlined, size: 64, color: colors.onSurfaceVariant),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        _entries.isEmpty
+                                            ? 'ยังไม่มีเลขที่ควบคุมในระบบ\nกรอกเลขที่เอกสารในหน้า TOR/สัญญา/ตรวจรับ/wizard ก่อน'
+                                            : 'ไม่พบรายการที่ตรงกับตัวกรอง',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                                      ),
+                                    ],
                                   ),
                                 )
                               : _buildTable(colors),

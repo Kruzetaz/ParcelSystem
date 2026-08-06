@@ -122,12 +122,19 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
                       Expanded(
                         child: _filtered.isEmpty
                             ? Center(
-                                child: Text(
-                                  _entries.isEmpty
-                                      ? 'ยังไม่มีประวัติซ่อมครุภัณฑ์\nไปบันทึกที่หน้า "ทะเบียนครุภัณฑ์" ก่อน'
-                                      : 'ไม่พบรายการที่ค้นหา',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.build_outlined, size: 64, color: colors.onSurfaceVariant),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _entries.isEmpty
+                                          ? 'ยังไม่มีประวัติซ่อมครุภัณฑ์\nไปบันทึกที่หน้า "ทะเบียนครุภัณฑ์" ก่อน'
+                                          : 'ไม่พบรายการที่ค้นหา',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                    ),
+                                  ],
                                 ),
                               )
                             : ListView.separated(
