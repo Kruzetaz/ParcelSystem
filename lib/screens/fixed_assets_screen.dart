@@ -73,6 +73,12 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   _AssetViewMode _viewMode = _AssetViewMode.table;
   int? _selectedId;
   String? _statusFilter;
+  // ตัวกรอง "ปีที่ได้มา" — แยกต่างหากจากตัวสลับปีงบหลักที่ AppBar โดยตั้งใจ
+  // (ครุภัณฑ์เป็นทะเบียนทรัพย์สินสะสม ไม่ได้ "หมดอายุ" ตามปีงบแบบโครงการจัดซื้อ
+  // ทั่วไป — ของที่ซื้อปี 2568 ก็ยังเป็นทรัพย์สินโรงเรียนอยู่ปี 2569 ถ้าผูกกับ
+  // ตัวสลับปีงบหลักจะเสี่ยงทำให้ครุภัณฑ์ "หายไป" จากสายตาโดยไม่ได้ตั้งใจ) —
+  // default ว่าง = โชว์ทุกปี ผู้ใช้ต้องเลือกเองถึงจะกรอง
+  String? _acquiredYearFilter;
 
   @override
   void initState() {
@@ -93,8 +99,28 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     });
   }
 
-  List<FixedAsset> get _filtered =>
-      _statusFilter == null ? _assets : _assets.where((a) => a.status == _statusFilter).toList();
+  List<FixedAsset> get _filtered => _assets
+      .where((a) => _statusFilter == null || a.status == _statusFilter)
+      .where((a) => _acquiredYearFilter == null || _acquiredYearOf(a) == _acquiredYearFilter)
+      .toList();
+
+  /// ปีที่ได้มา (พ.ศ.) ของครุภัณฑ์ชิ้นนี้ — ดึงตรงจากส่วนท้ายสตริงวันที่ (เช่น
+  /// "28 พฤศจิกายน 2568" -> "2568") ไม่ต้องแปลงผ่าน DateTime ให้ยุ่งยาก เพราะ
+  /// ปี พ.ศ. อยู่ในสตริงอยู่แล้วตรงๆ
+  String? _acquiredYearOf(FixedAsset a) {
+    final text = a.acquiredDate?.trim();
+    if (text == null || text.isEmpty) return null;
+    final parts = text.split(' ');
+    return parts.length == 3 ? parts.last : null;
+  }
+
+  /// ปีที่มีครุภัณฑ์อยู่จริง (distinct, เรียงใหม่ไปเก่า) — ใช้ทำตัวเลือกใน
+  /// dropdown กรอง ไม่โชว์ปีที่ไม่มีครุภัณฑ์เลย
+  List<String> get _availableAcquiredYears {
+    final years = _assets.map(_acquiredYearOf).whereType<String>().toSet().toList();
+    years.sort((a, b) => b.compareTo(a));
+    return years;
+  }
 
   FixedAsset? get _selected => _selectedId == null ? null : _assets.where((a) => a.id == _selectedId).firstOrNull;
 
@@ -321,6 +347,8 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
             child: Row(
               children: [
                 Expanded(child: _buildStatusFilterChips(colors)),
+                _buildAcquiredYearFilter(colors),
+                const SizedBox(width: 8),
                 SegmentedButton<_AssetViewMode>(
                   segments: const [
                     ButtonSegment(value: _AssetViewMode.table, icon: Icon(Icons.table_chart_outlined)),
@@ -342,7 +370,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                         Icon(Icons.inventory_2_outlined, size: 64, color: colors.onSurfaceVariant),
                         const SizedBox(height: 12),
                         Text(
-                          _assets.isEmpty ? 'ยังไม่มีครุภัณฑ์\nกด "เพิ่มครุภัณฑ์" เพื่อเริ่มต้น' : 'ไม่พบรายการในสถานะนี้',
+                          _assets.isEmpty ? 'ยังไม่มีครุภัณฑ์\nกด "เพิ่มครุภัณฑ์" เพื่อเริ่มต้น' : 'ไม่พบรายการตามตัวกรองที่เลือก',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
                         ),
@@ -375,6 +403,35 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(children: [chip('ทั้งหมด', null), for (final s in _assetStatuses) chip(s, s)]),
+    );
+  }
+
+  /// ตัวกรอง "ปีที่ได้มา" — แยกอิสระจากตัวสลับปีงบหลักที่ AppBar โดยตั้งใจ (ดู
+  /// เหตุผลที่ field _acquiredYearFilter) ซ่อนไปเลยถ้ายังไม่มีครุภัณฑ์ที่มีวันที่
+  /// ได้มาระบุไว้สักชิ้น กันโชว์ dropdown ว่างเปล่าไม่มีประโยชน์
+  Widget _buildAcquiredYearFilter(ColorScheme colors) {
+    final years = _availableAcquiredYears;
+    if (years.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          value: _acquiredYearFilter,
+          isDense: true,
+          icon: const Icon(Icons.expand_more, size: 18),
+          hint: const Text('ปีที่ได้มา (ทั้งหมด)', style: TextStyle(fontSize: 12.5)),
+          style: TextStyle(fontSize: 12.5, color: colors.onSurface),
+          items: [
+            const DropdownMenuItem(value: null, child: Text('ปีที่ได้มา (ทั้งหมด)')),
+            for (final y in years) DropdownMenuItem(value: y, child: Text('ปี $y')),
+          ],
+          onChanged: (v) => setState(() => _acquiredYearFilter = v),
+        ),
+      ),
     );
   }
 
