@@ -475,16 +475,23 @@ class DocxTemplateService {
         '<w:r\\b[^>]*>(?:(?!</w:r>).)*?${RegExp.escape(endMarker)}(?:(?!</w:r>).)*?</w:r>',
         dotAll: true,
       );
-      final startMatch = startRunPattern.firstMatch(result);
-      final endMatch = endRunPattern.firstMatch(result);
-      if (startMatch == null || endMatch == null) continue;
 
-      if (entry.value) {
-        // ลบจากท้ายไปหน้า (endMatch ก่อน) กัน offset ของ startMatch เพี้ยน
-        result = result.replaceRange(endMatch.start, endMatch.end, '');
-        result = result.replaceRange(startMatch.start, startMatch.end, '');
-      } else {
-        result = result.replaceRange(startMatch.start, endMatch.end, '');
+      // วนซ้ำจนไม่มีคู่ {{if:...}}/{{endif:...}} เหลืออยู่ — รองรับกรณีที่ flag
+      // เดียวกันถูกใช้หลายคู่ในเอกสารเดียว (เช่น has_inspector_2 ปรากฏทั้งในส่วน
+      // คำสั่งแต่งตั้งและในส่วนลงนามใบตรวจรับพัสดุ) ประมวลผลจากหน้าไปหลัง
+      // เพื่อไม่ให้ offset เพี้ยนหลังตัดหรือลบ run ก่อนหน้า
+      while (true) {
+        final startMatch = startRunPattern.firstMatch(result);
+        final endMatch = endRunPattern.firstMatch(result);
+        if (startMatch == null || endMatch == null) break;
+
+        if (entry.value) {
+          // ลบจากท้ายไปหน้า (endMatch ก่อน) กัน offset ของ startMatch เพี้ยน
+          result = result.replaceRange(endMatch.start, endMatch.end, '');
+          result = result.replaceRange(startMatch.start, startMatch.end, '');
+        } else {
+          result = result.replaceRange(startMatch.start, endMatch.end, '');
+        }
       }
     }
     return result;
