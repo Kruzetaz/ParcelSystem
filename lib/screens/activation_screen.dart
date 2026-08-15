@@ -3,8 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/license_service.dart';
-
-const _brandColor = Color(0xFF1A3A5C);
+import '../theme/design_tokens.dart';
 
 class ActivationScreen extends StatefulWidget {
   const ActivationScreen({super.key});
@@ -89,14 +88,19 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
-          child: Card(
-            elevation: 2,
+          child: Container(
             margin: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(RadiusSize.card),
+              border: Border.all(color: colors.outline),
+              boxShadow: AppShadows.light1,
+            ),
             child: Padding(
               padding: const EdgeInsets.all(40),
               child: Column(
@@ -109,8 +113,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: _brandColor,
-                          borderRadius: BorderRadius.circular(8),
+                          color: BrandAccent.teal(context),
+                          borderRadius: BorderRadius.circular(RadiusSize.md),
                         ),
                         child: const Icon(
                           Icons.verified_outlined,
@@ -118,22 +122,22 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           size: 24,
                         ),
                       ),
-                      const SizedBox(width: 40),
-                      const Expanded(
+                      const SizedBox(width: 16),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'ParcelSystem- ระบบเจ้าหน้าที่พัสดุ-จัดซื้อจัดจ้าง',
+                              'ParcelSystem — ระบบเจ้าหน้าที่พัสดุ-จัดซื้อจัดจ้าง',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: _brandColor,
+                                fontWeight: AppTypography.weightExtraBold,
+                                fontSize: AppTypography.heading4,
+                                color: colors.onSurface,
                               ),
                             ),
                             Text(
                               'v3.0 FullUpdate · พัฒนาโดย Kru.ZetaZ',
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodySmall),
                             ),
                           ],
                         ),
@@ -143,20 +147,33 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   const SizedBox(height: 32),
 
                   // ── Input ────────────────────────────────────────
-                  const Text(
+                  Text(
                     'กรุณากรอก License Key เพื่อเปิดใช้งาน',
-                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                    style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _codeCtrl,
+                    style: const TextStyle(fontSize: 17),
                     decoration: InputDecoration(
                       labelText: 'License Key',
                       hintText: 'XXXX-XXXX-XXXX-XXXX',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
                       errorText: _errorMsg,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                      labelStyle: TextStyle(fontSize: 15, color: colors.onSurfaceVariant),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md),
+                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md),
+                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md),
+                        borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+                      ),
                     ),
                     onSubmitted: (_) => _activate(),
                   ),
@@ -166,8 +183,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     child: FilledButton(
                       onPressed: _loading ? null : _activate,
                       style: FilledButton.styleFrom(
-                        backgroundColor: _brandColor,
+                        backgroundColor: colors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                        textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
                       ),
                       child: _loading
                           ? const SizedBox(
@@ -179,43 +198,41 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 12),
+                  Divider(height: 1, color: colors.outlineVariant),
+                  const SizedBox(height: 16),
 
                   // ── Hardware ID ──────────────────────────────────
                   Text(
                     'Hardware ID ของเครื่องนี้:',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.grey.shade300),
+                      color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(RadiusSize.sm),
+                      border: Border.all(color: colors.outline),
                     ),
                     child: SelectableText(
                       _hwId ?? 'กำลังโหลด...',
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(fontFamily: 'monospace', fontSize: AppTypography.caption, color: colors.onSurface),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
                     'หากต้องการ License Key กรุณาติดต่อผู้พัฒนาพร้อมแจ้ง Hardware ID ข้างต้น',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Line ID: @157vaipv',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold),
                   ),
                   Text(
                     'Facebook: Acha Sangkannork',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold),
                   ),
                 ],
               ),

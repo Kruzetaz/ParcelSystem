@@ -17,6 +17,41 @@ import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
 import '../services/toast_service.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/kpi_card.dart';
+import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
+import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+
+const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
+const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+const _dialogLabelStyle = TextStyle(fontSize: 15);
+
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+  final colors = Theme.of(context).colorScheme;
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -102,12 +137,16 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบรายการตรวจรับ "${i.inspectionNumber ?? "-"}" ใช่หรือไม่?'),
+        title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
+        content: Text('ต้องการลบรายการตรวจรับ "${i.inspectionNumber ?? "-"}" ใช่หรือไม่?', style: _dialogContentStyle),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -127,9 +166,15 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('คำนวณค่าปรับไม่ได้'),
-          content: const Text('ต้องมีวันที่ครบกำหนดและวันที่ส่งมอบจริง และวันที่ส่งมอบจริงต้องเกินกำหนดเท่านั้น'),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ปิด'))],
+          title: const Text('คำนวณค่าปรับไม่ได้', style: _dialogTitleStyle),
+          content: const Text('ต้องมีวันที่ครบกำหนดและวันที่ส่งมอบจริง และวันที่ส่งมอบจริงต้องเกินกำหนดเท่านั้น', style: _dialogContentStyle),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+              child: const Text('ปิด'),
+            ),
+          ],
         ),
       );
       return;
@@ -144,26 +189,34 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ค่าปรับโดยประมาณ'),
+        title: const Text('ค่าปรับโดยประมาณ', style: _dialogTitleStyle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ล่าช้า $daysLate วัน'),
-            Text('วงเงิน ${formatBaht(baseAmount)} บาท × อัตราค่าปรับ $penaltyRate% ต่อวัน'),
+            Text('ล่าช้า $daysLate วัน', style: _dialogContentStyle),
+            Text('วงเงิน ${formatBaht(baseAmount)} บาท × อัตราค่าปรับ $penaltyRate% ต่อวัน', style: _dialogContentStyle),
             const SizedBox(height: 8),
             Text('≈ ${formatBaht(estimated)} บาท',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
             const SizedBox(height: 8),
             Text(
               'ตัวเลขนี้เป็นค่าประมาณการเท่านั้น โปรดตรวจสอบอัตราค่าปรับตามสัญญาจริงอีกครั้งก่อนใช้อ้างอิงในเอกสารราชการ',
-              style: TextStyle(fontSize: 12, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: 12.5, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ปิด')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('บันทึกค่านี้')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ปิด'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('บันทึกค่านี้'),
+          ),
         ],
       ),
     );
@@ -239,7 +292,20 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildSummaryCards(colors),
+                          Row(
+                            children: [
+                              Icon(Icons.fact_check_outlined, color: BrandAccent.tealOn(context), size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text('ตรวจรับพัสดุ',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildSummaryCards(context, colors),
                           const SizedBox(height: 16),
                           Expanded(
                             child: _inspections.isEmpty
@@ -251,7 +317,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                                         const SizedBox(height: 12),
                                         Text('ยังไม่มีรายการตรวจรับ\nกด "เพิ่มรายการตรวจรับ" เพื่อเริ่มต้น',
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
                                       ],
                                     ),
                                   )
@@ -259,7 +325,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                                     itemCount: _inspections.length,
                                     padding: const EdgeInsets.only(bottom: 80),
                                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                    itemBuilder: (_, i) => _buildCard(colors, _inspections[i]),
+                                    itemBuilder: (_, i) => _buildCard(context, colors, _inspections[i]),
                                   ),
                           ),
                         ],
@@ -271,6 +337,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
             right: 24,
             bottom: 24,
             child: FloatingActionButton.extended(
+              heroTag: 'inspections_add_fab',
               onPressed: () => _openForm(),
               backgroundColor: colors.primary,
               foregroundColor: colors.onPrimary,
@@ -283,46 +350,62 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
     );
   }
 
-  Widget _buildSummaryCards(ColorScheme colors) {
-    Widget card(String label, int count, Color color) => Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant)),
-                const SizedBox(height: 4),
-                Text('$count', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-              ],
-            ),
-          ),
-        );
-
+  Widget _buildSummaryCards(BuildContext context, ColorScheme colors) {
     return Row(
       children: [
-        card('รอตรวจรับ', _pendingCount, Colors.orange),
+        Expanded(
+          child: KpiCard(
+            label: 'รอตรวจรับ',
+            value: '$_pendingCount',
+            unit: 'รายการ',
+            icon: Icons.hourglass_empty_outlined,
+            variant: KpiCardVariant.amber,
+          ),
+        ),
         const SizedBox(width: 12),
-        card('ตรวจรับเสร็จสิ้น', _completedCount, Colors.green),
+        Expanded(
+          child: KpiCard(
+            label: 'ตรวจรับเสร็จสิ้น',
+            value: '$_completedCount',
+            unit: 'รายการ',
+            icon: Icons.check_circle_outline,
+            variant: KpiCardVariant.green,
+          ),
+        ),
         const SizedBox(width: 12),
-        card('มีปัญหา/ล่าช้า', _problemCount, Colors.redAccent),
+        Expanded(
+          child: _RedKpiCard(
+            label: 'มีปัญหา/ล่าช้า',
+            value: '$_problemCount',
+            unit: 'รายการ',
+            icon: Icons.error_outline,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildCard(ColorScheme colors, Inspection i) {
+  Widget _buildCard(BuildContext context, ColorScheme colors, Inspection i) {
     final order = i.orderId != null ? _ordersById[i.orderId] : null;
     final late = _isLate(i);
-    final resultColor = i.result == 'ผ่าน' ? Colors.green : (i.result == 'ไม่ผ่าน' ? Colors.redAccent : Colors.orange);
+    final resultVariant = i.result == 'ผ่าน'
+        ? BadgeVariant.success
+        : (i.result == 'ไม่ผ่าน' ? BadgeVariant.danger : BadgeVariant.warning);
+    final isExportingThis = _exportingId == i.id;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: colors.outlineVariant)),
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(RadiusSize.card),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
         onTap: () => _openForm(existing: i),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: colors.outline),
+            borderRadius: BorderRadius.circular(RadiusSize.card),
+            boxShadow: AppShadows.light1,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -330,36 +413,28 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: resultColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
-                        child: Text(i.result ?? 'รอตรวจรับ',
-                          style: TextStyle(fontSize: 11.5, color: resultColor, fontWeight: FontWeight.w600)),
-                      ),
+                      StatusBadge(label: i.result ?? 'รอตรวจรับ', variant: resultVariant, compact: true),
                       if (late) ...[
                         const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
-                          child: const Text('ส่งมอบล่าช้า', style: TextStyle(fontSize: 11.5, color: Colors.redAccent, fontWeight: FontWeight.w600)),
-                        ),
+                        StatusBadge(label: 'ส่งมอบล่าช้า', variant: BadgeVariant.danger, compact: true),
                       ],
                     ]),
                     const SizedBox(height: 6),
                     Text(i.inspectionNumber ?? '(ไม่มีเลขที่ตรวจรับ)',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (order != null) ...[
                       const SizedBox(height: 2),
                       Text('${order.projectName ?? order.procurementSubject ?? "-"} · ผู้ส่งมอบ: ${order.vendorName ?? "-"}',
-                        style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
                     const SizedBox(height: 2),
                     Text('ครบกำหนด: ${i.dueDate ?? "-"}  ·  ส่งมอบจริง: ${i.actualDeliveryDate ?? "-"}',
-                      style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+                      style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
                     if (i.penaltyAmount != null) ...[
                       const SizedBox(height: 2),
                       Text('ค่าปรับโดยประมาณ: ${formatBaht(i.penaltyAmount)} บาท',
-                        style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                        style: TextStyle(fontSize: AppTypography.bodyMedium, color: BrandAccent.red(context), fontWeight: AppTypography.weightSemiBold)),
                     ],
                   ],
                 ),
@@ -367,33 +442,121 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
               if (late)
                 TextButton(
                   onPressed: () => _calculatePenalty(i),
-                  child: const Text('คำนวณค่าปรับ', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(textStyle: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold)),
+                  child: const Text('คำนวณค่าปรับ'),
                 ),
-              if (order != null)
-                IconButton(
-                  icon: _exportingId == i.id
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.description_outlined),
-                  iconSize: 20,
-                  visualDensity: VisualDensity.compact,
-                  // ตรวจรับพัสดุมีเอกสารที่เกี่ยวข้องแบบเดียว (บันทึกขออนุมัติ
-                  // เบิกจ่าย หลังตรวจรับผ่านแล้ว) จึงมีปุ่มเดียวทำหน้าที่ทั้งดู
-                  // ตัวอย่างและสร้างเอกสารในตัว ไม่แยก 2 ปุ่มให้สับสนเพราะเป็น
-                  // เอกสารใบเดียวกัน
-                  tooltip: 'สร้าง/ดูเอกสารบันทึกขออนุมัติเบิกจ่าย',
-                  color: colors.primary,
-                  onPressed: _exportingId != null ? null : () => _exportDisbursementMemo(i),
+              const SizedBox(width: 4),
+              // ตรวจรับพัสดุมีเอกสารที่เกี่ยวข้องแบบเดียว (บันทึกขออนุมัติ
+              // เบิกจ่าย หลังตรวจรับผ่านแล้ว) จึงมีปุ่มเดียวทำหน้าที่ทั้งดู
+              // ตัวอย่างและสร้างเอกสารในตัว ไม่แยก 2 ปุ่มให้สับสนเพราะเป็น
+              // เอกสารใบเดียวกัน
+              if (order != null && isExportingThis)
+                Container(
+                  width: 28,
+                  height: 28,
+                  margin: const EdgeInsets.only(right: 3),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(RadiusSize.sm),
+                    border: Border.all(color: colors.outline),
+                  ),
+                  child: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                iconSize: 20,
-                visualDensity: VisualDensity.compact,
-                tooltip: 'ลบ',
-                onPressed: () => _confirmDelete(i),
+              DsActionIconButtons(
+                actions: [
+                  if (order != null && !isExportingThis)
+                    DsRowAction(
+                      icon: Icons.description_outlined,
+                      tooltip: 'สร้าง/ดูเอกสารบันทึกขออนุมัติเบิกจ่าย',
+                      onTap: () => _exportDisbursementMemo(i),
+                    ),
+                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(i), danger: true),
+                ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// การ์ด KPI โทนแดง — KpiCard ของดีไซน์ระบบไม่มี variant สีแดงในชุดโทเค็น จึง
+/// ต้องสร้างเองแยกต่างหาก แต่ต้องเลียนแบบโครงสร้างจริงของ KpiCard ให้ครบ (แถบสี
+/// บนสุด + ไอคอนในกล่องสี่เหลี่ยมมุมมน + ตัวเลขใหญ่) ไม่งั้นจะดูไม่เข้าชุดกับ
+/// การ์ดข้างๆ ที่เป็น KpiCard จริง
+class _RedKpiCard extends StatelessWidget {
+  const _RedKpiCard({required this.label, required this.value, required this.unit, required this.icon});
+  final String label;
+  final String value;
+  final String unit;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final accent = BrandAccent.red(context);
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        border: Border.all(color: colors.outline),
+        boxShadow: AppShadows.light1,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: Container(
+              height: 3,
+              decoration: BoxDecoration(color: accent, boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.7), blurRadius: 14)]),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: Dimensions.kpiIconSize,
+                      height: Dimensions.kpiIconSize,
+                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(RadiusSize.md)),
+                      child: Icon(icon, size: IconSizes.md, color: accent),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(label,
+                        style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant, height: 1.3),
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: Text(value,
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: AppTypography.display1, fontWeight: AppTypography.weightExtraBold, letterSpacing: -1.1, height: 1, color: colors.onSurface)),
+                    ),
+                    const SizedBox(width: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(unit, style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -480,26 +643,28 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขรายการตรวจรับ' : 'เพิ่มรายการตรวจรับ'),
+      title: Text(isEdit ? 'แก้ไขรายการตรวจรับ' : 'เพิ่มรายการตรวจรับ', style: _dialogTitleStyle),
       content: SizedBox(
-        width: 500,
+        width: 580,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(bottom: 18),
                 child: TextFormField(
                   controller: _numberCtrl,
-                  decoration: const InputDecoration(labelText: 'เลขที่ตรวจรับ', border: OutlineInputBorder(), isDense: true),
+                  style: _dialogFieldStyle,
+                  decoration: _dialogFieldDecoration(context, label: 'เลขที่ตรวจรับ'),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(bottom: 18),
                 child: DropdownButtonFormField<int?>(
                   initialValue: _orderId,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'รายการจัดซื้อจัดจ้าง', border: OutlineInputBorder(), isDense: true),
+                  style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                  decoration: _dialogFieldDecoration(context, label: 'รายการจัดซื้อจัดจ้าง'),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับเอกสาร)')),
                     ...widget.orders.where((o) => o.id != null).map((o) => DropdownMenuItem<int?>(
@@ -515,9 +680,13 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                   Expanded(
                     child: InkWell(
                       onTap: () => _pickDate(isDue: true),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(labelText: 'วันที่ครบกำหนด', border: OutlineInputBorder(), isDense: true),
-                        child: Text(_dueDate ?? 'เลือกวันที่'),
+                      borderRadius: BorderRadius.circular(RadiusSize.md),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: InputDecorator(
+                          decoration: _dialogFieldDecoration(context, label: 'วันที่ครบกำหนด'),
+                          child: Text(_dueDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                        ),
                       ),
                     ),
                   ),
@@ -525,18 +694,22 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                   Expanded(
                     child: InkWell(
                       onTap: () => _pickDate(isDue: false),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(labelText: 'วันที่ส่งมอบจริง', border: OutlineInputBorder(), isDense: true),
-                        child: Text(_actualDate ?? 'เลือกวันที่'),
+                      borderRadius: BorderRadius.circular(RadiusSize.md),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: InputDecorator(
+                          decoration: _dialogFieldDecoration(context, label: 'วันที่ส่งมอบจริง'),
+                          child: Text(_actualDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 initialValue: _result,
-                decoration: const InputDecoration(labelText: 'ผลการตรวจรับ', border: OutlineInputBorder(), isDense: true),
+                style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                decoration: _dialogFieldDecoration(context, label: 'ผลการตรวจรับ'),
                 items: const [
                   DropdownMenuItem<String?>(value: null, child: Text('รอตรวจรับ')),
                   DropdownMenuItem<String?>(value: 'ผ่าน', child: Text('ผ่าน')),
@@ -549,9 +722,13 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          child: const Text('ยกเลิก'),
+        ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary),
+          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
               ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))

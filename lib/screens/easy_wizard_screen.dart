@@ -18,6 +18,7 @@ import '../models/procurement_order.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
+import '../theme/design_tokens.dart';
 
 class EasyWizardScreen extends StatefulWidget {
   final void Function(ProcurementOrder order) onCreated;
@@ -129,13 +130,13 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeroBanner(colors),
+                _buildHeroBanner(context, colors),
                 const SizedBox(height: 20),
-                _buildStepIndicator(colors),
+                _buildStepIndicator(context, colors),
                 const SizedBox(height: 24),
-                Expanded(child: SingleChildScrollView(child: _buildStepBody(colors))),
+                Expanded(child: SingleChildScrollView(child: _buildStepBody(context, colors))),
                 const SizedBox(height: 16),
-                _buildNavButtons(colors),
+                _buildNavButtons(context, colors),
               ],
             ),
           ),
@@ -144,26 +145,26 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     );
   }
 
-  Widget _buildHeroBanner(ColorScheme colors) {
+  Widget _buildHeroBanner(BuildContext context, ColorScheme colors) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [colors.primary, colors.primary.withValues(alpha: 0.75)]),
-        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(colors: [BrandAccent.teal(context), BrandAccent.tealLight(context)]),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
       ),
       child: Row(
         children: [
-          Icon(Icons.auto_awesome, color: colors.onPrimary, size: 28),
+          const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Easy Wizard — สร้างเอกสารจัดซื้อจัดจ้างแบบง่าย',
-                  style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                  style: TextStyle(color: Colors.white, fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading3)),
                 const SizedBox(height: 2),
                 Text('ตอบ 3-4 คำถามง่ายๆ ระบบเลือกวิธีจัดซื้อจัดจ้างที่ถูกต้องให้อัตโนมัติจากวงเงิน',
-                  style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.9), fontSize: 12.5)),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: AppTypography.bodyMedium)),
               ],
             ),
           ),
@@ -172,28 +173,28 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     );
   }
 
-  Widget _buildStepIndicator(ColorScheme colors) {
+  Widget _buildStepIndicator(BuildContext context, ColorScheme colors) {
     return Row(
       children: [
         for (var i = 0; i < _stepTitles.length; i++) ...[
           if (i > 0)
             Expanded(
-              child: Container(height: 2, color: i <= _step ? colors.primary : colors.outlineVariant),
+              child: Container(height: 2, color: i <= _step ? BrandAccent.teal(context) : colors.outlineVariant),
             ),
           Column(
             children: [
               CircleAvatar(
                 radius: 16,
-                backgroundColor: i <= _step ? colors.primary : colors.surfaceContainerHighest,
+                backgroundColor: i <= _step ? BrandAccent.teal(context) : colors.surfaceContainerHighest,
                 child: Text('${i + 1}',
-                  style: TextStyle(color: i <= _step ? colors.onPrimary : colors.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                  style: TextStyle(color: i <= _step ? Colors.white : colors.onSurfaceVariant, fontWeight: AppTypography.weightBold)),
               ),
               const SizedBox(height: 4),
               Text(_stepTitles[i],
                 style: TextStyle(
-                  fontSize: 11.5,
-                  color: i <= _step ? colors.primary : colors.onSurfaceVariant,
-                  fontWeight: i == _step ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: AppTypography.bodySmall,
+                  color: i <= _step ? BrandAccent.tealOn(context) : colors.onSurfaceVariant,
+                  fontWeight: i == _step ? AppTypography.weightSemiBold : AppTypography.weightRegular,
                 )),
             ],
           ),
@@ -202,40 +203,62 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     );
   }
 
-  Widget _buildStepBody(ColorScheme colors) {
+  Widget _buildStepBody(BuildContext context, ColorScheme colors) {
     switch (_step) {
       case 0:
-        return _buildStep0(colors);
+        return _buildStep0(context, colors);
       case 1:
-        return _buildStep1(colors);
+        return _buildStep1(context, colors);
       case 2:
-        return _buildStep2(colors);
+        return _buildStep2(context, colors);
       default:
         return _buildStep3(colors);
     }
   }
 
-  Widget _buildStep0(ColorScheme colors) {
+  InputDecoration _fieldDecoration(BuildContext context, {required String label, String? hint}) {
+    final colors = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        borderSide: BorderSide(color: colors.outline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        borderSide: BorderSide(color: colors.outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+      ),
+    );
+  }
+
+  Widget _buildStep0(BuildContext context, ColorScheme colors) {
     Widget typeCard(String type, IconData icon, String label, String hint) {
       final selected = _orderType == type;
       return Expanded(
         child: InkWell(
           onTap: () => setState(() => _orderType = type),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(RadiusSize.card),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: selected ? colors.primary : colors.outlineVariant, width: selected ? 2 : 1),
-              borderRadius: BorderRadius.circular(12),
-              color: selected ? colors.primary.withValues(alpha: 0.08) : null,
+              border: Border.all(color: selected ? BrandAccent.teal(context) : colors.outline, width: selected ? 2 : 1),
+              borderRadius: BorderRadius.circular(RadiusSize.card),
+              color: selected ? BrandAccent.teal(context).withValues(alpha: 0.08) : colors.surface,
             ),
             child: Column(
               children: [
-                Icon(icon, size: 32, color: selected ? colors.primary : colors.onSurfaceVariant),
+                Icon(icon, size: 32, color: selected ? BrandAccent.tealOn(context) : colors.onSurfaceVariant),
                 const SizedBox(height: 8),
-                Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: selected ? colors.primary : null)),
+                Text(label, style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, color: selected ? BrandAccent.tealOn(context) : colors.onSurface)),
                 const SizedBox(height: 4),
-                Text(hint, textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+                Text(hint, textAlign: TextAlign.center, style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
               ],
             ),
           ),
@@ -246,9 +269,9 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ขั้นที่ 1: รายการที่ต้องการจัดหาคืออะไร?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text('ขั้นที่ 1: รายการที่ต้องการจัดหาคืออะไร?', style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
         const SizedBox(height: 12),
-        const Text('ประเภท *', style: TextStyle(fontWeight: FontWeight.w600)),
+        Text('ประเภท *', style: TextStyle(fontWeight: AppTypography.weightSemiBold, fontSize: AppTypography.body, color: colors.onSurface)),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -260,20 +283,22 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
         const SizedBox(height: 16),
         TextField(
           controller: _itemNameCtrl,
-          decoration: const InputDecoration(
-            labelText: 'ชื่อรายการ/งาน *', border: OutlineInputBorder(), isDense: true,
-            hintText: 'เช่น "จัดซื้อกระดาษ A4" หรือ "จ้างซ่อมเครื่องปรับอากาศ"',
+          style: TextStyle(fontSize: AppTypography.body),
+          decoration: _fieldDecoration(context,
+            label: 'ชื่อรายการ/งาน *',
+            hint: 'เช่น "จัดซื้อกระดาษ A4" หรือ "จ้างซ่อมเครื่องปรับอากาศ"',
           ),
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: _quantityCtrl,
+                style: TextStyle(fontSize: AppTypography.body),
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'จำนวน *', border: OutlineInputBorder(), isDense: true),
+                decoration: _fieldDecoration(context, label: 'จำนวน *'),
                 onChanged: (_) => setState(() {}),
               ),
             ),
@@ -281,15 +306,17 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
             Expanded(
               child: TextField(
                 controller: _unitCtrl,
-                decoration: const InputDecoration(labelText: 'หน่วยนับ', border: OutlineInputBorder(), isDense: true, hintText: 'เช่น ชิ้น, เครื่อง'),
+                style: TextStyle(fontSize: AppTypography.body),
+                decoration: _fieldDecoration(context, label: 'หน่วยนับ', hint: 'เช่น ชิ้น, เครื่อง'),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: TextField(
                 controller: _unitPriceCtrl,
+                style: TextStyle(fontSize: AppTypography.body),
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'ราคาต่อหน่วย (บาท) *', border: OutlineInputBorder(), isDense: true),
+                decoration: _fieldDecoration(context, label: 'ราคาต่อหน่วย (บาท) *'),
                 onChanged: (_) => setState(() {}),
               ),
             ),
@@ -299,23 +326,28 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     );
   }
 
-  Widget _buildStep1(ColorScheme colors) {
+  Widget _buildStep1(BuildContext context, ColorScheme colors) {
+    final amberBg = Color.alphaBlend(BrandColors.amber.withValues(alpha: 0.12), colors.surface);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ขั้นที่ 2: วงเงินและวิธีจัดซื้อจัดจ้างที่แนะนำ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text('ขั้นที่ 2: วงเงินและวิธีจัดซื้อจัดจ้างที่แนะนำ', style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: BrandAccent.teal(context).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(RadiusSize.card),
+            border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
+          ),
           child: Column(
             children: [
-              Text('วงเงินรวม', style: TextStyle(color: colors.onPrimaryContainer, fontSize: 13)),
+              Text('วงเงินรวม', style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium)),
               const SizedBox(height: 4),
               Text('${formatBaht(_total)} บาท',
-                style: TextStyle(color: colors.onPrimaryContainer, fontSize: 28, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: colors.onSurface, fontSize: AppTypography.display1, fontWeight: AppTypography.weightExtraBold)),
               const SizedBox(height: 4),
-              Text('($_quantity x $_unitPrice บาท)', style: TextStyle(color: colors.onPrimaryContainer, fontSize: 11.5)),
+              Text('($_quantity x $_unitPrice บาท)', style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodySmall)),
             ],
           ),
         ),
@@ -323,25 +355,25 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.amber.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.amber.shade700),
+            color: amberBg,
+            borderRadius: BorderRadius.circular(RadiusSize.md),
+            border: Border.all(color: BrandColors.amber.withValues(alpha: 0.4)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Icon(Icons.lightbulb_outline, color: Colors.amber.shade800, size: 20),
+                Icon(Icons.lightbulb_outline, color: BrandAccent.tertiary(context), size: 20),
                 const SizedBox(width: 8),
-                const Expanded(child: Text('วิธีจัดซื้อจัดจ้างที่แนะนำ', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(child: Text('วิธีจัดซื้อจัดจ้างที่แนะนำ', style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, color: colors.onSurface))),
               ]),
               const SizedBox(height: 8),
-              Text(_method, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(_method, style: TextStyle(fontSize: AppTypography.heading3, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
               const SizedBox(height: 8),
               Text(
                 'คำแนะนำนี้อ้างอิงจากเกณฑ์วงเงินทั่วไปเท่านั้น ไม่ใช่การรับรองความถูกต้องทางกฎหมาย '
                 'โปรดตรวจสอบระเบียบจริงของหน่วยงานอีกครั้งก่อนดำเนินการ',
-                style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
+                style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
               ),
             ],
           ),
@@ -350,21 +382,23 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     );
   }
 
-  Widget _buildStep2(ColorScheme colors) {
+  Widget _buildStep2(BuildContext context, ColorScheme colors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ขั้นที่ 3: ผู้ขาย/ผู้รับจ้างคือใคร?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text('ขั้นที่ 3: ผู้ขาย/ผู้รับจ้างคือใคร?', style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
         const SizedBox(height: 16),
         TextField(
           controller: _vendorNameCtrl,
-          decoration: const InputDecoration(labelText: 'ชื่อร้านค้า/บริษัท *', border: OutlineInputBorder(), isDense: true),
+          style: TextStyle(fontSize: AppTypography.body),
+          decoration: _fieldDecoration(context, label: 'ชื่อร้านค้า/บริษัท *'),
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         TextField(
           controller: _vendorOwnerCtrl,
-          decoration: const InputDecoration(labelText: 'ชื่อเจ้าของ/ผู้ติดต่อ (ถ้ามี)', border: OutlineInputBorder(), isDense: true),
+          style: TextStyle(fontSize: AppTypography.body),
+          decoration: _fieldDecoration(context, label: 'ชื่อเจ้าของ/ผู้ติดต่อ (ถ้ามี)'),
         ),
       ],
     );
@@ -375,8 +409,8 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             children: [
-              SizedBox(width: 140, child: Text(label, style: TextStyle(color: colors.onSurfaceVariant))),
-              Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+              SizedBox(width: 140, child: Text(label, style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant))),
+              Expanded(child: Text(value, style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface))),
             ],
           ),
         );
@@ -384,11 +418,16 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ขั้นที่ 4: ตรวจสอบและสร้างเอกสาร', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text('ขั้นที่ 4: ตรวจสอบและสร้างเอกสาร', style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(border: Border.all(color: colors.outlineVariant), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            border: Border.all(color: colors.outline),
+            borderRadius: BorderRadius.circular(RadiusSize.card),
+            boxShadow: AppShadows.light1,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -406,27 +445,46 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
         Text(
           'กด "สร้างเอกสาร" เพื่อบันทึกเป็นร่างเอกสารจัดซื้อจัดจ้าง แล้วไปกรอกรายละเอียดที่เหลือ '
           '(ผู้อำนวยการ, คณะกรรมการตรวจรับ ฯลฯ) ต่อในหน้า "สร้างใหม่"',
-          style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+          style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant),
         ),
       ],
     );
   }
 
-  Widget _buildNavButtons(ColorScheme colors) {
+  Widget _buildNavButtons(BuildContext context, ColorScheme colors) {
     return Row(
       children: [
         if (_step > 0)
-          OutlinedButton(onPressed: _saving ? null : _back, child: const Text('ย้อนกลับ')),
+          OutlinedButton(
+            onPressed: _saving ? null : _back,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              side: BorderSide(color: colors.outline),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+            child: const Text('ย้อนกลับ'),
+          ),
         const Spacer(),
         if (_step < _stepTitles.length - 1)
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: colors.primary),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
             onPressed: _next,
             child: const Text('ถัดไป'),
           )
         else
           FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: colors.primary),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
             onPressed: _saving ? null : _createOrder,
             icon: _saving
                 ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))

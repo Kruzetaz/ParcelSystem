@@ -10,8 +10,10 @@ import '../models/procurement_order.dart';
 import '../services/order_register_export_service.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
+import '../utils/thai_date.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/column_visibility_menu.dart';
+import '../theme/design_tokens.dart';
 
 /// คอลัมน์ที่ซ่อน/แสดงได้ในตารางทะเบียนคุม — "ที่"/"เลขที่เอกสาร"/"รายการ/โครงการ"
 /// แสดงเสมอ ไม่อยู่ในนี้
@@ -127,35 +129,68 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                 children: [
                   Row(
                     children: [
-                      Text('ทะเบียนคุมเลขที่จัดซื้อจัดจ้าง',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.onSurface)),
-                      const Spacer(),
-                      ColumnVisibilityMenu(
-                        allColumns: _orderRegisterOptionalColumns,
-                        visibleColumns: _visibleColumns,
-                        onChanged: (v) => setState(() => _visibleColumns = v),
+                      Icon(Icons.numbers_outlined, color: BrandAccent.tealOn(context), size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text('ทะเบียนคุมเลขที่จัดซื้อจัดจ้าง',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
                       ),
-                      const SizedBox(width: 4),
-                      OutlinedButton.icon(
-                        onPressed: _orders.isEmpty || _exporting ? null : _exportToExcel,
-                        icon: _exporting
-                            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                            : const Icon(Icons.file_download_outlined),
-                        label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
-                      ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       SizedBox(
                         width: 165,
                         child: DropdownButtonFormField<String?>(
                           initialValue: _fiscalYearFilter,
                           isExpanded: true,
-                          decoration: const InputDecoration(isDense: true, labelText: 'ปีงบประมาณ'),
+                          style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            labelText: 'ปีงบประมาณ',
+                            labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(RadiusSize.md),
+                              borderSide: BorderSide(color: colors.outline),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(RadiusSize.md),
+                              borderSide: BorderSide(color: colors.outline),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(RadiusSize.md),
+                              borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                            ),
+                          ),
+                          borderRadius: BorderRadius.circular(RadiusSize.md),
                           items: [
                             const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
                             ..._fiscalYears.map((y) => DropdownMenuItem(value: y, child: Text('ปี $y'))),
                           ],
                           onChanged: (v) => setState(() => _fiscalYearFilter = v),
                         ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        onPressed: _orders.isEmpty || _exporting ? null : _exportToExcel,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          side: BorderSide(color: colors.outline),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                          textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                        ),
+                        icon: _exporting
+                            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
+                            : const Icon(Icons.file_download_outlined, size: 18),
+                        label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(width: 1, height: 28, color: colors.outlineVariant),
+                      const SizedBox(width: 10),
+                      ColumnVisibilityMenu(
+                        allColumns: _orderRegisterOptionalColumns,
+                        visibleColumns: _visibleColumns,
+                        onChanged: (v) => setState(() => _visibleColumns = v),
                       ),
                     ],
                   ),
@@ -169,7 +204,7 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                                 Icon(Icons.numbers_outlined, size: 64, color: colors.onSurfaceVariant),
                                 const SizedBox(height: 12),
                                 Text('ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ',
-                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15)),
+                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
                               ],
                             ),
                           )
@@ -197,32 +232,43 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
     List<ProcurementOrder> orders,
     ScrollController scrollCtrl,
   ) {
-    final headerStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
+    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant);
     final total = orders.fold<double>(0, (s, o) => s + (o.currentOrderPrice ?? 0));
     return Container(
-      decoration: BoxDecoration(border: Border.all(color: colors.outlineVariant), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        boxShadow: AppShadows.light1,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: colors.primaryContainer,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+              color: BrandAccent.teal(context).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(RadiusSize.card - 1)),
+              border: Border(bottom: BorderSide(color: colors.outline)),
             ),
             child: Row(
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: colors.onPrimaryContainer)),
-                const Spacer(),
+                Expanded(
+                  child: Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
+                ),
+                const SizedBox(width: 8),
                 Text('${orders.length} รายการ · รวม ${formatBaht(total)} บาท',
-                  style: TextStyle(fontSize: 12.5, color: colors.onPrimaryContainer)),
+                  style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
               ],
             ),
           ),
           if (orders.isEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('ไม่มีรายการ', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
+              child: Text('ไม่มีรายการ', style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.body)),
             )
           else ...[
             // บอกใบ้ว่าตารางเลื่อนดูคอลัมน์ที่เหลือได้ (คอลัมน์เยอะกว่าที่จอโชว์พอดี)
@@ -233,78 +279,93 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                   Icon(Icons.swipe_outlined, size: 13, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
                   const SizedBox(width: 4),
                   Text('เลื่อนดูคอลัมน์ที่เหลือได้ →',
-                    style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant.withValues(alpha: 0.7))),
+                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant.withValues(alpha: 0.7))),
                 ],
               ),
             ),
             const SizedBox(height: 4),
-            Scrollbar(
-              controller: scrollCtrl,
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-              controller: scrollCtrl,
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(bottom: 10),
-              // ใช้ SizedBox กำหนดความกว้างตายตัวแทน ConstrainedBox(minWidth:)
-              // เพราะหน้านี้ซ้อน SingleChildScrollView แนวนอนอยู่ใน
-              // SingleChildScrollView แนวตั้งอีกที ทำให้ความกว้างที่ส่งลงมาไม่มี
-              // ขอบเขต (unbounded) — ConstrainedBox ที่มีแค่ minWidth ไม่บังคับ
-              // ความกว้างสูงสุด ทำให้ Row ที่มี Expanded ข้างในคำนวณพื้นที่ไม่ได้
-              // (เคยเจอบั๊กแถวไม่ขึ้นเลยเพราะจุดนี้)
-              child: SizedBox(
-                width: 1372,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
-                      child: Row(
-                        children: [
-                          SizedBox(width: 36, child: Text('ที่', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          SizedBox(width: 100, child: Text('เลขที่เอกสาร', style: headerStyle)),
-                          const SizedBox(width: 6),
-                          Expanded(flex: 3, child: Text('รายการ/โครงการ', style: headerStyle)),
-                          if (_visibleColumns.contains('ผู้ขาย/ผู้รับจ้าง')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 120, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
-                          ],
-                          if (_visibleColumns.contains('ประเภทเงิน')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 90, child: Text('ประเภทเงิน', style: headerStyle)),
-                          ],
-                          if (_visibleColumns.contains('เลขที่โครงการ')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 90, child: Text('เลขที่โครงการ', style: headerStyle)),
-                          ],
-                          if (_visibleColumns.contains('จำนวนเงิน')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 110, child: Text('จำนวนเงิน', style: headerStyle, textAlign: TextAlign.right)),
-                          ],
-                          if (_visibleColumns.contains('วันที่')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 100, child: Text('วันที่', style: headerStyle)),
-                          ],
-                          if (_visibleColumns.contains('ครบกำหนดส่งมอบ')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 110, child: Text('ครบกำหนดส่งมอบ', style: headerStyle)),
-                          ],
-                          if (_visibleColumns.contains('วันตรวจรับ')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 100, child: Text('วันตรวจรับ', style: headerStyle)),
-                          ],
-                          if (_visibleColumns.contains('วันส่งเบิกเงิน')) ...[
-                            const SizedBox(width: 6),
-                            SizedBox(width: 100, child: Text('วันส่งเบิกเงิน', style: headerStyle)),
-                          ],
-                        ],
-                      ),
+            // จำกัดความสูงตารางไว้ (ไม่เกิน 460) แล้วให้แถวข้อมูลเลื่อนแนวตั้งเอง
+            // ข้างในแทน — เดิมปล่อยให้ตารางสูงเท่าจำนวนแถวจริงเสมอ (อยู่ในสกอลล์
+            // แนวตั้งของทั้งหน้าอีกที) ผลคือแถบเลื่อนซ้าย-ขวาของตารางไปโผล่ที่
+            // ก้นตารางจริงๆ ซึ่งอาจอยู่ไกลเกินจอ ต้องเลื่อนหน้าลงสุดก่อนถึงจะเห็น/
+            // ลากได้ — พอจำกัดความสูงแล้ว แถบเลื่อนจะอยู่ตำแหน่งคงที่เสมอ
+            SizedBox(
+              height: (41 + orders.length * 37).clamp(41, 460).toDouble(),
+              child: Scrollbar(
+                controller: scrollCtrl,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: scrollCtrl,
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: 1372,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
+                          child: Row(
+                            children: [
+                              SizedBox(width: 36, child: Text('ที่', style: headerStyle)),
+                              const SizedBox(width: 6),
+                              SizedBox(width: 100, child: Text('เลขที่เอกสาร', style: headerStyle)),
+                              const SizedBox(width: 6),
+                              Expanded(flex: 3, child: Text('รายการ/โครงการ', style: headerStyle)),
+                              if (_visibleColumns.contains('ผู้ขาย/ผู้รับจ้าง')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 120, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('ประเภทเงิน')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 90, child: Text('ประเภทเงิน', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('เลขที่โครงการ')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 90, child: Text('เลขที่โครงการ', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('จำนวนเงิน')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 110, child: Text('จำนวนเงิน', style: headerStyle, textAlign: TextAlign.right)),
+                                if (_visibleColumns.contains('วันที่') ||
+                                    _visibleColumns.contains('ครบกำหนดส่งมอบ') ||
+                                    _visibleColumns.contains('วันตรวจรับ') ||
+                                    _visibleColumns.contains('วันส่งเบิกเงิน')) ...[
+                                  const SizedBox(width: 10),
+                                  Container(width: 1, height: 16, color: colors.outlineVariant),
+                                  const SizedBox(width: 2),
+                                ],
+                              ],
+                              if (_visibleColumns.contains('วันที่')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 100, child: Text('วันที่', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('ครบกำหนดส่งมอบ')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 110, child: Text('ครบกำหนดส่งมอบ', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('วันตรวจรับ')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 100, child: Text('วันตรวจรับ', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('วันส่งเบิกเงิน')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(width: 100, child: Text('วันส่งเบิกเงิน', style: headerStyle)),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            itemCount: orders.length,
+                            itemBuilder: (_, i) => _buildRow(colors, i + 1, orders[i]),
+                          ),
+                        ),
+                      ],
                     ),
-                    for (var i = 0; i < orders.length; i++) _buildRow(colors, i + 1, orders[i]),
-                  ],
+                  ),
                 ),
-              ),
               ),
             ),
           ],
@@ -321,42 +382,50 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
       child: Row(
         children: [
-          SizedBox(width: 36, child: Text('$index', style: const TextStyle(fontSize: 12.5))),
+          SizedBox(width: 36, child: Text('$index', style: TextStyle(fontSize: AppTypography.bodyMedium))),
           const SizedBox(width: 6),
-          SizedBox(width: 100, child: Text(docNumber, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          SizedBox(width: 100, child: Text(docNumber, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 6),
-          Expanded(flex: 3, child: Text(itemLabel, style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 3, child: Text(itemLabel, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
           if (_visibleColumns.contains('ผู้ขาย/ผู้รับจ้าง')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 120, child: Text(o.vendorName ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(width: 120, child: Text(o.vendorName ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
           ],
           if (_visibleColumns.contains('ประเภทเงิน')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 90, child: Text(o.fundType ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(width: 90, child: Text(o.fundType ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
           ],
           if (_visibleColumns.contains('เลขที่โครงการ')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 90, child: Text(o.projectNumber ?? '-', style: const TextStyle(fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(width: 90, child: Text(o.projectNumber ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
           ],
           if (_visibleColumns.contains('จำนวนเงิน')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5))),
+            SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
+            if (_visibleColumns.contains('วันที่') ||
+                _visibleColumns.contains('ครบกำหนดส่งมอบ') ||
+                _visibleColumns.contains('วันตรวจรับ') ||
+                _visibleColumns.contains('วันส่งเบิกเงิน')) ...[
+              const SizedBox(width: 10),
+              Container(width: 1, height: 16, color: colors.outlineVariant),
+              const SizedBox(width: 2),
+            ],
           ],
           if (_visibleColumns.contains('วันที่')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 100, child: Text(o.dateOrderCreated ?? '-', style: const TextStyle(fontSize: 12))),
+            SizedBox(width: 100, child: Text(o.dateOrderCreated != null ? formatThaiDateShort(o.dateOrderCreated) : '-', style: TextStyle(fontSize: AppTypography.caption))),
           ],
           if (_visibleColumns.contains('ครบกำหนดส่งมอบ')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 110, child: Text(o.dateDeadline ?? '-', style: const TextStyle(fontSize: 12))),
+            SizedBox(width: 110, child: Text(o.dateDeadline != null ? formatThaiDateShort(o.dateDeadline) : '-', style: TextStyle(fontSize: AppTypography.caption))),
           ],
           if (_visibleColumns.contains('วันตรวจรับ')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 100, child: Text(o.dateInspection ?? '-', style: const TextStyle(fontSize: 12))),
+            SizedBox(width: 100, child: Text(o.dateInspection != null ? formatThaiDateShort(o.dateInspection) : '-', style: TextStyle(fontSize: AppTypography.caption))),
           ],
           if (_visibleColumns.contains('วันส่งเบิกเงิน')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 100, child: Text(o.dateDisbursement ?? '-', style: const TextStyle(fontSize: 12))),
+            SizedBox(width: 100, child: Text(o.dateDisbursement != null ? formatThaiDateShort(o.dateDisbursement) : '-', style: TextStyle(fontSize: AppTypography.caption))),
           ],
         ],
       ),

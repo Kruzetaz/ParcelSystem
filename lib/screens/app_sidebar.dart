@@ -2,9 +2,11 @@
 // Sidebar widget — ย่อ/ขยายได้, highlight เมนูปัจจุบัน
 // ใช้เฉพาะใน AppShell เท่านั้น (ไม่แปะซ้ำในหน้าอื่น)
 //
-// [อัปเดต ธีมใหม่]: เลิกใช้สีกรมท่า/ทองแบบเดิม เปลี่ยนไปดึงสีจาก Theme
-// (colorScheme) แทนทั้งหมด เพื่อให้รองรับโหมดสว่าง/มืด และใช้สีเขียวหัวเป็ด
-// (teal) เป็นสีเน้นเดียวของทั้งแอปตามที่ตกลงกันไว้
+// [ธีมใหม่ — rail ตาม mockup dashboard-finalv2]: พื้นหลังเป็นสีเขียวเข้ม
+// (BrandColors.tealDark) คงที่เสมอ ไม่ขึ้นกับโหมดสว่าง/มืดของแอป (มockup เองก็
+// กำหนด --rail เป็นค่าเดียวกันทั้งสองธีม) ตัวหนังสือ/ไอคอนเป็นสีขาวโปร่งแสง
+// ต่างระดับกัน รายการที่เลือกอยู่กลายเป็นพื้นขาวตัดกับพื้นเข้ม (.it.sel ใน
+// mockup) แทนที่จะดึงสีจาก ColorScheme ของแอปเหมือนเดิม
 //
 // [ย้ายออก]: กล่องข้อมูลโรงเรียนย้ายไปแสดงที่ AppBar ด้านบนแทน (อยู่ข้างๆ
 // ชื่อระบบ) sidebar จึงเหลือแค่เมนูนำทางล้วนๆ
@@ -25,10 +27,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/design_tokens.dart';
 
-const _sidebarExpandedWidth = 200.0;
-const _sidebarCollapsedWidth = 64.0;
-const _sidebarLabelWidth = 130.0;
+// เดิม 212 กว้างเกินไปสำหรับป้ายสั้นๆ (เหลือพื้นที่ว่างขวามือเยอะ) แต่ 196
+// แคบไปสำหรับป้ายยาวสุด ("ทะเบียนคุมเลขบันทึก/TOR", "สัญญาต่อเนื่องหลายงวด")
+// ทำให้ตัวหนังสือโดนตัดกลางคำ — 210 คือจุดกลางที่พอดีกับป้ายยาวสุดจริงๆ
+// (ป้ายที่ยังยาวเกินกว่านี้จะขึ้น "…" แทนแทนที่จะตัดกลางคำแบบเดิม)
+const _sidebarExpandedWidth = 210.0;
+// เดิม 64 — ไอคอน (18px) + padding(6+6) + margin(7+7) ต้องการแค่ ~44px ทำให้
+// เหลือพื้นที่ว่างรอบไอคอนเยอะเกินไปตอนพับ ลดลงมาให้กระชับขึ้นแต่ยังเผื่อ
+// ระยะกดสบายๆ ไว้บ้าง
+const _sidebarCollapsedWidth = 52.0;
+const _sidebarLabelWidth = 156.0;
 const _sidebarAnimDuration = Duration(milliseconds: 220);
 const _sidebarAnimCurve = Curves.easeInOut;
 const _sidebarOrderPrefsKey = 'sidebar_item_order_v1';
@@ -38,7 +48,7 @@ enum AppMode { dashboard, procurementCalendar, newOrder, easyWizard, budgets, to
 /// ไอคอน+ชื่อเมนูของแต่ละ AppMode — แยกออกมาจากลำดับการแสดงผล เพื่อให้ลำดับ
 /// ที่ผู้ใช้ลากจัดเองแล้ว ยังหาไอคอน/ชื่อที่ถูกต้องมาแสดงได้เสมอไม่ว่าจะสลับ
 /// ตำแหน่งกันแบบไหนก็ตาม
-const Map<AppMode, (IconData, String)> _modeMeta = {
+const Map<AppMode, (IconData, String)> modeMeta = {
   AppMode.dashboard: (Icons.dashboard_outlined, 'หน้าหลัก'),
   AppMode.procurementCalendar: (Icons.event_note_outlined, 'ปฏิทินงานพัสดุ'),
   AppMode.newOrder: (Icons.add_circle_outline, 'สร้างใหม่'),
@@ -107,6 +117,22 @@ const _sections = [
   ]),
   _SidebarSection('reports', 'รายงานและตรวจสอบ', [AppMode.reports]),
 ];
+
+/// ชุดสีของ rail — คงที่ตลอด ไม่ขึ้นกับ ColorScheme/โหมดสว่าง-มืดของแอป
+/// (ตรงกับที่ mockup กำหนด --rail เป็นค่าเดียวกันทั้ง light/dark theme)
+class _RailColors {
+  _RailColors._();
+  static const bg = BrandColors.tealDark;
+  static Color divider = Colors.white.withValues(alpha: 0.12);
+  static Color text = Colors.white.withValues(alpha: 0.78);
+  static Color textDim = Colors.white.withValues(alpha: 0.45);
+  static Color hoverBg = Colors.white.withValues(alpha: 0.1);
+  static const selectedBg = Colors.white;
+  static const selectedText = BrandColors.tealDark;
+  static const selectedAccent = BrandColors.tealLight;
+  static Color footerBg = Colors.white.withValues(alpha: 0.08);
+  static Color footerText = Colors.white.withValues(alpha: 0.55);
+}
 
 class AppSidebar extends StatefulWidget {
   final AppMode currentMode;
@@ -187,41 +213,48 @@ class _AppSidebarState extends State<AppSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return ClipRect(
       child: AnimatedContainer(
         duration: _sidebarAnimDuration,
         curve: _sidebarAnimCurve,
         width: widget.expanded ? _sidebarExpandedWidth : _sidebarCollapsedWidth,
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border(right: BorderSide(color: colors.outlineVariant)),
-        ),
+        decoration: const BoxDecoration(color: _RailColors.bg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            _buildToggleButton(colors),
+            _buildToggleButton(),
             const SizedBox(height: 8),
-            // เมนูมีเยอะขึ้นเรื่อยๆ ตามฟีเจอร์ที่เพิ่ม — ห่อด้วย Expanded +
+            // หมวด "ภาพรวม" (หน้าหลัก/ปฏิทินงานพัสดุ) ปักหมุดไว้นอกส่วนเลื่อน
+            // ตลอด — เป็นเมนูที่กดกลับบ่อยที่สุด ถ้าปล่อยให้เลื่อนหายไปพร้อม
+            // เมนูอื่นตอนลิสต์ยาว ต้องเลื่อนขึ้นไปหาทุกครั้งกว่าจะกลับหน้าหลักได้
+            _buildSectionHeader(_sections[0].title, first: true),
+            _buildSectionList(_sections[0]),
+            // เส้นแบ่งจางๆ คั่นระหว่างส่วนที่ปักหมุดกับส่วนที่เลื่อนได้ — ไม่งั้น
+            // พื้นหลังสีเดียวกันทั้งแถบ มองแวบแรกแยกไม่ออกว่าเป็นคนละส่วนกัน
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Divider(height: 1, thickness: 1, color: _RailColors.divider),
+            ),
+            // เมนูที่เหลือมีเยอะขึ้นเรื่อยๆ ตามฟีเจอร์ที่เพิ่ม — ห่อด้วย Expanded +
             // SingleChildScrollView กันไม่ให้ล้นจอตอนหน้าต่างเตี้ย/เมนูเยอะเกินพื้นที่
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (var i = 0; i < _sections.length; i++) ...[
-                      _buildSectionHeader(colors, _sections[i].title, first: i == 0),
-                      _buildSectionList(colors, _sections[i]),
+                    for (var i = 1; i < _sections.length; i++) ...[
+                      _buildSectionHeader(_sections[i].title),
+                      _buildSectionList(_sections[i]),
                     ],
                   ],
                 ),
               ),
             ),
-            _buildSectionHeader(colors, 'ตั้งค่า'),
-            _buildItem(colors, AppMode.aiSettings),
-            _buildItem(colors, AppMode.settings),
-            _buildWhtFooter(colors),
+            _buildSectionHeader('ตั้งค่า'),
+            _buildItem(AppMode.aiSettings),
+            _buildItem(AppMode.settings),
+            _buildWhtFooter(),
             const SizedBox(height: 16),
           ],
         ),
@@ -233,7 +266,7 @@ class _AppSidebarState extends State<AppSidebar> {
   /// SingleChildScrollView หลักอีกที (ปิด scroll ของตัวเอง/ยุบตามเนื้อหาจริง
   /// ด้วย shrinkWrap) เพื่อให้ลากสลับตำแหน่งได้เฉพาะภายในหมวดเดียวกัน โดยยังอยู่
   /// ใต้หัวข้อหมวดเดิม ไม่ทำให้โครงสร้างเมนูสับสน
-  Widget _buildSectionList(ColorScheme colors, _SidebarSection section) {
+  Widget _buildSectionList(_SidebarSection section) {
     final items = _order[section.key]!;
     return ReorderableListView(
       buildDefaultDragHandles: false,
@@ -242,78 +275,34 @@ class _AppSidebarState extends State<AppSidebar> {
       onReorderItem: (oldIndex, newIndex) => _onReorder(section.key, oldIndex, newIndex),
       children: [
         for (var i = 0; i < items.length; i++)
-          _buildItem(colors, items[i], key: ValueKey(items[i]), dragIndex: i),
+          _buildItem(items[i], key: ValueKey(items[i]), dragIndex: i),
       ],
     );
   }
 
-  Widget _buildToggleButton(ColorScheme colors) {
-    return SizedBox(
-      height: 44,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            InkWell(
-              onTap: widget.onToggle,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  widget.expanded ? Icons.menu_open : Icons.menu,
-                  color: colors.onSurfaceVariant,
-                  size: 22,
-                ),
-              ),
-            ),
-            ClipRect(
-              child: AnimatedContainer(
-                duration: _sidebarAnimDuration,
-                curve: _sidebarAnimCurve,
-                height: 22,
-                width: widget.expanded ? _sidebarLabelWidth : 0,
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Text(
-                    'เมนูหลัก',
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.clip,
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 12,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Widget _buildToggleButton() {
+    return _SidebarToggleTile(expanded: widget.expanded, onTap: widget.onToggle);
   }
 
-  /// หัวข้อคั่นหมวดหมู่เมนู — ตอนขยายโชว์เป็นข้อความตัวเล็ก, ตอนพับเหลือแค่
-  /// เส้นแบ่งบางๆ (ไม่มีที่พอใส่ข้อความ) กัน sidebar ยาวๆ ดูเป็น list เดียวรวด
-  Widget _buildSectionHeader(ColorScheme colors, String label, {bool first = false}) {
+  /// หัวข้อคั่นหมวดหมู่เมนู — ตอนขยายโชว์เป็นข้อความตัวเล็กพิมพ์ใหญ่แบบ mockup
+  /// (.sec) ตอนพับเหลือแค่เส้นแบ่งบางๆ (ไม่มีที่พอใส่ข้อความ) กัน sidebar ยาวๆ
+  /// ดูเป็น list เดียวรวด
+  Widget _buildSectionHeader(String label, {bool first = false}) {
     return Padding(
-      padding: EdgeInsets.only(top: first ? 0 : 14, bottom: 6, left: 16, right: 16),
+      padding: EdgeInsets.only(top: first ? 0 : 14, bottom: 4, left: 16, right: 16),
       child: widget.expanded
           ? Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: colors.onSurfaceVariant.withValues(alpha: 0.7),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
+                color: _RailColors.textDim,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.7,
               ),
             )
-          : Divider(height: 1, color: colors.outlineVariant),
+          : Divider(height: 1, color: _RailColors.divider),
     );
   }
 
@@ -321,39 +310,49 @@ class _AppSidebarState extends State<AppSidebar> {
   /// เปิดหาอัตราภาษีทุกครั้งที่กรอกบิล ตอนพับ sidebar เหลือแค่ไอคอนกดดู tooltip
   static const _whtText = 'ซื้อสินค้า = ไม่หัก (0%)\nจ้างทำของ/บริการ = 3%\nค่าเช่า = 5%';
 
-  Widget _buildWhtFooter(ColorScheme colors) {
-    if (!widget.expanded) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Tooltip(
-          message: 'อัตราหัก ณ ที่จ่าย (ประมวลรัษฎากร)\n$_whtText',
-          preferBelow: false,
-          child: Icon(Icons.percent_outlined, size: 18, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
-        ),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.percent_outlined, size: 14, color: colors.onSurfaceVariant),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                'หัก ณ ที่จ่าย\nซื้อ=0% | จ้าง=3% | เช่า=5%',
-                style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant, height: 1.4),
-              ),
-            ),
-          ],
-        ),
+  Widget _buildWhtFooter() {
+    final collapsedIcon = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Tooltip(
+        message: 'อัตราหัก ณ ที่จ่าย (ประมวลรัษฎากร)\n$_whtText',
+        preferBelow: false,
+        child: Icon(Icons.percent_outlined, size: 18, color: _RailColors.textDim),
       ),
+    );
+    if (!widget.expanded) return collapsedIcon;
+    // ใช้ LayoutBuilder เช็คพื้นที่จริงที่มีก่อนตัดสินใจโชว์เวอร์ชันขยาย —
+    // เฟรม transient ระหว่างพับ sidebar ที่ widget.expanded ยังไม่ทันอัปเดตตาม
+    // ความกว้าง Container จริง (ดูเหตุผลแบบเดียวกับ _SidebarItemTile) อาจทำให้
+    // Row นี้ถูกขอให้วาดในพื้นที่แคบกว่าที่ไอคอน+ข้อความต้องการจริง —
+    // fallback กลับไปโชว์แค่ไอคอนถ้าพื้นที่ไม่พอ กันล้น
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const minExpandedWidth = 80.0;
+        if (constraints.maxWidth < minExpandedWidth) return collapsedIcon;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: _RailColors.footerBg,
+              borderRadius: BorderRadius.circular(RadiusSize.lg),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.percent_outlined, size: 13, color: _RailColors.footerText),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'หัก ณ ที่จ่าย\nซื้อ=0% | จ้าง=3% | เช่า=5%',
+                    style: TextStyle(fontSize: 9, color: _RailColors.footerText, height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -361,8 +360,8 @@ class _AppSidebarState extends State<AppSidebar> {
   /// ReorderableListView (หมวดที่ลากจัดลำดับได้) เพื่อผูกด้ามจับลากด้วย
   /// ReorderableDragStartListener; รายการในหมวด "ตั้งค่า" ที่ปักหมุดไว้ท้ายสุด
   /// จะไม่ส่งพารามิเตอร์นี้มา จึงไม่มีด้ามจับ/ลากไม่ได้ตามที่ตั้งใจ
-  Widget _buildItem(ColorScheme colors, AppMode mode, {Key? key, int? dragIndex}) {
-    final meta = _modeMeta[mode]!;
+  Widget _buildItem(AppMode mode, {Key? key, int? dragIndex}) {
+    final meta = modeMeta[mode]!;
     final row = _SidebarItemTile(
       icon: meta.$1,
       label: meta.$2,
@@ -372,6 +371,104 @@ class _AppSidebarState extends State<AppSidebar> {
       onTap: () => widget.onSelect(mode),
     );
     return key != null ? KeyedSubtree(key: key, child: row) : row;
+  }
+}
+
+/// ปุ่มพับ/กางเมนูหลัก — จงใจใช้กรอบ hover เดียวกับ _SidebarItemTile ทุก
+/// ประการ (margin/padding/borderRadius/สี) แทนที่จะพึ่ง InkWell.hoverColor
+/// เฉยๆ เพราะของเดิมกดแล้วไม่รู้ว่าเมาส์ชี้โดนหรือไม่โดน ("กดยาก") หน้าตา
+/// ไม่เหมือนปุ่มเมนูรายการด้านล่างเลย ทำให้ผู้ใช้แยกไม่ออกว่าอันนี้คือปุ่มด้วย
+class _SidebarToggleTile extends StatefulWidget {
+  const _SidebarToggleTile({required this.expanded, required this.onTap});
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  State<_SidebarToggleTile> createState() => _SidebarToggleTileState();
+}
+
+class _SidebarToggleTileState extends State<_SidebarToggleTile> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // ต่างจากปุ่มเมนูรายการ (ซึ่งถูกบังคับกว้างเต็มแถวโดย ReorderableListView
+    // อยู่แล้วโดยอัตโนมัติ) ปุ่มนี้อยู่ใน Column เฉยๆ ไม่มีอะไรบังคับความกว้าง
+    // ให้ — ถ้าไม่ใส่ width: infinity พื้นที่กดได้จริงจะแคบแค่เท่าเนื้อหา
+    // (ไอคอน+ป้าย) เท่านั้น ทั้งที่หน้าตากล่อง hover ดูเหมือนกว้างเต็มแถว
+    // เหมือนปุ่มเมนูด้านล่าง ผู้ใช้เลยกดโดนไม่ทุกจุด — เคยลองใส่ OverflowBox
+    // เพิ่มเพื่อกัน Row ล้นตอนแอนิเมชัน แต่กลับทำให้พื้นที่กดเพี้ยน/กดไม่ติด
+    // (ขนาดปลอมที่ OverflowBox รายงานปนกับ hit-test) ตัดออกแล้ว ใช้โครงสร้าง
+    // เดียวกับ _SidebarItemTile เป๊ะๆ (พิสูจน์แล้วว่าไม่มีปัญหา) มีแค่ width
+    // infinity เพิ่มมาอันเดียวเพราะไม่ได้อยู่ใน ReorderableListView ที่ยืดให้เอง
+    return SizedBox(
+      width: double.infinity,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovering = true),
+        onExit: (_) => setState(() => _hovering = false),
+        child: InkWell(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: _sidebarAnimDuration,
+            curve: _sidebarAnimCurve,
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+            padding: const EdgeInsets.only(left: 6, right: 6, top: 8, bottom: 8),
+            decoration: BoxDecoration(
+              color: _hovering ? _RailColors.hoverBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(RadiusSize.lg),
+            ),
+            // ดูเหตุผลที่ _SidebarItemTile (โครงสร้างเดียวกัน — LayoutBuilder
+            // วัดพื้นที่จริง กัน overflow ตอน Container กับป้ายข้างในไม่ sync กัน)
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final maxLabelWidth = (constraints.maxWidth - 18 /* icon */).clamp(0.0, double.infinity);
+                final labelWidth = (widget.expanded ? _sidebarLabelWidth : 0.0).clamp(0.0, maxLabelWidth);
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      widget.expanded ? Icons.menu_open : Icons.menu,
+                      color: _RailColors.text,
+                      size: 18,
+                    ),
+                    ClipRect(
+                      child: AnimatedContainer(
+                        duration: _sidebarAnimDuration,
+                        curve: _sidebarAnimCurve,
+                        height: 20,
+                        width: labelWidth,
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 9),
+                          child: Text(
+                            'ซ่อนเมนูหลัก',
+                            maxLines: 1,
+                            softWrap: false,
+                            // ellipsis แทน clip — ป้ายยาวสุด (เช่น "ทะเบียนคุมเลข
+                            // บันทึก/TOR") บางจอ/สเกลฟอนต์อาจยังไม่พอดีเป๊ะ ขึ้น "…"
+                            // ให้ดูตั้งใจแทนที่จะตัดกลางคำแบบสุ่มดูเหมือนบั๊ก
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: _RailColors.textDim,
+                              fontSize: 12,
+                              letterSpacing: 0.5,
+                              height: 1,
+                              fontWeight: _hovering ? FontWeight.w700 : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -407,8 +504,7 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final fg = widget.isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant;
+    final fg = widget.isSelected ? _RailColors.selectedText : _RailColors.text;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
@@ -420,66 +516,111 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
           child: AnimatedContainer(
             duration: _sidebarAnimDuration,
             curve: _sidebarAnimCurve,
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            // เดิมพึ่ง ReorderableListView ยืดความกว้างให้เฉยๆ ไม่ได้ระบุ width
+            // ตรงๆ — ใช้ได้ปกติตอนอยู่ในลิสต์ที่เลื่อนได้ แต่หมวด "ภาพรวม" ย้าย
+            // ออกมาปักหมุดนอก SingleChildScrollView แล้ว ReorderableListView
+            // ที่ไม่มี Scrollable ห่ออยู่คำนวณความกว้างให้ลูกเพี้ยนได้ (อ้างอิง
+            // ขนาดตอนกางแทนที่จะเป็นขนาดที่บีบอยู่จริงตอนพับ) ระบุ width ตรงๆ
+            // กันไว้ เหมือนที่แก้ปุ่มพับ/กางไปแล้ว
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
             // ซ้าย 9 ไม่ใช่ 12 — เพราะเส้นขอบซ้าย (border) ด้านล่างกินพื้นที่ไป
             // อีก 3px เสมอ (แม้เป็นสีใส/transparent ก็ยังนับความกว้างอยู่ดี)
             // ถ้าใช้ 12 เท่ากันทุกด้าน รวมแล้วจะเกินพื้นที่จริง 3px ทำให้ล้นตอนพับ
-            padding: const EdgeInsets.only(left: 9, right: 8, top: 12, bottom: 12),
+            padding: const EdgeInsets.only(left: 6, right: 6, top: 8, bottom: 8),
             decoration: BoxDecoration(
-              color: widget.isSelected ? colors.primaryContainer : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: widget.isSelected
-                  ? Border(left: BorderSide(color: colors.primary, width: 3))
-                  : const Border(left: BorderSide(color: Colors.transparent, width: 3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(widget.icon, color: fg, size: 22),
-                ClipRect(
-                  child: AnimatedContainer(
-                    duration: _sidebarAnimDuration,
-                    curve: _sidebarAnimCurve,
-                    height: 22,
-                    // กันพื้นที่ด้ามจับไว้เท่ากันตลอดไม่ว่าจะ hover อยู่หรือไม่
-                    // (แค่ซ่อน/โชว์ด้วยความโปร่งใส) กันชื่อเมนูขยับตำแหน่งเวลา
-                    // เมาส์เข้า-ออก
-                    width: widget.expanded
-                        ? (widget.dragIndex != null ? _sidebarLabelWidth - 16 : _sidebarLabelWidth)
-                        : 0,
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 12),
-                      child: Text(
-                        widget.label,
-                        maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.clip,
-                        style: TextStyle(
-                          color: fg,
-                          fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.normal,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
+              color: widget.isSelected
+                  ? _RailColors.selectedBg
+                  : (_hovering ? _RailColors.hoverBg : Colors.transparent),
+              borderRadius: BorderRadius.circular(RadiusSize.lg),
+              border: Border(
+                left: BorderSide(
+                  color: widget.isSelected ? _RailColors.selectedAccent : Colors.transparent,
+                  width: 3,
                 ),
-                if (widget.dragIndex != null && widget.expanded)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 2),
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 120),
-                      opacity: _hovering ? 1 : 0,
-                      child: ReorderableDragStartListener(
-                        index: widget.dragIndex!,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.grab,
-                          child: Icon(Icons.drag_indicator, size: 14, color: fg.withValues(alpha: 0.5)),
+              ),
+            ),
+            // เดิมคำนวณความกว้างป้ายจากค่าคงที่ล้วนๆ (ไม่สนใจพื้นที่จริงที่มี) —
+            // Container นี้กับป้ายข้างในต่างก็มี AnimatedContainer/animation
+            // controller แยกกันเอง แม้ duration/curve เท่ากันก็ไม่การันตีว่าจะขยับ
+            // พร้อมกันทุกเฟรมเป๊ะๆ ตอนพับ/กางเร็วๆ ซ้ำๆ ทำให้บางเฟรม Row ขอพื้นที่
+            // (ไอคอน+ป้ายเต็ม+ด้ามจับ) มากกว่าที่ Container ให้จริงชั่วขณะ แล้ว
+            // Flutter โยน RenderFlex overflow assertion ออกมาทันที (การ clip ที่
+            // Container ไม่ช่วย เพราะ assertion เกิดตอน layout ไม่ใช่ตอน paint) —
+            // ใช้ LayoutBuilder วัดพื้นที่ที่มีจริง ณ เฟรมนั้นแทน แล้ว clamp
+            // เป้าหมายความกว้างป้ายไม่ให้เกินพื้นที่จริงเด็ดขาด ไม่ว่าอนิเมชันจะ
+            // sync กันพอดีหรือไม่ก็ตาม
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const iconWidth = 18.0;
+                const dragHandleReserve = 16.0;
+                // ก่อนหน้านี้เช็คแค่ widget.expanded อย่างเดียวว่าจะโชว์ด้ามจับ
+                // ลากไหม แต่ระหว่างเฟรม transient ที่ Container ยังไม่ทันขยับตาม
+                // widget.expanded ตัวใหม่ (พื้นที่จริง constraints.maxWidth ยัง
+                // แคบแบบตอนพับอยู่) การไปโชว์ด้ามจับตามค่า flag เฉยๆ ทำให้แค่
+                // ไอคอนหลัก + ด้ามจับ (18+16=34) ก็ล้นพื้นที่จริงที่แคบกว่านั้น
+                // (เช่น 23px) ได้แล้ว ทั้งที่ยังไม่ได้นับป้ายชื่อเมนูเลยด้วยซ้ำ —
+                // เช็คพื้นที่จริงที่มีประกอบด้วย ไม่ใช่เชื่อ flag อย่างเดียว
+                final hasDragHandle = widget.dragIndex != null &&
+                    widget.expanded &&
+                    constraints.maxWidth >= iconWidth + dragHandleReserve + 4;
+                final dragHandleWidth = hasDragHandle ? dragHandleReserve : 0.0;
+                final maxLabelWidth =
+                    (constraints.maxWidth - iconWidth - dragHandleWidth).clamp(0.0, double.infinity);
+                final desiredLabelWidth = widget.expanded
+                    ? (widget.dragIndex != null ? _sidebarLabelWidth - 16 : _sidebarLabelWidth)
+                    : 0.0;
+                final labelWidth = desiredLabelWidth.clamp(0.0, maxLabelWidth);
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(widget.icon, color: fg, size: 18),
+                    ClipRect(
+                      child: AnimatedContainer(
+                        duration: _sidebarAnimDuration,
+                        curve: _sidebarAnimCurve,
+                        height: 20,
+                        width: labelWidth,
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 9),
+                          child: Text(
+                            widget.label,
+                            maxLines: 1,
+                            softWrap: false,
+                            // ellipsis แทน clip — ป้ายยาวสุด (เช่น "ทะเบียนคุมเลข
+                            // บันทึก/TOR") บางจอ/สเกลฟอนต์อาจยังไม่พอดีเป๊ะ ขึ้น "…"
+                            // ให้ดูตั้งใจแทนที่จะตัดกลางคำแบบสุ่มดูเหมือนบั๊ก
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: fg,
+                              // ตัวหนาเฉพาะตอนเลือกอยู่/ชี้เมาส์อยู่ — ปกติเป็นตัว
+                              // ธรรมดา (w400) กันดูหนาเกินไปทั้งแถบเวลาไม่มีอะไรทำ
+                              fontWeight: (widget.isSelected || _hovering) ? FontWeight.w700 : FontWeight.w400,
+                              fontSize: 12.5,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                    if (hasDragHandle)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 2),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 120),
+                          opacity: _hovering ? 1 : 0,
+                          child: ReorderableDragStartListener(
+                            index: widget.dragIndex!,
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.grab,
+                              child: Icon(Icons.drag_indicator, size: 14, color: fg.withValues(alpha: 0.5)),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ),

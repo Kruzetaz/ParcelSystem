@@ -12,6 +12,42 @@ import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
 import '../services/toast_service.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
+import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+
+const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
+const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+const _dialogLabelStyle = TextStyle(fontSize: 15);
+
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint, String? helper}) {
+  final colors = Theme.of(context).colorScheme;
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    helperText: helper,
+    helperMaxLines: 2,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 const _contractTypes = ['สัญญาซื้อขาย', 'สัญญาจ้าง', 'ใบสั่งซื้อ', 'ใบสั่งจ้าง'];
 const _contractStatuses = ['กำลังดำเนินการ', 'ครบกำหนดแล้ว', 'ยกเลิก'];
@@ -77,12 +113,16 @@ class _ContractsScreenState extends State<ContractsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบสัญญา "${c.contractNumber ?? "(ไม่มีเลขที่)"}" ใช่หรือไม่?'),
+        title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
+        content: Text('ต้องการลบสัญญา "${c.contractNumber ?? "(ไม่มีเลขที่)"}" ใช่หรือไม่?', style: _dialogContentStyle),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -172,7 +212,20 @@ class _ContractsScreenState extends State<ContractsScreen> {
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildSummaryBar(colors),
+                          Row(
+                            children: [
+                              Icon(Icons.article_outlined, color: BrandAccent.tealOn(context), size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text('บริหารสัญญา',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildSummaryBar(context, colors),
                           const SizedBox(height: 16),
                           Expanded(
                             child: _contracts.isEmpty
@@ -184,7 +237,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                                         const SizedBox(height: 12),
                                         Text('ยังไม่มีสัญญา/ใบสั่งซื้อ-สั่งจ้าง\nกด "เพิ่มสัญญา" เพื่อเริ่มต้น',
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
                                       ],
                                     ),
                                   )
@@ -192,7 +245,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                                     itemCount: _contracts.length,
                                     padding: const EdgeInsets.only(bottom: 80),
                                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                    itemBuilder: (_, i) => _buildCard(colors, _contracts[i]),
+                                    itemBuilder: (_, i) => _buildCard(context, colors, _contracts[i]),
                                   ),
                           ),
                         ],
@@ -204,6 +257,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
             right: 24,
             bottom: 24,
             child: FloatingActionButton.extended(
+              heroTag: 'contracts_add_fab',
               onPressed: () => _openForm(),
               backgroundColor: colors.primary,
               foregroundColor: colors.onPrimary,
@@ -216,24 +270,25 @@ class _ContractsScreenState extends State<ContractsScreen> {
     );
   }
 
-  Widget _buildSummaryBar(ColorScheme colors) {
+  Widget _buildSummaryBar(BuildContext context, ColorScheme colors) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: colors.primaryContainer,
-        borderRadius: BorderRadius.circular(10),
+        color: BrandAccent.teal(context).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          Icon(Icons.summarize_outlined, color: colors.onPrimaryContainer),
+          Icon(Icons.summarize_outlined, color: BrandAccent.tealOn(context)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('มูลค่าสัญญารวมทั้งหมด', style: TextStyle(fontSize: 12, color: colors.onPrimaryContainer)),
+                Text('มูลค่าสัญญารวมทั้งหมด', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
                 Text('${formatBaht(_totalContractValue)} บาท (${_contracts.length} สัญญา)',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colors.onPrimaryContainer)),
+                  style: TextStyle(fontSize: AppTypography.heading3, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
               ],
             ),
           ),
@@ -242,25 +297,28 @@ class _ContractsScreenState extends State<ContractsScreen> {
     );
   }
 
-  Widget _buildCard(ColorScheme colors, Contract c) {
-    final statusColor = switch (c.status) {
-      'ครบกำหนดแล้ว' => Colors.green,
-      'ยกเลิก' => Colors.redAccent,
-      _ => Colors.orange,
+  Widget _buildCard(BuildContext context, ColorScheme colors, Contract c) {
+    final statusVariant = switch (c.status) {
+      'ครบกำหนดแล้ว' => BadgeVariant.success,
+      'ยกเลิก' => BadgeVariant.danger,
+      _ => BadgeVariant.warning,
     };
     final linkedOrder = c.orderId != null ? _ordersById[c.orderId] : null;
+    final isExportingThis = _exportingId == c.id;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: colors.outlineVariant),
-      ),
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(RadiusSize.card),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
         onTap: () => _openForm(existing: c),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: colors.outline),
+            borderRadius: BorderRadius.circular(RadiusSize.card),
+            boxShadow: AppShadows.light1,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -272,53 +330,45 @@ class _ContractsScreenState extends State<ContractsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: colors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            color: BrandAccent.teal(context).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(RadiusSize.sm),
                           ),
                           child: Text(c.contractType!,
-                            style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
+                            style: TextStyle(fontSize: AppTypography.caption, color: BrandAccent.tealOn(context), fontWeight: AppTypography.weightSemiBold)),
                         ),
                         const SizedBox(width: 8),
                       ],
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(c.status,
-                          style: TextStyle(fontSize: 11.5, color: statusColor, fontWeight: FontWeight.w600)),
-                      ),
+                      StatusBadge(label: c.status, variant: statusVariant, compact: true),
                     ]),
                     const SizedBox(height: 6),
                     Text(c.contractNumber ?? '(ไม่มีเลขที่สัญญา)',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (c.vendorName != null) ...[
                       const SizedBox(height: 2),
-                      Text('คู่สัญญา: ${c.vendorName}', style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
+                      Text('คู่สัญญา: ${c.vendorName}', style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
                     if (linkedOrder != null) ...[
                       const SizedBox(height: 2),
                       Text('รายการ: ${linkedOrder.projectName ?? linkedOrder.procurementSubject ?? "-"}',
-                        style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+                        style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
                     if (c.startDate != null || c.endDate != null) ...[
                       const SizedBox(height: 2),
                       Text('${c.startDate ?? "-"} ถึง ${c.endDate ?? "-"}',
-                        style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+                        style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
                     ],
                   ],
                 ),
               ),
               if (c.contractAmount != null)
                 Text('${formatBaht(c.contractAmount)} บาท',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.primary)),
+                  style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodyMedium, color: BrandAccent.tealOn(context))),
               if (linkedOrder != null) ...[
                 const SizedBox(width: 4),
-                (_exportingId == c.id)
+                isExportingThis
                     ? const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 12),
                         child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
@@ -327,63 +377,101 @@ class _ContractsScreenState extends State<ContractsScreen> {
                         children: [
                           // ปุ่มลัด "ดูตัวอย่าง" — ออกเอกสารหลักของสัญญา (รายงาน
                           // ขอซื้อ/ขอจ้าง) ให้ทันทีในคลิกเดียว ไม่ต้องเลือกจากเมนู
-                          IconButton(
-                            icon: const Icon(Icons.visibility_outlined),
-                            iconSize: 18,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                            visualDensity: VisualDensity.compact,
-                            color: colors.onSurfaceVariant,
-                            tooltip: 'ดูตัวอย่างเอกสาร',
-                            onPressed: () => _exportWord(c, ProcurementDocumentType.contractOrderReport),
-                          ),
-                          PopupMenuButton<ProcurementDocumentType>(
-                            icon: Icon(Icons.description_outlined, color: colors.primary, size: 18),
-                            tooltip: 'สร้างเอกสาร (เลือกประเภท)',
-                            onSelected: _exportingId != null ? null : (type) => _exportWord(c, type),
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(
-                                value: ProcurementDocumentType.contractOrderReport,
-                                child: Text('รายงานขอซื้อ/ขอจ้าง'),
-                              ),
-                              PopupMenuItem(
-                                value: ProcurementDocumentType.contractAnnouncement,
-                                child: Text('ประกาศผู้ชนะการเสนอราคา'),
-                              ),
-                              PopupMenuItem(
-                                value: ProcurementDocumentType.quotation,
-                                child: Text('ใบเสนอราคา'),
-                              ),
-                              PopupMenuItem(
-                                value: ProcurementDocumentType.deliveryNote,
-                                child: Text('ใบส่งมอบงาน'),
+                          DsActionIconButtons(
+                            actions: [
+                              DsRowAction(
+                                icon: Icons.visibility_outlined,
+                                tooltip: 'ดูตัวอย่างเอกสาร',
+                                onTap: () => _exportWord(c, ProcurementDocumentType.contractOrderReport),
                               ),
                             ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 3),
+                            child: _DocMenuButton(
+                              enabled: _exportingId == null,
+                              onSelected: (type) => _exportWord(c, type),
+                            ),
                           ),
                         ],
                       ),
               ],
               const SizedBox(width: 4),
-              IconButton(
-                icon: const Icon(Icons.copy_all_outlined),
-                iconSize: 18,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                visualDensity: VisualDensity.compact,
-                color: colors.onSurfaceVariant,
-                tooltip: 'คัดลอกสัญญา',
-                onPressed: () => _duplicateContract(c),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                iconSize: 18,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                visualDensity: VisualDensity.compact,
-                tooltip: 'ลบ',
-                onPressed: () => _confirmDelete(c),
+              DsActionIconButtons(
+                actions: [
+                  DsRowAction(icon: Icons.copy_all_outlined, tooltip: 'คัดลอกสัญญา', onTap: () => _duplicateContract(c)),
+                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(c), danger: true),
+                ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ปุ่ม "สร้างเอกสาร (เลือกประเภท)" — ครอบ PopupMenuButton ด้วยกล่อง 28x28 ที่
+/// เปลี่ยนสีพื้น/ขอบตอน hover เหมือนกับ DsActionIconButtons เป๊ะๆ (ใช้ child: แทน
+/// icon: ของ PopupMenuButton เพื่อคุมการวาดเองทั้งหมด กันไม่ให้ ripple วงกลม
+/// เริ่มต้นของ PopupMenuButton ไปทับกรอบกล่อง ทำให้ดูไม่เข้าชุดกับปุ่มข้างๆ)
+class _DocMenuButton extends StatefulWidget {
+  const _DocMenuButton({required this.enabled, required this.onSelected});
+  final bool enabled;
+  final ValueChanged<ProcurementDocumentType> onSelected;
+
+  @override
+  State<_DocMenuButton> createState() => _DocMenuButtonState();
+}
+
+class _DocMenuButtonState extends State<_DocMenuButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final hoverColor = BrandAccent.navy(context);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: Tooltip(
+        message: 'สร้างเอกสาร (เลือกประเภท)',
+        child: PopupMenuButton<ProcurementDocumentType>(
+          padding: EdgeInsets.zero,
+          enabled: widget.enabled,
+          onSelected: widget.onSelected,
+          itemBuilder: (_) => const [
+            PopupMenuItem(
+              value: ProcurementDocumentType.contractOrderReport,
+              child: Text('รายงานขอซื้อ/ขอจ้าง'),
+            ),
+            PopupMenuItem(
+              value: ProcurementDocumentType.contractAnnouncement,
+              child: Text('ประกาศผู้ชนะการเสนอราคา'),
+            ),
+            PopupMenuItem(
+              value: ProcurementDocumentType.quotation,
+              child: Text('ใบเสนอราคา'),
+            ),
+            PopupMenuItem(
+              value: ProcurementDocumentType.deliveryNote,
+              child: Text('ใบส่งมอบงาน'),
+            ),
+          ],
+          child: Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _hover ? hoverColor : colors.surface,
+              borderRadius: BorderRadius.circular(RadiusSize.sm),
+              border: Border.all(color: _hover ? hoverColor : colors.outline),
+            ),
+            child: Icon(
+              Icons.description_outlined,
+              size: IconSizes.md,
+              color: _hover ? Colors.white : colors.onSurfaceVariant,
+            ),
           ),
         ),
       ),
@@ -524,9 +612,9 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขสัญญา' : 'เพิ่มสัญญา'),
+      title: Text(isEdit ? 'แก้ไขสัญญา' : 'เพิ่มสัญญา', style: _dialogTitleStyle),
       content: SizedBox(
-        width: 520,
+        width: 580,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -541,14 +629,15 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<int?>(
                     initialValue: _orderId,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'รายการจัดซื้อจัดจ้างที่เกี่ยวข้อง', border: OutlineInputBorder(), isDense: true,
-                      helperText: 'เลือกแล้วระบบจะดึงเลขที่คุมสัญญา/e-GP/ผู้ขาย/วงเงินจากรายการนี้มาเติมให้อัตโนมัติทันที (ทับข้อมูลเดิมในช่องนั้นถ้ามี)',
-                      helperMaxLines: 2,
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(
+                      context,
+                      label: 'รายการจัดซื้อจัดจ้างที่เกี่ยวข้อง',
+                      helper: 'เลือกแล้วระบบจะดึงเลขที่คุมสัญญา/e-GP/ผู้ขาย/วงเงินจากรายการนี้มาเติมให้อัตโนมัติทันที (ทับข้อมูลเดิมในช่องนั้นถ้ามี)',
                     ),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับเอกสาร)')),
@@ -564,12 +653,11 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String?>(
                     initialValue: _contractType,
-                    decoration: const InputDecoration(
-                      labelText: 'ประเภทสัญญา', border: OutlineInputBorder(), isDense: true,
-                    ),
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภทสัญญา'),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ..._contractTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))),
@@ -590,9 +678,13 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                     Expanded(
                       child: InkWell(
                         onTap: () => _pickDate(isStart: true),
-                        child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'วันที่เริ่มสัญญา', border: OutlineInputBorder(), isDense: true),
-                          child: Text(_startDate ?? 'เลือกวันที่'),
+                        borderRadius: BorderRadius.circular(RadiusSize.md),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: InputDecorator(
+                            decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มสัญญา'),
+                            child: Text(_startDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                          ),
                         ),
                       ),
                     ),
@@ -600,18 +692,22 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                     Expanded(
                       child: InkWell(
                         onTap: () => _pickDate(isStart: false),
-                        child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'วันที่สิ้นสุดสัญญา', border: OutlineInputBorder(), isDense: true),
-                          child: Text(_endDate ?? 'เลือกวันที่'),
+                        borderRadius: BorderRadius.circular(RadiusSize.md),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: InputDecorator(
+                            decoration: _dialogFieldDecoration(context, label: 'วันที่สิ้นสุดสัญญา'),
+                            child: Text(_endDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _status,
-                  decoration: const InputDecoration(labelText: 'สถานะสัญญา', border: OutlineInputBorder(), isDense: true),
+                  style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                  decoration: _dialogFieldDecoration(context, label: 'สถานะสัญญา'),
                   items: _contractStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                   onChanged: (v) => setState(() => _status = v ?? 'กำลังดำเนินการ'),
                 ),
@@ -623,10 +719,11 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary),
+          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
               ? SizedBox(width: 16, height: 16,
@@ -639,11 +736,12 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
 
   Widget _field(TextEditingController ctrl, String label, {TextInputType? keyboardType}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 18),
       child: TextFormField(
         controller: ctrl,
+        style: _dialogFieldStyle,
         keyboardType: keyboardType,
-        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true),
+        decoration: _dialogFieldDecoration(context, label: label),
       ),
     );
   }

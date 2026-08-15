@@ -1,7 +1,10 @@
 // material_ledger_export_service.dart
-// ส่งออก "บัญชีวัสดุ" เป็นไฟล์ Excel พิมพ์ได้ — หนึ่งบล็อกต่อวัสดุหนึ่งชนิด
-// (แบบบัตรคุมสต๊อกของราชการ): หัวข้อ ประเภท/ชื่อ/รหัส/ขนาด/จำนวนอย่างสูง-ต่ำ/
-// หน่วยนับ/ที่เก็บ ตามด้วยตารางประวัติรับ-จ่ายทีละรายการพร้อมยอดคงเหลือสะสม
+// ส่งออก "บัญชีวัสดุ" เป็นไฟล์ Excel พิมพ์ได้ — หนึ่งชีตต่อวัสดุหนึ่งชนิด
+// (แบบบัตรคุมสต๊อกของราชการ): ชื่อหน่วยงาน ตามด้วยหัวข้อ ประเภท/ชื่อ/รหัส/
+// ขนาด/จำนวนอย่างสูง-ต่ำ/หน่วยนับ/ที่เก็บ แล้วตามด้วยตารางประวัติรับ-จ่าย
+// ทีละรายการพร้อมยอดคงเหลือสะสม — แยกคนละชีตต่อวัสดุ 1 ชนิดเสมอ เพื่อให้
+// พิมพ์ออกมาแล้วบัตรแต่ละใบไม่ถูกตัดคาบเกี่ยวข้ามหน้ากระดาษ (excel package
+// ที่ใช้ไม่รองรับการตั้ง page break ภายในชีตเดียวโดยตรง)
 
 import 'dart:io';
 import 'package:excel/excel.dart' as xls;
@@ -14,12 +17,24 @@ class MaterialLedgerExportService {
   static Future<File> export({
     required List<MaterialItem> materials,
     required Map<int, List<MaterialTransaction>> transactionsByMaterialId,
+    String? schoolName,
   }) async {
     final excel = xls.Excel.createExcel();
-    final sheet = excel[excel.getDefaultSheet() ?? 'Sheet1'];
+    final defaultSheetName = excel.getDefaultSheet() ?? 'Sheet1';
+    final usedSheetNames = <String>{};
 
-    for (final m in materials) {
+    for (var i = 0; i < materials.length; i++) {
+      final m = materials[i];
+      final sheetName = i == 0 ? defaultSheetName : _sheetNameFor(m, i, usedSheetNames);
+      usedSheetNames.add(sheetName);
+      if (i == 0) excel.rename(defaultSheetName, sheetName);
+      final sheet = excel[sheetName];
+
       sheet.appendRow([xls.TextCellValue('บัญชีวัสดุ')]);
+      if (schoolName != null && schoolName.trim().isNotEmpty) {
+        sheet.appendRow([xls.TextCellValue(schoolName)]);
+      }
+      sheet.appendRow([]);
       sheet.appendRow([
         xls.TextCellValue('ประเภท: ${m.category ?? "-"}'),
         xls.TextCellValue('ชื่อหรือชนิดวัสดุ: ${m.name}'),
@@ -64,8 +79,10 @@ class MaterialLedgerExportService {
       if (transactions.isEmpty) {
         sheet.appendRow([xls.TextCellValue('(ยังไม่มีประวัติรับ-จ่าย)')]);
       }
-      sheet.appendRow([]);
-      sheet.appendRow([]);
+    }
+
+    if (materials.isEmpty) {
+      excel[defaultSheetName].appendRow([xls.TextCellValue('(ยังไม่มีวัสดุ)')]);
     }
 
     final bytes = excel.encode();
@@ -87,12 +104,35 @@ class MaterialLedgerExportService {
   static Future<void> exportAndOpen({
     required List<MaterialItem> materials,
     required Map<int, List<MaterialTransaction>> transactionsByMaterialId,
+    String? schoolName,
   }) async {
-    final file = await export(materials: materials, transactionsByMaterialId: transactionsByMaterialId);
+    final file = await export(
+      materials: materials,
+      transactionsByMaterialId: transactionsByMaterialId,
+      schoolName: schoolName,
+    );
     await _openFile(file.path);
   }
 
   static String _pad(int n) => n.toString().padLeft(2, '0');
+
+  /// ชื่อชีตต้องไม่ซ้ำ ไม่เกิน 31 ตัวอักษร และห้ามมีอักขระ \ / ? * [ ] ตามข้อจำกัดของ Excel
+  static String _sheetNameFor(MaterialItem m, int index, Set<String> used) {
+    final raw = m.name.trim().isEmpty ? 'วัสดุ ${index + 1}' : m.name.trim();
+    final sanitized = raw.replaceAll(RegExp(r'[\\/?*\[\]:]'), ' ');
+    final prefix = '${index + 1}. ';
+    final maxNameLen = 31 - prefix.length;
+    var name = prefix + (sanitized.length > maxNameLen ? sanitized.substring(0, maxNameLen) : sanitized);
+    var suffix = 1;
+    while (used.contains(name)) {
+      suffix++;
+      final tag = ' ($suffix)';
+      final base = prefix + sanitized;
+      final trimLen = 31 - tag.length;
+      name = (base.length > trimLen ? base.substring(0, trimLen) : base) + tag;
+    }
+    return name;
+  }
 
   static Future<void> _openFile(String path) async {
     try {

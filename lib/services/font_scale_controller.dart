@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _prefFontScale = 'font_scale_v1';
-const double minFontScale = 0.85;
-const double maxFontScale = 1.3;
+const double minFontScale = 0.5;
+const double maxFontScale = 1.5;
 const double _step = 0.1;
 
 class FontScaleController extends ChangeNotifier {

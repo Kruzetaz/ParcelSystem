@@ -8,6 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/procurement_calendar_task.dart';
 import '../widgets/guide_panel.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/app_card.dart';
+import '../widgets/design_system/data_table_shell.dart' show DsCheckbox;
+import '../widgets/design_system/progress_indicators.dart' show ProgressBar;
 
 class ProcurementCalendarScreen extends StatefulWidget {
   const ProcurementCalendarScreen({super.key});
@@ -84,7 +88,7 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(colors),
+                _buildHeader(context, colors),
                 const SizedBox(height: 16),
                 Expanded(
                   child: _loading
@@ -96,7 +100,7 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
                             final month = months[i];
                             final isCurrentMonth =
                                 month.calendarMonth == now.month && month.buddhistYear == now.year + 543;
-                            return _buildMonthCard(colors, month, isCurrentMonth);
+                            return _buildMonthCard(context, colors, month, isCurrentMonth);
                           },
                         ),
                 ),
@@ -108,99 +112,143 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
     );
   }
 
-  Widget _buildHeader(ColorScheme colors) {
+  Widget _buildHeader(BuildContext context, ColorScheme colors) {
+    final isCurrentYear = _fiscalYear == _currentFiscalYear;
     return Row(
       children: [
-        Icon(Icons.event_note_outlined, color: colors.primary),
+        Icon(Icons.event_note_outlined, color: BrandAccent.tealOn(context), size: 22),
         const SizedBox(width: 10),
         Expanded(
           child: Text('ปฏิทินงานพัสดุประจำปี',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.onSurface)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
         ),
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          tooltip: 'ปีงบก่อนหน้า',
-          onPressed: () => _changeFiscalYear(-1),
-        ),
+        _navIconButton(context, icon: Icons.chevron_left, tooltip: 'ปีงบก่อนหน้า', onTap: () => _changeFiscalYear(-1)),
+        const SizedBox(width: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: _fiscalYear == _currentFiscalYear ? colors.primaryContainer : colors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
+            color: isCurrentYear ? BrandAccent.teal(context) : BrandAccent.surface2(context),
+            borderRadius: BorderRadius.circular(RadiusSize.md),
+            border: Border.all(color: isCurrentYear ? BrandAccent.teal(context) : colors.outline),
           ),
           child: Text('ปีงบประมาณ $_fiscalYear',
-            style: TextStyle(fontWeight: FontWeight.w600, color: colors.onSurface)),
+              style: TextStyle(
+                fontSize: AppTypography.bodyMedium,
+                fontWeight: AppTypography.weightBold,
+                color: isCurrentYear ? Colors.white : colors.onSurface,
+              )),
         ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          tooltip: 'ปีงบถัดไป',
-          onPressed: () => _changeFiscalYear(1),
-        ),
+        const SizedBox(width: 8),
+        _navIconButton(context, icon: Icons.chevron_right, tooltip: 'ปีงบถัดไป', onTap: () => _changeFiscalYear(1)),
       ],
     );
   }
 
-  Widget _buildMonthCard(ColorScheme colors, ProcurementCalendarMonth month, bool isCurrentMonth) {
+  Widget _navIconButton(BuildContext context, {required IconData icon, required String tooltip, required VoidCallback onTap}) {
+    final colors = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          child: Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(RadiusSize.md),
+              border: Border.all(color: colors.outline),
+            ),
+            child: Icon(icon, size: 20, color: colors.onSurfaceVariant),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthCard(BuildContext context, ColorScheme colors, ProcurementCalendarMonth month, bool isCurrentMonth) {
     final doneCount = month.tasks
         .where((t) => _checkedIds.contains('${month.calendarMonth}_${month.buddhistYear}_${t.slug}'))
         .length;
+    final total = month.tasks.length;
     return Container(
+      // [แก้บั๊ก border ซ้อนกันจนมองไม่เห็น]: เดิมไม่มี padding คั่น ทำให้กรอบ
+      // ไฮไลต์ teal ของเดือนปัจจุบันวาดทับกันพอดีกับกรอบ colorScheme.outline
+      // เริ่มต้นของ AppCard เอง (ขนาดกล่องเท่ากันเป๊ะ) เส้นสีเทาบางๆ ของ AppCard
+      // จะวาดทีหลังทับเส้น teal เกือบมิด เหลือให้เห็นแค่ริ้วบางๆ แทบสังเกตไม่ออก
+      // ว่าเดือนนี้ถูกไฮไลต์อยู่ — ใส่ padding เล็กน้อยให้เกิดช่องว่างจริงระหว่าง
+      // กรอบไฮไลต์ด้านนอกกับกรอบการ์ดด้านใน เห็นเป็นวงแหวนไฮไลต์ชัดเจน
+      padding: isCurrentMonth ? const EdgeInsets.all(3) : EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isCurrentMonth ? colors.primary : colors.outlineVariant, width: isCurrentMonth ? 1.6 : 1),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        border: isCurrentMonth ? Border.all(color: BrandAccent.teal(context), width: 1.6) : null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: AppCard(
+        titleWidget: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(month.label, style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
+            if (isCurrentMonth) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: BrandAccent.teal(context), borderRadius: BorderRadius.circular(RadiusSize.full)),
+                child: const Text('เดือนนี้', style: TextStyle(fontSize: AppTypography.caption, color: Colors.white, fontWeight: AppTypography.weightBold)),
+              ),
+            ],
+          ],
+        ),
+        titleAction: SizedBox(
+          width: 140,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 90, child: ProgressBar(progress: total == 0 ? 0 : doneCount / total, height: 6)),
+              const SizedBox(width: 8),
+              Text('$doneCount/$total',
+                  style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+            ],
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text(month.label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.onSurface)),
-                if (isCurrentMonth) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
-                    child: Text('เดือนนี้', style: TextStyle(fontSize: 11, color: colors.onPrimary, fontWeight: FontWeight.w600)),
-                  ),
-                ],
-                const Spacer(),
-                Text('$doneCount/${month.tasks.length} เสร็จแล้ว',
-                  style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant)),
-              ],
-            ),
-            const Divider(height: 16),
-            for (final task in month.tasks) _buildTaskRow(colors, month, task),
+            for (final task in month.tasks) _buildTaskRow(context, colors, month, task),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTaskRow(ColorScheme colors, ProcurementCalendarMonth month, ProcurementCalendarTaskDef task) {
+  Widget _buildTaskRow(BuildContext context, ColorScheme colors, ProcurementCalendarMonth month, ProcurementCalendarTaskDef task) {
     final taskId = '${month.calendarMonth}_${month.buddhistYear}_${task.slug}';
     final done = _checkedIds.contains(taskId);
     return InkWell(
       onTap: () => _toggleTask(taskId),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(RadiusSize.sm),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Checkbox(value: done, onChanged: (_) => _toggleTask(taskId)),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: DsCheckbox(value: done, onChanged: (_) => _toggleTask(taskId)),
+            ),
+            const SizedBox(width: 10),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: done ? colors.onSurfaceVariant : colors.onSurface,
-                    decoration: done ? TextDecoration.lineThrough : null,
-                  ),
+              child: Text(
+                task.title,
+                style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  color: done ? colors.onSurfaceVariant : colors.onSurface,
+                  decoration: done ? TextDecoration.lineThrough : null,
                 ),
               ),
             ),

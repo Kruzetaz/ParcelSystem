@@ -42,6 +42,11 @@ class GeminiService {
     await prefs.setString(_prefGeminiApiKey, key.trim());
   }
 
+  Future<void> deleteApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefGeminiApiKey);
+  }
+
   Uri _endpoint(String model, String apiKey) => Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
 

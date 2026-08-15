@@ -24,6 +24,7 @@ import '../services/document_generator.dart';
 import '../services/fiscal_year_controller.dart';
 import '../services/gemini_service.dart';
 import '../services/toast_service.dart';
+import '../theme/design_tokens.dart';
 import '../utils/calc_engine.dart';
 import '../utils/money_format.dart';
 import '../widgets/items_table_editor.dart';
@@ -33,6 +34,39 @@ import '../widgets/receipt_ocr_dialog.dart';
 import '../widgets/thai_date_picker.dart';
 import 'personnel_tab.dart';
 import 'settings_screen.dart';
+
+// สไตล์ dialog มาตรฐานของทั้งแอป (เหมือนกับ guarantees_screen.dart /
+// disposals_screen.dart ฯลฯ) — ใช้กับ dialog "เพิ่มแผนงบประมาณแบบด่วน" ใน Tab 1
+const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+const _dialogLabelStyle = TextStyle(fontSize: 15);
+
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+  final colors = Theme.of(context).colorScheme;
+  // colors.outline ซีดเกินไปสำหรับฟิลด์ใน dialog เดี่ยวๆ ที่ไม่มีเงา/พื้นสีช่วยไว้
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 class OrderWizardScreen extends StatefulWidget {
   final ProcurementOrder? existingOrder;
@@ -315,21 +349,37 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     return Column(
       children: [
         // TabBar เดิมเคยอยู่ใน AppBar.bottom — ย้ายมาไว้บนสุดของเนื้อหาแทน
-        // เพราะ AppBar ตอนนี้อยู่ที่ระดับ AppShell แล้ว
+        // เพราะ AppBar ตอนนี้อยู่ที่ระดับ AppShell แล้ว — ปรับจากแถบทีลทึบ+ขีด
+        // เส้นใต้บางๆ (มองว่าเป็นแท็บได้ยาก) เป็นปุ่มแคปซูลเห็นชัดว่ากดได้ทีละ
+        // ขั้นตอน มีเลขกำกับลำดับ 1-5 ให้รู้ว่าต้องกรอกตามลำดับไหน
         Container(
-          color: colors.primary,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            border: Border(bottom: BorderSide(color: colors.outline)),
+          ),
           child: TabBar(
             controller: _tabController,
             isScrollable: true,
-            indicatorColor: colors.onPrimary,
-            labelColor: colors.onPrimary,
-            unselectedLabelColor: colors.onPrimary.withValues(alpha: 0.7),
-            tabs: const [
-              Tab(text: '1. โรงเรียน/งบประมาณ'),
-              Tab(text: '2. ผู้ปฏิบัติงาน'),
-              Tab(text: '3. ร้านค้า/เงื่อนไข'),
-              Tab(text: '4. รายการพัสดุ'),
-              Tab(text: '5. กำหนดการ'),
+            tabAlignment: TabAlignment.start,
+            dividerColor: Colors.transparent,
+            splashBorderRadius: BorderRadius.circular(RadiusSize.full),
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicatorColor: Colors.transparent,
+            indicator: BoxDecoration(
+              color: BrandAccent.teal(context),
+              borderRadius: BorderRadius.circular(RadiusSize.full),
+            ),
+            labelColor: Colors.white,
+            unselectedLabelColor: colors.onSurfaceVariant,
+            labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+            unselectedLabelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+            tabs: [
+              _wizardStepTab(1, 'โรงเรียน/งบประมาณ'),
+              _wizardStepTab(2, 'ผู้ปฏิบัติงาน'),
+              _wizardStepTab(3, 'ร้านค้า/เงื่อนไข'),
+              _wizardStepTab(4, 'รายการพัสดุ'),
+              _wizardStepTab(5, 'กำหนดการ'),
             ],
           ),
         ),
@@ -374,6 +424,8 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                     foregroundColor: colors.primary,
                     side: BorderSide(color: colors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    textStyle: _dialogButtonTextStyle,
                   ),
                 ),
               ),
@@ -392,6 +444,8 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                   style: FilledButton.styleFrom(
                     backgroundColor: colors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    textStyle: _dialogButtonTextStyle,
                   ),
                 ),
               ),
@@ -399,6 +453,35 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
           ),
         ),
       ],
+    );
+  }
+
+  /// แท็บขั้นตอนแบบมีเลขกำกับ (1-5) — ใช้สี currentColor ที่ TabBar กำหนดให้
+  /// ผ่าน DefaultTextStyle รอบๆ tab นี้อยู่แล้ว (labelColor ตอนเลือก/
+  /// unselectedLabelColor ตอนไม่เลือก) ทั้งตัวเลขวงกลมและป้ายข้อความจึงสลับสี
+  /// ตามสถานะเลือกอัตโนมัติโดยไม่ต้องเช็ค _tabController.index เอง
+  Widget _wizardStepTab(int step, String label) {
+    return Tab(
+      child: Builder(builder: (context) {
+        final fg = DefaultTextStyle.of(context).style.color ?? Colors.white;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: fg, width: 1.3)),
+                child: Text('$step', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: fg, height: 1)),
+              ),
+              const SizedBox(width: 8),
+              Text(label),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
@@ -494,27 +577,41 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-        title: Text('เพิ่มแผนงบประมาณแบบด่วน', style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold)),
+        title: const Text('เพิ่มแผนงบประมาณแบบด่วน', style: _dialogTitleStyle),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: yearCtrl, decoration: const InputDecoration(labelText: 'ปีงบประมาณ (พ.ศ.)')),
-              const SizedBox(height: 12),
-              TextField(controller: projCtrl, decoration: const InputDecoration(labelText: 'ชื่อโครงการ')),
-              const SizedBox(height: 12),
-              TextField(controller: actCtrl, decoration: const InputDecoration(labelText: 'ชื่อกิจกรรม')),
-              const SizedBox(height: 12),
+              TextField(
+                controller: yearCtrl,
+                style: _dialogFieldStyle,
+                decoration: _dialogFieldDecoration(context, label: 'ปีงบประมาณ (พ.ศ.)'),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: projCtrl,
+                style: _dialogFieldStyle,
+                decoration: _dialogFieldDecoration(context, label: 'ชื่อโครงการ'),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: actCtrl,
+                style: _dialogFieldStyle,
+                decoration: _dialogFieldDecoration(context, label: 'ชื่อกิจกรรม'),
+              ),
+              const SizedBox(height: 14),
               TextField(
                 controller: amountCtrl,
-                decoration: const InputDecoration(labelText: 'งบประมาณจัดสรร (บาท)'),
+                style: _dialogFieldStyle,
+                decoration: _dialogFieldDecoration(context, label: 'งบประมาณจัดสรร (บาท)'),
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               DropdownButtonFormField<String>(
                 initialValue: source,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'แหล่งงบประมาณ'),
+                style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                decoration: _dialogFieldDecoration(context, label: 'แหล่งงบประมาณ'),
                 items: budgetSources
                     .map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
                     .toList(),
@@ -524,9 +621,18 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: colors.primary),
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              padding: _dialogButtonPadding,
+              textStyle: _dialogButtonTextStyle,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+            ),
             onPressed: () async {
               final allocated = double.tryParse(amountCtrl.text) ?? 0.0;
               final newBudget = Budget(
@@ -672,7 +778,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _sectionTitle(colors, 'เลือกแผนงบประมาณ'),
+                Expanded(child: _sectionTitle(colors, 'เลือกแผนงบประมาณ')),
                 TextButton.icon(
                   onPressed: _showQuickAddBudgetDialog,
                   icon: const Icon(Icons.add, size: 18),
@@ -693,11 +799,26 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                     items: _budgets
                         .map((b) => DropdownMenuItem(
                               value: b,
-                              child: Text(
-                                '${b.fiscalYear} • ${b.projectName ?? "-"}'
-                                '${(b.activityName?.trim().isNotEmpty ?? false) ? " › ${b.activityName}" : ""}'
-                                '${b.budgetSource == budgetSourceDistrict ? " [งบเขต]" : ""} '
-                                '(คงเหลือ ${b.remainingAmount?.toStringAsFixed(0) ?? "-"} บาท)',
+                              // ชื่อโครงการ (ตัวหนา) vs กิจกรรมย่อย/เมทาดาต้าอื่น (ตัวบาง สี
+                              // อ่อนกว่า) — แยกน้ำหนักให้เห็นลำดับความสำคัญชัดขึ้น แทนที่จะ
+                              // เป็นตัวหนาเท่ากันหมดทั้งบรรทัดแบบเดิม
+                              child: Text.rich(
+                                TextSpan(
+                                  style: TextStyle(fontWeight: AppTypography.weightSemiBold, color: colors.onSurface),
+                                  children: [
+                                    TextSpan(text: '${b.fiscalYear} • ${b.projectName ?? "-"}'),
+                                    if (b.activityName?.trim().isNotEmpty ?? false)
+                                      TextSpan(
+                                        text: ' › ${b.activityName}',
+                                        style: TextStyle(fontWeight: AppTypography.weightRegular, color: colors.onSurfaceVariant),
+                                      ),
+                                    TextSpan(
+                                      text: '${b.budgetSource == budgetSourceDistrict ? " [งบเขต]" : ""} '
+                                          '(คงเหลือ ${b.remainingAmount?.toStringAsFixed(0) ?? "-"} บาท)',
+                                      style: TextStyle(fontWeight: AppTypography.weightRegular, color: colors.onSurfaceVariant),
+                                    ),
+                                  ],
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ))
@@ -746,23 +867,34 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                border: Border.all(color: colors.outlineVariant),
-                borderRadius: BorderRadius.circular(8),
+                color: colors.surface,
+                border: Border.all(color: colors.outline),
+                borderRadius: BorderRadius.circular(RadiusSize.md),
+                boxShadow: AppShadows.light1,
               ),
-              child: SwitchListTile(
-                value: _isRecurringContract,
-                onChanged: (v) {
-                  setState(() => _isRecurringContract = v);
-                  widget.onChanged((d) => d.copyWith(isRecurringContract: v));
-                },
-                title: const Text('สัญญาต่อเนื่องหลายเดือน'),
-                subtitle: const Text(
-                  'เช่น จ้างเหมาประกอบอาหารกลางวัน, เช่าอินเทอร์เน็ตรายเดือน — '
-                  'เปิดแล้วโครงการนี้จะไปโผล่ในเมนู "สัญญาต่อเนื่อง/อาหารกลางวัน" '
-                  'เพื่อบริหารงวดจ่ายแยกทุกเดือน',
-                  style: TextStyle(fontSize: 12),
+              // Material(transparency) ระหว่าง Container ที่มีพื้นสีกับ
+              // SwitchListTile — ถ้าไม่มีตัวนี้ ListTile (ที่ SwitchListTile ห่อ
+              // อยู่ข้างใน) จะหา Material ancestor สำหรับ ink splash/hover ไม่เจอ
+              // (โดน DecoratedBox ของ Container บังไว้ก่อน) ทำให้ Flutter โยน
+              // assertion "ListTile background color or ink splashes may be
+              // invisible" รัวๆ ทุกเฟรมตอนจอ relayout (เช่นตอนพับ/กาง sidebar)
+              child: Material(
+                type: MaterialType.transparency,
+                child: SwitchListTile(
+                  value: _isRecurringContract,
+                  onChanged: (v) {
+                    setState(() => _isRecurringContract = v);
+                    widget.onChanged((d) => d.copyWith(isRecurringContract: v));
+                  },
+                  title: const Text('สัญญาต่อเนื่องหลายเดือน'),
+                  subtitle: Text(
+                    'เช่น จ้างเหมาประกอบอาหารกลางวัน, เช่าอินเทอร์เน็ตรายเดือน — '
+                    'เปิดแล้วโครงการนี้จะไปโผล่ในเมนู "สัญญาต่อเนื่อง/อาหารกลางวัน" '
+                    'เพื่อบริหารงวดจ่ายแยกทุกเดือน',
+                    style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
+                  ),
+                  secondary: Icon(Icons.restaurant_outlined, color: BrandAccent.tealOn(context)),
                 ),
-                secondary: const Icon(Icons.restaurant_outlined),
               ),
             ),
             const SizedBox(height: 24),
@@ -847,7 +979,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _sectionTitle(colors, 'เหตุผลความจำเป็น'),
+                Expanded(child: _sectionTitle(colors, 'เหตุผลความจำเป็น')),
                 TextButton.icon(
                   onPressed: _generatingReason ? null : _generateReason,
                   icon: _generatingReason
@@ -880,10 +1012,10 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               'ยอดงบประมาณดึงมาจากแผนงบที่เลือกด้านบนโดยอัตโนมัติ (แก้ที่หน้าจัดการแผนงบ)',
-              style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 40),
           ],
@@ -896,14 +1028,27 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: AppTypography.weightExtraBold,
+            fontSize: AppTypography.heading4,
+            color: colors.onSurface,
+          ),
         ),
       );
 
-  InputDecoration _inputDecoration(String label) => InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      );
+  InputDecoration _inputDecoration(String label) {
+    final colors = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+    );
+  }
 
   Widget _readonlyMoneyField(String label, double? value) {
     return TextFormField(
@@ -1018,7 +1163,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     required ProcurementOrder Function(ProcurementOrder, String) applyPosition,
   }) {
     return PopupMenuButton<Personnel>(
-      icon: const Icon(Icons.people_alt_outlined, size: 20),
+      icon: Icon(Icons.people_alt_outlined, size: 20, color: BrandAccent.tealOn(context)),
       tooltip: 'เลือกจากทำเนียบบุคลากร',
       enabled: _personnel.isNotEmpty,
       itemBuilder: (ctx) => [
@@ -1323,8 +1468,9 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        border: Border.all(color: colors.outline),
+        boxShadow: AppShadows.light1,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1336,7 +1482,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
               Expanded(
                 child: Text(
                   'ดึงจากข้อมูลประจำโรงเรียน ใช้ค่าเดียวกันทุกเอกสาร',
-                  style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+                  style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
                 ),
               ),
               TextButton.icon(
@@ -1365,7 +1511,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
             const SizedBox(height: 4),
             Text(
               'ยังไม่ได้กรอกข้อมูลผู้บริหาร/เจ้าหน้าที่ กดปุ่ม "แก้ไข" ด้านบนเพื่อกรอก',
-              style: TextStyle(fontSize: 13, color: Colors.orange.shade800),
+              style: TextStyle(fontSize: AppTypography.body, color: BrandAccent.tertiary(context)),
             ),
           ] else ...[
             const Divider(height: 20),
@@ -1387,14 +1533,14 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         children: [
           SizedBox(
             width: 170,
-            child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant)),
+            child: Text(label, style: TextStyle(fontSize: AppTypography.body, color: colors.onSurfaceVariant)),
           ),
           Expanded(
             child: Text(
               hasValue ? value! : '(ยังไม่ได้กรอก)',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
+                fontSize: AppTypography.body,
+                fontWeight: hasValue ? AppTypography.weightSemiBold : AppTypography.weightRegular,
                 fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
                 color: hasValue ? colors.onSurface : colors.onSurfaceVariant,
               ),
@@ -1409,14 +1555,27 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: AppTypography.weightExtraBold,
+            fontSize: AppTypography.heading4,
+            color: colors.onSurface,
+          ),
         ),
       );
 
-  InputDecoration _inputDecoration(String label) => InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      );
+  InputDecoration _inputDecoration(String label) {
+    final colors = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1846,7 +2005,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               'ระบบจะแยกยอดก่อนภาษีออกจากยอดรวมให้อัตโนมัติ ไม่ได้บวก VAT เพิ่มเข้าไปอีก\n'
               'ไม่แน่ใจว่าร้านหักกี่ % ให้พิมพ์จำนวนเงินจริงจากบิล (ช่องเล็กด้านขวา) แทนได้เลย ระบบจะคำนวณ % ให้เอง '
               '(ต้องกรอกรายการพัสดุในแท็บ 4 ให้เสร็จก่อน ถึงจะคำนวณได้)',
-              style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             _sectionTitle(colors, 'เงื่อนไขการส่งมอบ / ค่าปรับ / ประกัน'),
@@ -1922,14 +2081,27 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: AppTypography.weightExtraBold,
+            fontSize: AppTypography.heading4,
+            color: colors.onSurface,
+          ),
         ),
       );
 
-  InputDecoration _inputDecoration(String label) => InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      );
+  InputDecoration _inputDecoration(String label) {
+    final colors = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -2074,18 +2246,26 @@ class _Tab4ItemsState extends State<_Tab4Items> {
                       )
                     : const Icon(Icons.camera_alt_outlined),
                 label: Text(_readingReceipt ? 'กำลังอ่านใบเสร็จ...' : '📷 อ่านจากใบเสร็จ'),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: colors.outline),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                  textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            Card(
-              elevation: 1,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: ItemsTableEditor(
-                  initialItems: widget.initialItems,
-                  controller: widget.itemsController,
-                  onChanged: widget.onChanged,
-                ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(RadiusSize.card),
+                border: Border.all(color: colors.outline),
+                boxShadow: AppShadows.light1,
+              ),
+              child: ItemsTableEditor(
+                initialItems: widget.initialItems,
+                controller: widget.itemsController,
+                onChanged: widget.onChanged,
               ),
             ),
           ],
@@ -2282,12 +2462,12 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
                             padding: const EdgeInsets.all(12),
                             child: CircleAvatar(
                               radius: 11,
-                              backgroundColor: colors.primary,
+                              backgroundColor: BrandAccent.teal(context),
                               child: Text(
                                 '${i + 1}',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: AppTypography.caption,
+                                  fontWeight: AppTypography.weightBold,
                                   color: colors.onPrimary,
                                 ),
                               ),
@@ -2306,7 +2486,7 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
               );
             },
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           _buildGuideCard(colors),
           const SizedBox(height: 24),
         ],
@@ -2331,20 +2511,20 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colors.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
+        color: BrandAccent.teal(context).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: colors.primary, size: 20),
+              Icon(Icons.info_outline, color: BrandAccent.tealOn(context), size: 20),
               const SizedBox(width: 8),
               Text(
                 'คำแนะนำลำดับการกรอกวันที่ (ตัวเลขตรงกับช่องด้านบน)',
-                style: TextStyle(fontWeight: FontWeight.bold, color: colors.primary),
+                style: TextStyle(fontWeight: AppTypography.weightBold, color: BrandAccent.tealOn(context)),
               ),
             ],
           ),
@@ -2357,15 +2537,15 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
                 children: [
                   CircleAvatar(
                     radius: 10,
-                    backgroundColor: colors.primary,
+                    backgroundColor: BrandAccent.teal(context),
                     child: Text(
                       '${i + 1}',
-                      style: TextStyle(fontSize: 11, color: colors.onPrimary),
+                      style: TextStyle(fontSize: AppTypography.caption, color: colors.onPrimary),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(_guideItems[i], style: const TextStyle(fontSize: 13)),
+                    child: Text(_guideItems[i], style: TextStyle(fontSize: AppTypography.body)),
                   ),
                 ],
               ),
@@ -2379,12 +2559,25 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
           text,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: AppTypography.weightExtraBold,
+            fontSize: AppTypography.heading4,
+            color: colors.onSurface,
+          ),
         ),
       );
 
-  InputDecoration _inputDecoration(String label) => InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      );
+  InputDecoration _inputDecoration(String label) {
+    final colors = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+    );
+  }
 }

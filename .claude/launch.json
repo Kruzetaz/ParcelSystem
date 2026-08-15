@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mockup-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8935", "--directory", "/Users/zack1again/Developer/Projects/ParcelSystem-mockups"],
+      "port": 8935
+    }
+  ]
+}

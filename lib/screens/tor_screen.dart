@@ -12,6 +12,40 @@ import '../services/tor_document_generator.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
+import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+
+const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
+const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+const _dialogLabelStyle = TextStyle(fontSize: 15);
+
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+  final colors = Theme.of(context).colorScheme;
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 const _torCategories = ['ครุภัณฑ์', 'วัสดุ', 'จ้าง'];
 const _torStatuses = ['ร่าง', 'อนุมัติ'];
@@ -105,12 +139,16 @@ class _TorScreenState extends State<TorScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบ "${doc.title}" ใช่หรือไม่?'),
+        title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
+        content: Text('ต้องการลบ "${doc.title}" ใช่หรือไม่?', style: _dialogContentStyle),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -144,25 +182,45 @@ class _TorScreenState extends State<TorScreen> {
                 padding: const EdgeInsets.all(24),
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
-                    : _docs.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.description_outlined, size: 64, color: colors.onSurfaceVariant),
-                                const SizedBox(height: 12),
-                                Text('ยังไม่มี TOR / ข้อมูลคุณลักษณะเฉพาะ\nกด "เพิ่ม TOR" เพื่อเริ่มต้น',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
-                              ],
-                            ),
-                          )
-                        : ListView.separated(
-                            itemCount: _docs.length,
-                            padding: const EdgeInsets.only(bottom: 80),
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (_, i) => _buildCard(colors, _docs[i]),
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.description_outlined, color: BrandAccent.tealOn(context), size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text('TOR / คุณลักษณะเฉพาะ',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                              ),
+                            ],
                           ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: _docs.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.description_outlined, size: 64, color: colors.onSurfaceVariant),
+                                        const SizedBox(height: 12),
+                                        Text('ยังไม่มี TOR / ข้อมูลคุณลักษณะเฉพาะ\nกด "เพิ่ม TOR" เพื่อเริ่มต้น',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: _docs.length,
+                                    padding: const EdgeInsets.only(bottom: 80),
+                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                    itemBuilder: (_, i) => _buildCard(context, colors, _docs[i]),
+                                  ),
+                          ),
+                        ],
+                      ),
               ),
             ),
           ),
@@ -170,6 +228,7 @@ class _TorScreenState extends State<TorScreen> {
             right: 24,
             bottom: 24,
             child: FloatingActionButton.extended(
+              heroTag: 'tor_add_fab',
               onPressed: () => _openForm(),
               backgroundColor: colors.primary,
               foregroundColor: colors.onPrimary,
@@ -182,21 +241,23 @@ class _TorScreenState extends State<TorScreen> {
     );
   }
 
-  Widget _buildCard(ColorScheme colors, TorDocument doc) {
+  Widget _buildCard(BuildContext context, ColorScheme colors, TorDocument doc) {
     final isApproved = doc.status == 'อนุมัติ';
-    final statusColor = isApproved ? Colors.green : Colors.orange;
+    final isExportingThis = _exportingId == doc.id;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: colors.outlineVariant),
-      ),
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(RadiusSize.card),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
         onTap: () => _openForm(existing: doc),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: colors.outline),
+            borderRadius: BorderRadius.circular(RadiusSize.card),
+            boxShadow: AppShadows.light1,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -208,35 +269,31 @@ class _TorScreenState extends State<TorScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: colors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            color: BrandAccent.teal(context).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(RadiusSize.sm),
                           ),
                           child: Text(doc.documentNumber!,
-                            style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
+                            style: TextStyle(fontSize: AppTypography.caption, color: BrandAccent.tealOn(context), fontWeight: AppTypography.weightSemiBold)),
                         ),
                         const SizedBox(width: 8),
                       ],
                       if (doc.category != null) ...[
-                        Text(doc.category!, style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant)),
+                        Text(doc.category!, style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
                         const SizedBox(width: 8),
                       ],
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(doc.status,
-                          style: TextStyle(fontSize: 11.5, color: statusColor, fontWeight: FontWeight.w600)),
+                      StatusBadge(
+                        label: doc.status,
+                        variant: isApproved ? BadgeVariant.success : BadgeVariant.warning,
+                        compact: true,
                       ),
                     ]),
                     const SizedBox(height: 6),
                     Text(doc.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (doc.createdDate != null) ...[
                       const SizedBox(height: 2),
-                      Text('สร้างเมื่อ ${doc.createdDate}', style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant)),
+                      Text('สร้างเมื่อ ${doc.createdDate}', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
                     ],
                     if (doc.orderId != null) ...[
                       const SizedBox(height: 2),
@@ -245,7 +302,7 @@ class _TorScreenState extends State<TorScreen> {
                         children: [
                           Icon(Icons.link, size: 13, color: colors.onSurfaceVariant),
                           const SizedBox(width: 4),
-                          Text('ผูกกับรายการจัดซื้อจัดจ้าง', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+                          Text('ผูกกับรายการจัดซื้อจัดจ้าง', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
                         ],
                       ),
                     ],
@@ -254,21 +311,27 @@ class _TorScreenState extends State<TorScreen> {
               ),
               if (doc.estimatedAmount != null) ...[
                 Text('${formatBaht(doc.estimatedAmount)} บาท',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: colors.primary)),
+                  style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodyMedium, color: BrandAccent.tealOn(context))),
                 const SizedBox(width: 8),
               ],
-              if (doc.orderId != null)
-                _exportingId == doc.id
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : IconButton(
-                        icon: const Icon(Icons.description_outlined),
-                        tooltip: 'ออกเอกสาร Word',
-                        onPressed: () => _exportWord(doc),
-                      ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                tooltip: 'ลบ',
-                onPressed: () => _confirmDelete(doc),
+              if (doc.orderId != null && isExportingThis)
+                Container(
+                  width: 28,
+                  height: 28,
+                  margin: const EdgeInsets.only(right: 3),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(RadiusSize.sm),
+                    border: Border.all(color: colors.outline),
+                  ),
+                  child: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+              DsActionIconButtons(
+                actions: [
+                  if (doc.orderId != null && !isExportingThis)
+                    DsRowAction(icon: Icons.description_outlined, tooltip: 'ออกเอกสาร Word', onTap: () => _exportWord(doc)),
+                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(doc), danger: true),
+                ],
               ),
             ],
           ),
@@ -348,15 +411,21 @@ class _TorFormDialogState extends State<_TorFormDialog> {
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('บันทึกเป็น Template'),
+        title: const Text('บันทึกเป็น Template', style: _dialogTitleStyle),
         content: TextField(
           controller: nameCtrl,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'ชื่อ Template', hintText: 'เช่น เครื่องคอมพิวเตอร์แบบตั้งโต๊ะ (สพฐ.)'),
+          style: _dialogFieldStyle,
+          decoration: _dialogFieldDecoration(ctx, label: 'ชื่อ Template', hint: 'เช่น เครื่องคอมพิวเตอร์แบบตั้งโต๊ะ (สพฐ.)'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
+            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()),
             child: const Text('บันทึก'),
           ),
@@ -401,9 +470,9 @@ class _TorFormDialogState extends State<_TorFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไข TOR / คุณลักษณะเฉพาะ' : 'เพิ่ม TOR / คุณลักษณะเฉพาะ'),
+      title: Text(isEdit ? 'แก้ไข TOR / คุณลักษณะเฉพาะ' : 'เพิ่ม TOR / คุณลักษณะเฉพาะ', style: _dialogTitleStyle),
       content: SizedBox(
-        width: 520,
+        width: 580,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -413,14 +482,12 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                 _field(_documentNumberCtrl, 'เลขที่'),
                 _field(_titleCtrl, 'ชื่อโครงการ/รายชื่อพัสดุ *', required: true),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<int?>(
                     initialValue: _orderId,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'ผูกกับรายการจัดซื้อจัดจ้าง (สำหรับออกเอกสาร Word)',
-                      border: OutlineInputBorder(), isDense: true,
-                    ),
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context, label: 'ผูกกับรายการจัดซื้อจัดจ้าง (สำหรับออกเอกสาร Word)'),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูก)')),
                       ...widget.orders.where((o) => o.id != null).map((o) => DropdownMenuItem<int?>(
@@ -432,12 +499,11 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String?>(
                     initialValue: _category,
-                    decoration: const InputDecoration(
-                      labelText: 'ประเภท', border: OutlineInputBorder(), isDense: true,
-                    ),
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภท'),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ..._torCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
@@ -447,12 +513,11 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                 ),
                 _field(_estimatedAmountCtrl, 'วงเงินโดยประมาณ (บาท)', keyboardType: TextInputType.number),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String>(
                     initialValue: _status,
-                    decoration: const InputDecoration(
-                      labelText: 'สถานะ', border: OutlineInputBorder(), isDense: true,
-                    ),
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context, label: 'สถานะ'),
                     items: _torStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                     onChanged: (v) => setState(() => _status = v ?? 'ร่าง'),
                   ),
@@ -460,17 +525,26 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('รายละเอียดคุณลักษณะเฉพาะ', style: TextStyle(fontSize: 12.5)),
+                    Expanded(
+                      child: Text(
+                        'รายละเอียดคุณลักษณะเฉพาะ',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                      ),
+                    ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TextButton.icon(
                           onPressed: _pickFromTemplate,
+                          style: TextButton.styleFrom(textStyle: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold)),
                           icon: const Icon(Icons.download_outlined, size: 16),
                           label: const Text('เลือกจาก Template'),
                         ),
                         TextButton.icon(
                           onPressed: _saveAsTemplate,
+                          style: TextButton.styleFrom(textStyle: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold)),
                           icon: const Icon(Icons.bookmark_add_outlined, size: 16),
                           label: const Text('บันทึกเป็น Template'),
                         ),
@@ -478,6 +552,7 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 6),
                 _field(_specTextCtrl, 'รายละเอียดคุณลักษณะเฉพาะ', maxLines: 6),
               ],
             ),
@@ -487,10 +562,11 @@ class _TorFormDialogState extends State<_TorFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary),
+          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
               ? SizedBox(width: 16, height: 16,
@@ -504,14 +580,13 @@ class _TorFormDialogState extends State<_TorFormDialog> {
   Widget _field(TextEditingController ctrl, String label,
       {bool required = false, TextInputType? keyboardType, int maxLines = 1}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 18),
       child: TextFormField(
         controller: ctrl,
+        style: _dialogFieldStyle,
         keyboardType: keyboardType,
         maxLines: maxLines,
-        decoration: InputDecoration(
-          labelText: label, border: const OutlineInputBorder(), isDense: true,
-        ),
+        decoration: _dialogFieldDecoration(context, label: label),
         validator: required
             ? (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null
             : null,
@@ -553,6 +628,7 @@ class _TemplatePickerDialogState extends State<_TemplatePickerDialog> {
         : _templates.where((t) => t.name.toLowerCase().contains(_query.toLowerCase())).toList();
 
     return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.card)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480, maxHeight: 500),
         child: Padding(
@@ -561,29 +637,33 @@ class _TemplatePickerDialogState extends State<_TemplatePickerDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('เลือกจาก Template', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
+              Text('เลือกจาก Template', style: _dialogTitleStyle.copyWith(color: colors.onSurface)),
+              const SizedBox(height: 14),
               TextField(
-                decoration: const InputDecoration(isDense: true, prefixIcon: Icon(Icons.search, size: 20), hintText: 'ค้นหา Template'),
+                style: _dialogFieldStyle,
+                decoration: _dialogFieldDecoration(context, label: '', hint: 'ค้นหา Template').copyWith(
+                  labelText: null,
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                ),
                 onChanged: (v) => setState(() => _query = v),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Flexible(
                 child: filtered.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Center(child: Text('ไม่พบ Template', style: TextStyle(color: colors.onSurfaceVariant))),
+                        child: Center(child: Text('ไม่พบ Template', style: TextStyle(fontSize: AppTypography.body, color: colors.onSurfaceVariant))),
                       )
                     : ListView.separated(
                         shrinkWrap: true,
                         itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => Divider(height: 1, color: colors.outlineVariant),
                         itemBuilder: (_, i) {
                           final t = filtered[i];
                           return ListTile(
                             dense: true,
-                            title: Text(t.name),
-                            subtitle: t.category != null ? Text(t.category!) : null,
+                            title: Text(t.name, style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: t.category != null ? Text(t.category!, style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis) : null,
                             onTap: () => Navigator.pop(context, t),
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
@@ -598,6 +678,7 @@ class _TemplatePickerDialogState extends State<_TemplatePickerDialog> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
                   child: const Text('ปิด'),
                 ),
               ),

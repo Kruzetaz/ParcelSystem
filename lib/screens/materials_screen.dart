@@ -14,6 +14,40 @@ import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/kpi_card.dart';
+import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+
+const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
+const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+const _dialogLabelStyle = TextStyle(fontSize: 15);
+
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+  final colors = Theme.of(context).colorScheme;
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -78,7 +112,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         if (m.id == null) continue;
         txByMaterial[m.id!] = await _repo.getMaterialTransactionsChronological(m.id!);
       }
-      await MaterialLedgerExportService.exportAndOpen(materials: _materials, transactionsByMaterialId: txByMaterial);
+      final school = await _repo.getSchoolSettings();
+      await MaterialLedgerExportService.exportAndOpen(
+        materials: _materials,
+        transactionsByMaterialId: txByMaterial,
+        schoolName: school?.schoolName,
+      );
       if (!mounted) return;
       showAppToast('สร้างบัญชีวัสดุแล้ว');
     } catch (e) {
@@ -97,18 +136,19 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('ประวัติรับ-จ่าย "${m.name}"'),
+        title: Text('ประวัติรับ-จ่าย "${m.name}"', style: _dialogTitleStyle),
         content: SizedBox(
-          width: 420,
-          height: 400,
+          width: 460,
+          height: 420,
           child: transactions.isEmpty
-              ? const Center(child: Text('ยังไม่มีประวัติรับ-จ่าย'))
+              ? Center(child: Text('ยังไม่มีประวัติรับ-จ่าย', style: _dialogContentStyle))
               : ListView.separated(
                   itemCount: transactions.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (_, i) {
                     final t = transactions[i];
                     final isIn = t.transactionType == 'รับเข้า';
+                    final iconColor = isIn ? BrandAccent.green(ctx) : BrandAccent.tertiary(ctx);
                     final details = [
                       if (t.transactionDate != null) t.transactionDate!,
                       if (t.counterparty?.trim().isNotEmpty ?? false) t.counterparty!,
@@ -116,15 +156,21 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                     ].join(' · ');
                     return ListTile(
                       dense: true,
-                      leading: Icon(isIn ? Icons.add_circle_outline : Icons.remove_circle_outline,
-                        color: isIn ? Colors.green : Colors.orange),
-                      title: Text('${t.transactionType} ${t.quantity.toStringAsFixed(0)} ${m.unit ?? ""}'),
-                      subtitle: details.isEmpty ? null : Text(details, style: const TextStyle(fontSize: 12)),
+                      leading: Icon(isIn ? Icons.add_circle_outline : Icons.remove_circle_outline, color: iconColor),
+                      title: Text('${t.transactionType} ${t.quantity.toStringAsFixed(0)} ${m.unit ?? ""}',
+                        style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold)),
+                      subtitle: details.isEmpty ? null : Text(details, style: TextStyle(fontSize: AppTypography.bodySmall)),
                     );
                   },
                 ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ปิด'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ปิด'),
+          ),
+        ],
       ),
     );
   }
@@ -142,12 +188,16 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบ "${m.name}" ใช่หรือไม่?'),
+        title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
+        content: Text('ต้องการลบ "${m.name}" ใช่หรือไม่?', style: _dialogContentStyle),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -187,34 +237,45 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isIn ? 'รับเข้า "${m.name}"' : 'เบิกจ่าย "${m.name}"'),
+        title: Text(isIn ? 'รับเข้า "${m.name}"' : 'เบิกจ่าย "${m.name}"', style: _dialogTitleStyle),
         content: SizedBox(
-          width: 380,
+          width: 420,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: qtyCtrl,
                 autofocus: true,
+                style: _dialogFieldStyle,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(labelText: 'จำนวน${isIn ? "ที่รับเข้า" : "ที่เบิกจ่าย"} (${m.unit ?? "หน่วย"})'),
+                decoration: _dialogFieldDecoration(ctx, label: 'จำนวน${isIn ? "ที่รับเข้า" : "ที่เบิกจ่าย"} (${m.unit ?? "หน่วย"})'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
               TextField(
                 controller: counterpartyCtrl,
-                decoration: InputDecoration(labelText: isIn ? 'รับจาก (ไม่บังคับ)' : 'จ่ายให้ (ไม่บังคับ)'),
+                style: _dialogFieldStyle,
+                decoration: _dialogFieldDecoration(ctx, label: isIn ? 'รับจาก (ไม่บังคับ)' : 'จ่ายให้ (ไม่บังคับ)'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
               TextField(
                 controller: refCtrl,
-                decoration: const InputDecoration(labelText: 'เลขที่เอกสารอ้างอิง (ไม่บังคับ)'),
+                style: _dialogFieldStyle,
+                decoration: _dialogFieldDecoration(ctx, label: 'เลขที่เอกสารอ้างอิง (ไม่บังคับ)'),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ยืนยัน'),
+          ),
         ],
       ),
     );
@@ -250,11 +311,19 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     final wantsDoc = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ออกเอกสารใบเบิกพัสดุ'),
-        content: Text('ต้องการออกเอกสารใบเบิกพัสดุสำหรับ "${m.name}" จำนวน $qty ${m.unit ?? ""} นี้หรือไม่?'),
+        title: const Text('ออกเอกสารใบเบิกพัสดุ', style: _dialogTitleStyle),
+        content: Text('ต้องการออกเอกสารใบเบิกพัสดุสำหรับ "${m.name}" จำนวน $qty ${m.unit ?? ""} นี้หรือไม่?', style: _dialogContentStyle),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ไม่ต้อง')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ออกเอกสาร')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ไม่ต้อง'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ออกเอกสาร'),
+          ),
         ],
       ),
     );
@@ -307,28 +376,63 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: OutlinedButton.icon(
-                          onPressed: (_materials.isEmpty || _exportingLedger) ? null : _exportLedger,
-                          icon: _exportingLedger
-                              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                              : const Icon(Icons.receipt_long_outlined, size: 18),
-                          label: Text(_exportingLedger ? 'กำลังสร้าง...' : 'พิมพ์บัญชีวัสดุ'),
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.inventory_outlined, color: BrandAccent.tealOn(context), size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text('วัสดุ/คลังพัสดุ',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: (_materials.isEmpty || _exportingLedger) ? null : _exportLedger,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              side: BorderSide(color: colors.outline),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                              textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                            ),
+                            icon: _exportingLedger
+                                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
+                                : const Icon(Icons.receipt_long_outlined, size: 18),
+                            label: Text(_exportingLedger ? 'กำลังสร้าง...' : 'พิมพ์บัญชีวัสดุ'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      _buildSummaryCards(colors),
+                      const SizedBox(height: 16),
+                      _buildSummaryCards(context, colors),
                     if (_lowStockCount > 0) ...[
                       const SizedBox(height: 12),
-                      _buildLowStockBanner(colors),
+                      _buildLowStockBanner(context, colors),
                     ],
                     const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
                           child: TextField(
-                            decoration: const InputDecoration(isDense: true, prefixIcon: Icon(Icons.search, size: 20), hintText: 'ค้นหาชื่อวัสดุ'),
+                            style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              hintText: 'ค้นหาชื่อวัสดุ',
+                              hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(RadiusSize.md),
+                                borderSide: BorderSide(color: colors.outline),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(RadiusSize.md),
+                                borderSide: BorderSide(color: colors.outline),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(RadiusSize.md),
+                                borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                              ),
+                            ),
                             onChanged: (v) => setState(() => _searchQuery = v),
                           ),
                         ),
@@ -355,12 +459,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                                   Text(
                                     _materials.isEmpty ? 'ยังไม่มีวัสดุ\nกด "เพิ่มวัสดุ" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ค้นหา',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4),
                                   ),
                                 ],
                               ),
                             )
-                          : (_viewMode == _MaterialViewMode.table ? _buildTable(colors) : _buildGrid(colors)),
+                          : (_viewMode == _MaterialViewMode.table ? _buildTable(context, colors) : _buildGrid(context, colors)),
                     ),
                   ],
                 ),
@@ -369,6 +473,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           right: 24,
           bottom: 24,
           child: FloatingActionButton.extended(
+            heroTag: 'materials_add_fab',
             onPressed: () => _openForm(),
             backgroundColor: colors.primary,
             foregroundColor: colors.onPrimary,
@@ -381,35 +486,44 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     );
   }
 
-  Widget _buildSummaryCards(ColorScheme colors) {
-    Widget card(String label, String value, Color color) => Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant)),
-                const SizedBox(height: 4),
-                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-              ],
-            ),
-          ),
-        );
+  Widget _buildSummaryCards(BuildContext context, ColorScheme colors) {
     return Row(
       children: [
-        card('รายการวัสดุทั้งหมด', '${_materials.length} รายการ', colors.primary),
+        Expanded(
+          child: KpiCard(
+            label: 'รายการวัสดุทั้งหมด',
+            value: '${_materials.length}',
+            unit: 'รายการ',
+            icon: Icons.inventory_2_outlined,
+            variant: KpiCardVariant.navy,
+          ),
+        ),
         const SizedBox(width: 12),
-        card('มูลค่าคงคลังรวม', '${formatBaht(_totalValue)} บาท', Colors.amber.shade800),
+        Expanded(
+          child: KpiCard(
+            label: 'มูลค่าคงคลังรวม',
+            value: formatBaht(_totalValue),
+            unit: 'บาท',
+            icon: Icons.savings_outlined,
+            variant: KpiCardVariant.amber,
+          ),
+        ),
         const SizedBox(width: 12),
-        card('ใกล้หมด', '$_lowStockCount รายการ', Colors.redAccent),
+        Expanded(
+          child: _RedKpiCard(
+            label: 'ใกล้หมด',
+            value: '$_lowStockCount',
+            unit: 'รายการ',
+            icon: Icons.warning_amber_rounded,
+          ),
+        ),
       ],
     );
   }
 
   // แจ้งชื่อวัสดุที่ใกล้หมดตรงๆ แทนที่จะให้ดูแค่ตัวเลขในการ์ดสรุปแล้วต้องไล่หา
   // เองว่ารายการไหนบ้าง
-  Widget _buildLowStockBanner(ColorScheme colors) {
+  Widget _buildLowStockBanner(BuildContext context, ColorScheme colors) {
     const maxShown = 4;
     final items = _lowStockItems;
     final shownNames = items.take(maxShown).map((m) => m.name).join(', ');
@@ -420,18 +534,18 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+        color: BrandAccent.red(context).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        border: Border.all(color: BrandAccent.red(context).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+          Icon(Icons.warning_amber_rounded, color: BrandAccent.red(context), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(fontSize: 12.5, color: Colors.redAccent, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: AppTypography.bodySmall, color: BrandAccent.red(context), fontWeight: AppTypography.weightSemiBold),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -441,39 +555,47 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     );
   }
 
-  Widget _buildTable(ColorScheme colors) {
-    final headerStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
+  Widget _buildTable(BuildContext context, ColorScheme colors) {
+    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant);
     return SingleChildScrollView(
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 900),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
-              child: Row(
-                children: [
-                  SizedBox(width: 90, child: Text('รหัส', style: headerStyle)),
-                  Expanded(flex: 3, child: Text('ชื่อวัสดุ', style: headerStyle)),
-                  SizedBox(width: 90, child: Text('ประเภท', style: headerStyle)),
-                  SizedBox(width: 80, child: Text('รับเข้า', style: headerStyle, textAlign: TextAlign.right)),
-                  SizedBox(width: 80, child: Text('จ่ายออก', style: headerStyle, textAlign: TextAlign.right)),
-                  SizedBox(width: 80, child: Text('คงเหลือ', style: headerStyle, textAlign: TextAlign.right)),
-                  SizedBox(width: 100, child: Text('มูลค่ารวม', style: headerStyle, textAlign: TextAlign.right)),
-                  const SizedBox(width: 206),
-                ],
+        child: Container(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            border: Border.all(color: colors.outline),
+            borderRadius: BorderRadius.circular(RadiusSize.card),
+            boxShadow: AppShadows.light1,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(color: BrandAccent.surface2(context), border: Border(bottom: BorderSide(color: colors.outline))),
+                child: Row(
+                  children: [
+                    SizedBox(width: 90, child: Text('รหัส', style: headerStyle)),
+                    Expanded(flex: 3, child: Text('ชื่อวัสดุ', style: headerStyle)),
+                    SizedBox(width: 90, child: Text('ประเภท', style: headerStyle)),
+                    SizedBox(width: 80, child: Text('รับเข้า', style: headerStyle, textAlign: TextAlign.right)),
+                    SizedBox(width: 80, child: Text('จ่ายออก', style: headerStyle, textAlign: TextAlign.right)),
+                    SizedBox(width: 80, child: Text('คงเหลือ', style: headerStyle, textAlign: TextAlign.right)),
+                    SizedBox(width: 100, child: Text('มูลค่ารวม', style: headerStyle, textAlign: TextAlign.right)),
+                    const SizedBox(width: 206),
+                  ],
+                ),
               ),
-            ),
-            for (final m in _filtered) _buildRow(colors, m),
-            const SizedBox(height: 80),
-          ],
+              for (final m in _filtered) _buildRow(context, colors, m),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildRow(ColorScheme colors, MaterialItem m) {
+  Widget _buildRow(BuildContext context, ColorScheme colors, MaterialItem m) {
     final lowStock = m.isLowStock;
     return InkWell(
       onTap: () => _openForm(existing: m),
@@ -482,62 +604,38 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
         child: Row(
           children: [
-            SizedBox(width: 90, child: Text(m.materialCode ?? '-', style: const TextStyle(fontSize: 12.5))),
-            Expanded(flex: 3, child: Text(m.name, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            SizedBox(width: 90, child: Text(m.category ?? '-', style: const TextStyle(fontSize: 12.5))),
-            SizedBox(width: 80, child: Text(m.stockIn.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
-            SizedBox(width: 80, child: Text(m.stockOut.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
+            SizedBox(width: 90, child: Text(m.materialCode ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant))),
+            Expanded(flex: 3, child: Text(m.name, style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(width: 90, child: Text(m.category ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant))),
+            SizedBox(width: 80, child: Text(m.stockIn.toStringAsFixed(0), textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface))),
+            SizedBox(width: 80, child: Text(m.stockOut.toStringAsFixed(0), textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface))),
             SizedBox(
               width: 80,
               child: Text('${m.remaining.toStringAsFixed(0)} ${m.unit ?? ""}',
-                textAlign: TextAlign.right, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: lowStock ? Colors.redAccent : null)),
+                textAlign: TextAlign.right,
+                style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightBold, color: lowStock ? BrandAccent.red(context) : colors.onSurface)),
             ),
-            SizedBox(width: 100, child: Text(formatBaht(m.totalValue), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
+            SizedBox(width: 100, child: Text(formatBaht(m.totalValue), textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface))),
             SizedBox(
               width: 206,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.history, size: 18),
-                    tooltip: 'ดูประวัติรับ-จ่าย',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _viewHistory(m),
+                  DsActionIconButtons(
+                    actions: [
+                      DsRowAction(icon: Icons.history, tooltip: 'ดูประวัติรับ-จ่าย', onTap: () => _viewHistory(m)),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, color: Colors.green, size: 18),
-                    tooltip: 'รับเข้า',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _adjustStock(m, isIn: true),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, color: Colors.orange, size: 18),
-                    tooltip: 'เบิกจ่าย',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _adjustStock(m, isIn: false),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy_all_outlined, size: 18),
-                    tooltip: 'คัดลอกวัสดุ',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    visualDensity: VisualDensity.compact,
-                    color: colors.onSurfaceVariant,
-                    onPressed: () => _duplicateMaterial(m),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
-                    tooltip: 'ลบ',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _confirmDelete(m),
+                  const SizedBox(width: 3),
+                  _StockAdjustButton(icon: Icons.add_circle_outline, tooltip: 'รับเข้า', color: BrandAccent.green(context), onTap: () => _adjustStock(m, isIn: true)),
+                  const SizedBox(width: 3),
+                  _StockAdjustButton(icon: Icons.remove_circle_outline, tooltip: 'เบิกจ่าย', color: BrandAccent.tertiary(context), onTap: () => _adjustStock(m, isIn: false)),
+                  const SizedBox(width: 3),
+                  DsActionIconButtons(
+                    actions: [
+                      DsRowAction(icon: Icons.copy_all_outlined, tooltip: 'คัดลอกวัสดุ', onTap: () => _duplicateMaterial(m)),
+                      DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(m), danger: true),
+                    ],
                   ),
                 ],
               ),
@@ -548,7 +646,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     );
   }
 
-  Widget _buildGrid(ColorScheme colors) {
+  Widget _buildGrid(BuildContext context, ColorScheme colors) {
     return GridView.builder(
       padding: const EdgeInsets.only(bottom: 80),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -562,56 +660,76 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         final m = _filtered[i];
         final lowStock = m.isLowStock;
         return InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(RadiusSize.card),
           onTap: () => _openForm(existing: m),
           child: Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(border: Border.all(color: colors.outlineVariant), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border.all(color: colors.outline),
+              borderRadius: BorderRadius.circular(RadiusSize.card),
+              boxShadow: AppShadows.light1,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.inventory_outlined, color: colors.primary, size: 20),
+                    Icon(Icons.inventory_outlined, color: BrandAccent.tealOn(context), size: 20),
                     const Spacer(),
                     if (m.category != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                        child: Text(m.category!, style: TextStyle(fontSize: 10, color: colors.primary)),
+                        decoration: BoxDecoration(color: BrandAccent.teal(context).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(RadiusSize.sm)),
+                        child: Text(m.category!, style: TextStyle(fontSize: AppTypography.micro, color: BrandAccent.tealOn(context))),
                       ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(m.name, style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const Spacer(),
                 Text('คงเหลือ ${m.remaining.toStringAsFixed(0)} ${m.unit ?? ""}',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: lowStock ? Colors.redAccent : colors.primary)),
-                Text('${formatBaht(m.totalValue)} บาท', style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant)),
+                  style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightBold, color: lowStock ? BrandAccent.red(context) : BrandAccent.tealOn(context))),
+                Text('${formatBaht(m.totalValue)} บาท', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _adjustStock(m, isIn: true),
-                        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
-                        child: const Icon(Icons.add, size: 16, color: Colors.green),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 30),
+                          side: BorderSide(color: colors.outline),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.sm)),
+                        ),
+                        child: Icon(Icons.add, size: 16, color: BrandAccent.green(context)),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _adjustStock(m, isIn: false),
-                        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
-                        child: const Icon(Icons.remove, size: 16, color: Colors.orange),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 30),
+                          side: BorderSide(color: colors.outline),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.sm)),
+                        ),
+                        child: Icon(Icons.remove, size: 16, color: BrandAccent.tertiary(context)),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _viewHistory(m),
-                        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
-                        child: const Icon(Icons.history, size: 16),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 30),
+                          side: BorderSide(color: colors.outline),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.sm)),
+                        ),
+                        child: Icon(Icons.history, size: 16, color: colors.onSurfaceVariant),
                       ),
                     ),
                   ],
@@ -621,6 +739,132 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// การ์ด KPI โทนแดง — KpiCard ของดีไซน์ระบบไม่มี variant สีแดงในชุดโทเค็น จึง
+/// ต้องสร้างเองแยกต่างหาก แต่ต้องเลียนแบบโครงสร้างจริงของ KpiCard ให้ครบ (แถบสี
+/// บนสุด + ไอคอนในกล่องสี่เหลี่ยมมุมมน + ตัวเลขใหญ่) ไม่งั้นจะดูไม่เข้าชุดกับ
+/// การ์ดข้างๆ ที่เป็น KpiCard จริง (เคยพลาดมาแล้ว — ทำแค่กล่องสีจางๆ ไม่มีไอคอน)
+class _RedKpiCard extends StatelessWidget {
+  const _RedKpiCard({required this.label, required this.value, required this.unit, required this.icon});
+  final String label;
+  final String value;
+  final String unit;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final accent = BrandAccent.red(context);
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        border: Border.all(color: colors.outline),
+        boxShadow: AppShadows.light1,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: Container(
+              height: 3,
+              decoration: BoxDecoration(color: accent, boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.7), blurRadius: 14)]),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: Dimensions.kpiIconSize,
+                      height: Dimensions.kpiIconSize,
+                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(RadiusSize.md)),
+                      child: Icon(icon, size: IconSizes.md, color: accent),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(label,
+                        style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant, height: 1.3),
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: Text(value,
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: AppTypography.display1, fontWeight: AppTypography.weightExtraBold, letterSpacing: -1.1, height: 1, color: colors.onSurface)),
+                    ),
+                    const SizedBox(width: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(unit, style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ปุ่มปรับสต๊อก (รับเข้า/เบิกจ่าย) ในมุมมองตาราง — คงสีเขียว/ส้มไว้ให้เห็นชัดว่า
+/// เป็นการเพิ่ม/ลดของ ต่างจาก DsActionIconButtons ที่ใช้สีเดียว (navy) กับทุกปุ่ม
+/// เพราะสีที่นี่มีความหมายเชิงสถานะ ไม่ใช่แค่ตกแต่ง
+class _StockAdjustButton extends StatefulWidget {
+  const _StockAdjustButton({required this.icon, required this.tooltip, required this.color, required this.onTap});
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  State<_StockAdjustButton> createState() => _StockAdjustButtonState();
+}
+
+class _StockAdjustButtonState extends State<_StockAdjustButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: Tooltip(
+        message: widget.tooltip,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(RadiusSize.sm),
+          child: Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _hover ? widget.color : colors.surface,
+              borderRadius: BorderRadius.circular(RadiusSize.sm),
+              border: Border.all(color: _hover ? widget.color : colors.outline),
+            ),
+            child: Icon(widget.icon, size: IconSizes.md, color: _hover ? Colors.white : widget.color),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -705,9 +949,9 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขวัสดุ' : 'เพิ่มวัสดุ'),
+      title: Text(isEdit ? 'แก้ไขวัสดุ' : 'เพิ่มวัสดุ', style: _dialogTitleStyle),
       content: SizedBox(
-        width: 480,
+        width: 560,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -715,25 +959,28 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: TextFormField(
                     controller: _codeCtrl,
-                    decoration: const InputDecoration(labelText: 'รหัสวัสดุ', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context, label: 'รหัสวัสดุ'),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: TextFormField(
                     controller: _nameCtrl,
-                    decoration: const InputDecoration(labelText: 'ชื่อวัสดุ *', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context, label: 'ชื่อวัสดุ *'),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอกชื่อวัสดุ' : null,
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String?>(
                     initialValue: _category,
-                    decoration: const InputDecoration(labelText: 'ประเภทวัสดุ', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภทวัสดุ'),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ..._materialCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
@@ -745,60 +992,66 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 18),
                         child: TextFormField(
                           controller: _unitCtrl,
-                          decoration: const InputDecoration(labelText: 'หน่วยนับ', hintText: 'เช่น ชิ้น, กล่อง', border: OutlineInputBorder(), isDense: true),
+                          style: _dialogFieldStyle,
+                          decoration: _dialogFieldDecoration(context, label: 'หน่วยนับ', hint: 'เช่น ชิ้น, กล่อง'),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 18),
                         child: TextFormField(
                           controller: _unitPriceCtrl,
+                          style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'ราคาต่อหน่วย', border: OutlineInputBorder(), isDense: true),
+                          decoration: _dialogFieldDecoration(context, label: 'ราคาต่อหน่วย'),
                         ),
                       ),
                     ),
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: TextFormField(
                     controller: _sizeSpecCtrl,
-                    decoration: const InputDecoration(labelText: 'ขนาดหรือลักษณะ', hintText: 'เช่น 180 แกรม, A4', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context, label: 'ขนาดหรือลักษณะ', hint: 'เช่น 180 แกรม, A4'),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: TextFormField(
                     controller: _storageLocationCtrl,
-                    decoration: const InputDecoration(labelText: 'ที่เก็บ', hintText: 'เช่น ห้องพัสดุ ชั้น 2', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context, label: 'ที่เก็บ', hint: 'เช่น ห้องพัสดุ ชั้น 2'),
                   ),
                 ),
                 Row(
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 18),
                         child: TextFormField(
                           controller: _minStockCtrl,
+                          style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'จำนวนอย่างต่ำ', border: OutlineInputBorder(), isDense: true),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนอย่างต่ำ'),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 18),
                         child: TextFormField(
                           controller: _maxStockCtrl,
+                          style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'จำนวนอย่างสูง', border: OutlineInputBorder(), isDense: true),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนอย่างสูง'),
                         ),
                       ),
                     ),
@@ -809,7 +1062,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'จำนวนรับเข้า/เบิกจ่าย ปรับได้ทีหลังจากปุ่ม +รับเข้า / -เบิกจ่าย ในตาราง',
-                      style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
+                      style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
                     ),
                   ),
               ],
@@ -818,9 +1071,13 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          child: const Text('ยกเลิก'),
+        ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary),
+          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
               ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))

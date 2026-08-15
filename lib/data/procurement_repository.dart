@@ -759,7 +759,11 @@ class ProcurementRepository {
     final where = StringBuffer(
       '(procurement_number LIKE ? OR order_number LIKE ? OR project_name LIKE ? OR activity_name LIKE ? OR vendor_name LIKE ?)',
     );
-    final whereArgs = List<Object?>.filled(5, '%$query%');
+    // growable:true — ของเดิมลืมใส่ ทำให้ List.filled() คืนลิสต์ขนาดตายตัว
+    // พอ .add(fiscalYear) ด้านล่างเลย throw "Cannot add to a fixed-length list"
+    // ทุกครั้งที่ค้นหาพร้อมระบุปีงบ (เพิ่งเจอจาก error จริงตอนทดสอบช่องค้นหา
+    // omni ใหม่ — บั๊กนี้มีอยู่เดิมอยู่แล้ว แค่ไม่เคยมีจุดไหนเรียกมาเจอพอดี)
+    final whereArgs = List<Object?>.filled(5, '%$query%', growable: true);
     if (fiscalYear != null) {
       where.write(' AND fiscal_year = ?');
       whereArgs.add(fiscalYear);

@@ -21,12 +21,31 @@ class ColumnVisibilityMenu extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return PopupMenuButton<String>(
       tooltip: 'เลือกคอลัมน์ที่จะแสดง',
-      icon: Icon(Icons.view_column_outlined, color: colors.primary),
+      // เดิมใช้ icon: (บังคับ IconButton ล้อมรอบเริ่มต้นของ Material — วงกลม
+      // โปร่งไม่มีขอบ) เปลี่ยนมาใช้ child: กล่องสี่เหลี่ยมมีขอบแทน ให้หน้าตา
+      // เหมือนปุ่มไอคอนอื่นๆ ในตาราง (เช่นปุ่มดู/แก้ไข/ลบท้ายแถว) ไม่ใช่ปุ่มลอย
+      // ไม่มีกรอบแยกออกจากกลุ่มปุ่มข้างๆ
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.outline),
+        ),
+        child: Icon(Icons.view_column_outlined, size: 18, color: colors.onSurface),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: colors.outline),
+      ),
+      elevation: 6,
       itemBuilder: (context) => allColumns
           .map((col) => CheckedPopupMenuItem<String>(
                 value: col,
                 checked: visibleColumns.contains(col),
-                child: Text(col),
+                child: Text(col, style: const TextStyle(fontSize: 13)),
               ))
           .toList(),
       onSelected: (col) {

@@ -8,6 +8,48 @@ import '../data/procurement_repository.dart';
 import '../models/vendor.dart';
 import '../services/toast_service.dart';
 import '../widgets/memory_text_field.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/data_table_shell.dart'
+    show
+        DsActionIconButtons,
+        DsRowAction,
+        DsColumn,
+        DsTableHeader,
+        DsTableRow,
+        DsCell;
+import '../widgets/design_system/app_card.dart';
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant;
+
+const _dialogLabelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w600);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+
+/// เดิมฟอร์มนี้ใช้ `border: const OutlineInputBorder()` เปล่าๆ (ไม่ระบุสี) ซึ่ง
+/// เมื่อ decoration.border ถูกกำหนดเอง Flutter จะทับค่า default จาก
+/// InputDecorationTheme ของธีมทั้งหมด ผลคือช่องกรอกมีเส้นขอบดำเถื่อนตายตัว
+/// ไม่ตอบสนองธีมสว่าง/มืด — เปลี่ยนมาใช้สูตร `_dialogFieldDecoration` เดียวกับ
+/// ที่ใช้แก้ปัญหานี้ในหน้าอื่น (contracts_screen, guarantees_screen ฯลฯ) แทน
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label}) {
+  final colors = Theme.of(context).colorScheme;
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 class VendorManagementTab extends StatefulWidget {
   const VendorManagementTab({super.key});
@@ -17,6 +59,14 @@ class VendorManagementTab extends StatefulWidget {
 }
 
 class _VendorManagementTabState extends State<VendorManagementTab> {
+  static const _dialogTitleStyle =
+      TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+  static const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
+  static const _dialogButtonTextStyle =
+      TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+  static const _dialogButtonPadding =
+      EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+
   final _repo = ProcurementRepository();
   List<Vendor> _vendors = [];
   bool _loading = true;
@@ -27,7 +77,8 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
   void initState() {
     super.initState();
     _load();
-    _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text.trim().toLowerCase()));
+    _searchCtrl.addListener(
+        () => setState(() => _query = _searchCtrl.text.trim().toLowerCase()));
   }
 
   @override
@@ -48,9 +99,11 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
 
   List<Vendor> get _filtered => _query.isEmpty
       ? _vendors
-      : _vendors.where((v) =>
-          v.name.toLowerCase().contains(_query) ||
-          (v.owner ?? '').toLowerCase().contains(_query)).toList();
+      : _vendors
+          .where((v) =>
+              v.name.toLowerCase().contains(_query) ||
+              (v.owner ?? '').toLowerCase().contains(_query))
+          .toList();
 
   Future<void> _openForm({Vendor? existing}) async {
     final saved = await showDialog<bool>(
@@ -64,12 +117,24 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบ "${vendor.name}" ออกจากทำเนียบร้านค้าใช่หรือไม่?'),
+        title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
+        content: Text(
+            'ต้องการลบ "${vendor.name}" ออกจากทำเนียบร้านค้าใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              padding: _dialogButtonPadding,
+              textStyle: _dialogButtonTextStyle,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -84,118 +149,105 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
     }
   }
 
-  static const _typeColW = 96.0;
-  static const _taxIdColW = 130.0;
-  static const _phoneColW = 120.0;
-  static const _statusColW = 84.0;
-  static const _actionsColW = 88.0;
+  // ระยะห่างระหว่างคอลัมน์ — เดิมไม่มีเลย ทำให้ป้ายประเภท/ข้อมูลคอลัมน์ถัดไป
+  // ดูติดกันเกินไปเวลาข้อความในคอลัมน์แรกยาวเกือบเต็มความกว้างที่กันไว้
+  static const _spacing = 22.0;
 
-  Widget _buildHeaderRow(ColorScheme colors) {
-    final style = TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: colors.onSurfaceVariant);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: [
-          SizedBox(width: _typeColW, child: Text('ประเภท', style: style)),
-          const SizedBox(width: 12),
-          Expanded(flex: 2, child: Text('ชื่อร้านค้า/เจ้าของร้าน', style: style)),
-          const SizedBox(width: 12),
-          SizedBox(width: _taxIdColW, child: Text('เลขผู้เสียภาษี', style: style)),
-          const SizedBox(width: 12),
-          SizedBox(width: _phoneColW, child: Text('เบอร์โทรศัพท์', style: style)),
-          SizedBox(width: _statusColW, child: Text('', style: style)),
-          SizedBox(width: _actionsColW, child: Text('', style: style)),
-        ],
-      ),
-    );
-  }
+  static const _columns = [
+    DsColumn('ประเภท', width: 96),
+    DsColumn('ชื่อร้านค้า/เจ้าของร้าน', flex: 2),
+    DsColumn('เลขผู้เสียภาษี', width: 130),
+    DsColumn('เบอร์โทรศัพท์', width: 120),
+    DsColumn('สถานะ', width: 84),
+    DsColumn('', width: 68),
+  ];
 
-  Widget _buildRow(ColorScheme colors, Vendor v) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: colors.outlineVariant),
-        borderRadius: BorderRadius.circular(10),
-        color: v.active ? null : colors.surfaceContainerHighest.withValues(alpha: 0.4),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: _typeColW,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: v.vendorType == vendorTypeJuristic ? Colors.deepOrange : Colors.blue,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(v.vendorType,
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-              ),
+  Widget _buildRow(ColorScheme colors, Vendor v, int index) {
+    return DsTableRow(
+      index: index,
+      spacing: _spacing,
+      onTap: () => _openForm(existing: v),
+      cells: [
+        DsCell(
+          column: _columns[0],
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: StatusBadge(
+              label: v.vendorType,
+              variant: v.vendorType == vendorTypeJuristic
+                  ? BadgeVariant.warning
+                  : BadgeVariant.info,
+              compact: true,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(v.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (v.owner?.trim().isNotEmpty ?? false)
-                  Text(v.owner!, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
+        ),
+        DsCell(
+          column: _columns[1],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(v.name,
+                  style: TextStyle(
+                      fontWeight: AppTypography.weightSemiBold,
+                      fontSize: AppTypography.body,
+                      color: colors.onSurface),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              if (v.owner?.trim().isNotEmpty ?? false)
+                Text(v.owner!,
+                    style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: AppTypography.bodySmall),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+        DsCell(
+          column: _columns[2],
+          child: Text(v.taxId ?? '-',
+              style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: AppTypography.bodyMedium),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+        ),
+        DsCell(
+          column: _columns[3],
+          child: Text(v.phone ?? '-',
+              style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: AppTypography.bodyMedium)),
+        ),
+        DsCell(
+          column: _columns[4],
+          child: Align(
+            alignment: Alignment.center,
+            child: StatusBadge(
+              label: v.active ? 'ใช้งานอยู่' : 'ปิดใช้งาน',
+              variant: v.active ? BadgeVariant.success : BadgeVariant.neutral,
+              compact: true,
             ),
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: _taxIdColW,
-            child: Text(v.taxId ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: _phoneColW,
-            child: Text(v.phone ?? '-', style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13)),
-          ),
-          SizedBox(
-            width: _statusColW,
-            child: !v.active
-                ? Container(
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
-                    child: const Text('ปิดใช้งาน', style: TextStyle(fontSize: 11)),
-                  )
-                : null,
-          ),
-          SizedBox(
-            width: _actionsColW,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20),
+        ),
+        DsCell(
+          column: _columns[5],
+          child: DsActionIconButtons(
+            actions: [
+              DsRowAction(
+                  icon: Icons.edit_outlined,
                   tooltip: 'แก้ไข',
-                  onPressed: () => _openForm(existing: v),
-                  visualDensity: VisualDensity.compact,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                  onTap: () => _openForm(existing: v)),
+              DsRowAction(
+                  icon: Icons.delete_outline,
                   tooltip: 'ลบ',
-                  onPressed: () => _confirmDelete(v),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
+                  onTap: () => _confirmDelete(v),
+                  danger: true),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -211,11 +263,31 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
             children: [
               TextField(
                 controller: _searchCtrl,
-                decoration: const InputDecoration(
+                style: TextStyle(
+                    fontSize: AppTypography.bodyMedium,
+                    color: colors.onSurface),
+                decoration: InputDecoration(
                   isDense: true,
-                  prefixIcon: Icon(Icons.search, size: 20),
+                  prefixIcon: const Icon(Icons.search, size: 20),
                   hintText: 'ค้นหาชื่อร้านค้า/เจ้าของร้าน',
-                  border: OutlineInputBorder(),
+                  hintStyle: TextStyle(
+                      fontSize: AppTypography.bodyMedium,
+                      color: colors.onSurfaceVariant),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(RadiusSize.md),
+                    borderSide: BorderSide(color: colors.outline),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(RadiusSize.md),
+                    borderSide: BorderSide(color: colors.outline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(RadiusSize.md),
+                    borderSide: BorderSide(
+                        color: BrandAccent.teal(context), width: 1.5),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -227,38 +299,86 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.storefront_outlined, size: 64, color: colors.onSurfaceVariant),
+                                Icon(Icons.storefront_outlined,
+                                    size: 64, color: colors.onSurfaceVariant),
                                 const SizedBox(height: 12),
                                 Text(
-                                  _vendors.isEmpty ? 'ยังไม่มีข้อมูลร้านค้า\nกด "เพิ่มร้านค้า" เพื่อเริ่มต้น' : 'ไม่พบรายการที่ตรงกับคำค้นหา',
+                                  _vendors.isEmpty
+                                      ? 'ยังไม่มีข้อมูลร้านค้า\nกด "เพิ่มร้านค้า" เพื่อเริ่มต้น'
+                                      : 'ไม่พบรายการที่ตรงกับคำค้นหา',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                                  style: TextStyle(
+                                      color: colors.onSurfaceVariant,
+                                      fontSize: 15),
                                 ),
                               ],
                             ),
                           )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildHeaderRow(colors),
-                              const SizedBox(height: 6),
-                              Expanded(
-                                child: ListView.separated(
-                                  padding: const EdgeInsets.only(bottom: 80),
-                                  itemCount: _filtered.length,
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (_, i) => _buildRow(colors, _filtered[i]),
+                        // [แก้บั๊ก RenderFlex unbounded height]: AppCard ห่อ
+                        // child ด้วย Padding เฉยๆ ไม่มี Expanded ให้ — ใส่
+                        // ListView.builder ใน Expanded ไว้ข้างในตรงๆ แล้วชนกับ
+                        // unbounded height constraint แตกทันที เปลี่ยนมาแสดง
+                        // ทุกแถวตรงๆ (ไม่สกอลล์ในการ์ด) แล้วให้ทั้งหน้าเลื่อน
+                        // แทนด้วย SingleChildScrollView
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                AppCard(
+                                  padding: EdgeInsets.zero,
+                                  titleWidget: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'ผู้รับจ้าง/ร้านค้า',
+                                        style: TextStyle(
+                                            fontSize: AppTypography.heading4,
+                                            fontWeight:
+                                                AppTypography.weightExtraBold,
+                                            color: colors.onSurface),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: BrandAccent.surface2(context),
+                                          borderRadius: BorderRadius.circular(
+                                              RadiusSize.full),
+                                        ),
+                                        child: Text(
+                                          '${_filtered.length} ร้าน',
+                                          style: TextStyle(
+                                              fontSize: AppTypography.micro,
+                                              fontWeight:
+                                                  AppTypography.weightBold,
+                                              color: colors.onSurfaceVariant),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      DsTableHeader(
+                                          columns: _columns, spacing: _spacing),
+                                      for (var i = 0; i < _filtered.length; i++)
+                                        _buildRow(colors, _filtered[i], i),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 80),
+                              ],
+                            ),
                           ),
               ),
             ],
           ),
         ),
         Positioned(
-          right: 8,
-          bottom: 8,
+          right: 24,
+          bottom: 24,
           child: FloatingActionButton.extended(
             heroTag: 'vendor_add_fab',
             onPressed: () => _openForm(),
@@ -319,8 +439,16 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
   @override
   void dispose() {
     for (final c in [
-      _nameCtrl, _ownerCtrl, _addressNoCtrl, _mooNumberCtrl, _subdistrictCtrl,
-      _districtCtrl, _provinceCtrl, _postalCodeCtrl, _phoneCtrl, _taxIdCtrl,
+      _nameCtrl,
+      _ownerCtrl,
+      _addressNoCtrl,
+      _mooNumberCtrl,
+      _subdistrictCtrl,
+      _districtCtrl,
+      _provinceCtrl,
+      _postalCodeCtrl,
+      _phoneCtrl,
+      _taxIdCtrl,
     ]) {
       c.dispose();
     }
@@ -334,12 +462,22 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
       id: widget.existing?.id,
       name: _nameCtrl.text.trim(),
       owner: _ownerCtrl.text.trim().isEmpty ? null : _ownerCtrl.text.trim(),
-      addressNo: _addressNoCtrl.text.trim().isEmpty ? null : _addressNoCtrl.text.trim(),
-      mooNumber: _mooNumberCtrl.text.trim().isEmpty ? null : _mooNumberCtrl.text.trim(),
-      subdistrict: _subdistrictCtrl.text.trim().isEmpty ? null : _subdistrictCtrl.text.trim(),
-      district: _districtCtrl.text.trim().isEmpty ? null : _districtCtrl.text.trim(),
-      province: _provinceCtrl.text.trim().isEmpty ? null : _provinceCtrl.text.trim(),
-      postalCode: _postalCodeCtrl.text.trim().isEmpty ? null : _postalCodeCtrl.text.trim(),
+      addressNo: _addressNoCtrl.text.trim().isEmpty
+          ? null
+          : _addressNoCtrl.text.trim(),
+      mooNumber: _mooNumberCtrl.text.trim().isEmpty
+          ? null
+          : _mooNumberCtrl.text.trim(),
+      subdistrict: _subdistrictCtrl.text.trim().isEmpty
+          ? null
+          : _subdistrictCtrl.text.trim(),
+      district:
+          _districtCtrl.text.trim().isEmpty ? null : _districtCtrl.text.trim(),
+      province:
+          _provinceCtrl.text.trim().isEmpty ? null : _provinceCtrl.text.trim(),
+      postalCode: _postalCodeCtrl.text.trim().isEmpty
+          ? null
+          : _postalCodeCtrl.text.trim(),
       phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
       taxId: _taxIdCtrl.text.trim().isEmpty ? null : _taxIdCtrl.text.trim(),
       vendorType: _vendorType,
@@ -360,19 +498,25 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
     }
   }
 
-  Widget _field(TextEditingController ctrl, String label, {bool required = false, String? fieldKey}) {
+  Widget _field(TextEditingController ctrl, String label,
+      {bool required = false, String? fieldKey}) {
+    final decoration = _dialogFieldDecoration(context, label: label);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: fieldKey != null
           ? MemoryTextField(
               fieldKey: fieldKey,
               controller: ctrl,
-              decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true),
+              decoration: decoration,
             )
           : TextFormField(
               controller: ctrl,
-              decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true),
-              validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null : null,
+              style: _dialogFieldStyle,
+              decoration: decoration,
+              validator: required
+                  ? (v) =>
+                      (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null
+                  : null,
             ),
     );
   }
@@ -382,9 +526,14 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขร้านค้า' : 'เพิ่มร้านค้า'),
+      title: Text(
+        isEdit ? 'แก้ไขร้านค้า' : 'เพิ่มร้านค้า',
+        style: const TextStyle(
+            fontSize: AppTypography.heading2,
+            fontWeight: AppTypography.weightExtraBold),
+      ),
       content: SizedBox(
-        width: 500,
+        width: 600,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -392,28 +541,40 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: DropdownButtonFormField<String>(
                     initialValue: _vendorType,
-                    decoration: const InputDecoration(labelText: 'ประเภท', border: OutlineInputBorder(), isDense: true),
-                    items: vendorTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                    onChanged: (v) => setState(() => _vendorType = v ?? vendorTypeIndividual),
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    borderRadius: BorderRadius.circular(RadiusSize.card),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภท'),
+                    items: vendorTypes
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                        .toList(),
+                    onChanged: (v) =>
+                        setState(() => _vendorType = v ?? vendorTypeIndividual),
                   ),
                 ),
                 _field(_nameCtrl, 'ชื่อร้านค้า/บริษัท *', required: true),
                 _field(_ownerCtrl, 'เจ้าของร้าน'),
                 _field(_taxIdCtrl, 'เลขประจำตัวผู้เสียภาษี'),
                 _field(_phoneCtrl, 'เบอร์โทรศัพท์'),
-                _field(_addressNoCtrl, 'เลขที่ตั้ง/ที่อยู่', fieldKey: 'vendor.addressNo'),
+                _field(_addressNoCtrl, 'เลขที่ตั้ง/ที่อยู่',
+                    fieldKey: 'vendor.addressNo'),
                 _field(_mooNumberCtrl, 'หมู่ที่'),
-                _field(_subdistrictCtrl, 'ตำบล/แขวง', fieldKey: 'address.subdistrict'),
-                _field(_districtCtrl, 'อำเภอ/เขต', fieldKey: 'address.district'),
+                _field(_subdistrictCtrl, 'ตำบล/แขวง',
+                    fieldKey: 'address.subdistrict'),
+                _field(_districtCtrl, 'อำเภอ/เขต',
+                    fieldKey: 'address.district'),
                 _field(_provinceCtrl, 'จังหวัด', fieldKey: 'address.province'),
                 _field(_postalCodeCtrl, 'รหัสไปรษณีย์'),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('ใช้งานอยู่'),
-                  subtitle: const Text('ปิดไว้เพื่อซ่อนจากตัวเลือกใน wizard โดยไม่ต้องลบประวัติ', style: TextStyle(fontSize: 12)),
+                  title: const Text('ใช้งานอยู่',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  subtitle: const Text(
+                      'ปิดไว้เพื่อซ่อนจากตัวเลือกใน wizard โดยไม่ต้องลบประวัติ',
+                      style: TextStyle(fontSize: 13)),
                   value: _active,
                   onChanged: (v) => setState(() => _active = v),
                 ),
@@ -422,13 +583,31 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
           ),
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          child: const Text('ยกเลิก'),
+        ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary),
+          style: FilledButton.styleFrom(
+            backgroundColor: BrandAccent.teal(context),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           onPressed: _saving ? null : _save,
           child: _saving
-              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: colors.onPrimary))
               : Text(isEdit ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],

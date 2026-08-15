@@ -8,6 +8,8 @@ import '../models/school_settings.dart';
 import '../services/current_user_service.dart';
 import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/app_card.dart';
 import 'personnel_tab.dart';
 import 'work_groups_tab.dart';
 import 'vendor_management_tab.dart';
@@ -124,10 +126,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     }
   }
 
-  InputDecoration _inputDecoration(String label) => InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      );
+  InputDecoration _inputDecoration(String label) {
+    final colors = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,8 +165,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   child: TabBar(
                     controller: _tabController,
                     indicatorColor: colors.onPrimary,
+                    indicatorWeight: 3,
                     labelColor: colors.onPrimary,
                     unselectedLabelColor: colors.onPrimary.withValues(alpha: 0.7),
+                    labelStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                    unselectedLabelStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
                     tabs: const [
                       Tab(text: 'ข้อมูลโรงเรียน'),
                       Tab(text: 'บุคลากร'),
@@ -184,192 +196,183 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildSchoolInfoTab(ColorScheme colors) {
     return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: Column(
-                    children: [
-                    Card(
-                      elevation: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ผู้ใช้งานปัจจุบัน',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: colors.primary),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'ใช้ประทับชื่อในบันทึกประวัติการใช้งาน (Audit Trail) เท่านั้น ไม่ใช่รหัสผ่าน',
-                              style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                  fontSize: 12.5),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _currentUserCtrl,
-                                    decoration:
-                                        _inputDecoration('ชื่อผู้ใช้งาน'),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                      backgroundColor: colors.primary),
-                                  onPressed: _saveCurrentUser,
-                                  child: const Text('บันทึก'),
-                                ),
-                              ],
-                            ),
-                          ],
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Column(
+            children: [
+              AppCard(
+                title: 'ผู้ใช้งานปัจจุบัน',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ใช้ประทับชื่อในบันทึกประวัติการใช้งาน (Audit Trail) เท่านั้น ไม่ใช่รหัสผ่าน',
+                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _currentUserCtrl,
+                            style: const TextStyle(fontSize: 17),
+                            decoration: _inputDecoration('ชื่อผู้ใช้งาน'),
+                          ),
                         ),
+                        const SizedBox(width: 10),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: BrandAccent.teal(context),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                            textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+                          ),
+                          onPressed: _saveCurrentUser,
+                          child: const Text('บันทึก'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              AppCard(
+                title: 'ข้อมูลโรงเรียน',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ข้อมูลนี้จะถูกใช้เติมในเอกสารทุกใบที่สร้าง (กรอกครั้งเดียว ไม่ต้องกรอกซ้ำทุกครั้ง)',
+                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _schoolNameCtrl,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _inputDecoration('ชื่อโรงเรียน'),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _schoolAddressNoCtrl,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่'),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _schoolSubdistrictCtrl,
+                            style: const TextStyle(fontSize: 17),
+                            decoration: _inputDecoration('ตำบล/แขวง'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _schoolAmphoeCtrl,
+                            style: const TextStyle(fontSize: 17),
+                            decoration: _inputDecoration('อำเภอ/เขต'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _schoolChangwatCtrl,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _inputDecoration('จังหวัด'),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _schoolPhoneCtrl,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _inputDecoration('เบอร์โทรโรงเรียน'),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 28),
+                    Divider(color: colors.outline),
+                    const SizedBox(height: 18),
+                    Text(
+                      'ผู้บริหารและเจ้าหน้าที่ประจำโรงเรียน',
+                      style: TextStyle(
+                        fontWeight: AppTypography.weightExtraBold,
+                        fontSize: AppTypography.heading4,
+                        color: colors.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    Card(
-                      elevation: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ข้อมูลนี้จะถูกใช้เติมในเอกสารทุกใบที่สร้าง '
-                              '(กรอกครั้งเดียว ไม่ต้องกรอกซ้ำทุกครั้ง)',
-                              style: TextStyle(color: colors.onSurfaceVariant),
-                            ),
-                            const SizedBox(height: 24),
-                            TextFormField(
-                              controller: _schoolNameCtrl,
-                              decoration: _inputDecoration('ชื่อโรงเรียน'),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _schoolAddressNoCtrl,
-                              decoration:
-                                  _inputDecoration('เลขที่ตั้ง/ที่อยู่'),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _schoolSubdistrictCtrl,
-                                    decoration: _inputDecoration('ตำบล/แขวง'),
-                                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ใช้เป็นค่าเริ่มต้นในทุกเอกสารที่สร้าง ไม่ต้องกรอกซ้ำในแต่ละใบ',
+                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _directorNameCtrl,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _inputDecoration('ผู้อำนวยการโรงเรียน'),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _procurementOfficerCtrl,
+                            style: const TextStyle(fontSize: 17),
+                            decoration: _inputDecoration('เจ้าหน้าที่พัสดุ'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _procurementHeadCtrl,
+                            style: const TextStyle(fontSize: 17),
+                            decoration: _inputDecoration('หัวหน้าเจ้าหน้าที่พัสดุ'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _financeOfficerCtrl,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _inputDecoration('เจ้าหน้าที่การเงิน'),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _saving ? null : _save,
+                        icon: _saving
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colors.onPrimary,
                                 ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _schoolAmphoeCtrl,
-                                    decoration: _inputDecoration('อำเภอ/เขต'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _schoolChangwatCtrl,
-                              decoration: _inputDecoration('จังหวัด'),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _schoolPhoneCtrl,
-                              decoration: _inputDecoration('เบอร์โทรโรงเรียน'),
-                              keyboardType: TextInputType.phone,
-                            ),
-                            const SizedBox(height: 32),
-                            const Divider(),
-                            const SizedBox(height: 16),
-                            Text(
-                              'ผู้บริหารและเจ้าหน้าที่ประจำโรงเรียน',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: colors.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'ใช้เป็นค่าเริ่มต้นในทุกเอกสารที่สร้าง ไม่ต้องกรอกซ้ำในแต่ละใบ',
-                              style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                  fontSize: 12.5),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _directorNameCtrl,
-                              decoration:
-                                  _inputDecoration('ผู้อำนวยการโรงเรียน'),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _procurementOfficerCtrl,
-                                    decoration:
-                                        _inputDecoration('เจ้าหน้าที่พัสดุ'),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _procurementHeadCtrl,
-                                    decoration: _inputDecoration(
-                                        'หัวหน้าเจ้าหน้าที่พัสดุ'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _financeOfficerCtrl,
-                              decoration:
-                                  _inputDecoration('เจ้าหน้าที่การเงิน'),
-                            ),
-                            const SizedBox(height: 32),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                onPressed: _saving ? null : _save,
-                                icon: _saving
-                                    ? SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: colors.onPrimary,
-                                        ),
-                                      )
-                                    : const Icon(Icons.save),
-                                label:
-                                    Text(_saving ? 'กำลังบันทึก...' : 'บันทึก'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: colors.primary,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                ),
-                              ),
-                            ),
-                          ],
+                              )
+                            : const Icon(Icons.save),
+                        label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึก'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BrandAccent.teal(context),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          );
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

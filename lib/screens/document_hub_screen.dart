@@ -13,6 +13,7 @@ import '../services/tor_document_generator.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
+import '../theme/design_tokens.dart';
 
 class DocumentHubScreen extends StatefulWidget {
   // เปิดมาจากปุ่มลัด "สร้างเอกสาร" ที่การ์ดรายการใน Dashboard/ทะเบียน — ให้เลือก
@@ -204,14 +205,25 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('สร้างเอกสารราชการ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.onSurface)),
+              Row(
+                children: [
+                  Icon(Icons.description_outlined, color: BrandAccent.tealOn(context), size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text('สร้างเอกสารราชการ',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 'เลือกรายการจัดซื้อจัดจ้างที่ต้องการอ้างอิงครั้งเดียว แล้วออกเอกสารที่ต้องการด้านล่างได้เลย',
-                style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
+                style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
-              _buildOrderPicker(colors),
+              _buildOrderPicker(context, colors),
               const SizedBox(height: 20),
               Expanded(
                 child: _orders.isEmpty
@@ -224,7 +236,7 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
                             Text(
                               'ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ\nไปสร้างรายการก่อนที่หน้า "สร้างใหม่" หรือ "Easy Wizard"',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
+                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4),
                             ),
                           ],
                         ),
@@ -233,12 +245,12 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
                         padding: const EdgeInsets.only(bottom: 24),
                         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 300,
-                          mainAxisExtent: 200,
+                          mainAxisExtent: 170,
                           crossAxisSpacing: 14,
                           mainAxisSpacing: 14,
                         ),
                         itemCount: _docCards.length,
-                        itemBuilder: (_, i) => _buildDocCard(colors, _docCards[i]),
+                        itemBuilder: (_, i) => _buildDocCard(context, colors, _docCards[i]),
                       ),
               ),
             ],
@@ -249,16 +261,31 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     );
   }
 
-  Widget _buildOrderPicker(ColorScheme colors) {
+  Widget _buildOrderPicker(BuildContext context, ColorScheme colors) {
     return DropdownButtonFormField<ProcurementOrder?>(
       initialValue: _selectedOrder,
       isExpanded: true,
-      decoration: const InputDecoration(
+      style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
+      decoration: InputDecoration(
         labelText: 'รายการจัดซื้อจัดจ้างที่อ้างอิง',
-        border: OutlineInputBorder(),
+        labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
         isDense: true,
-        prefixIcon: Icon(Icons.link),
+        prefixIcon: const Icon(Icons.link),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+        ),
       ),
+      borderRadius: BorderRadius.circular(RadiusSize.md),
       items: _orders
           .map((o) => DropdownMenuItem<ProcurementOrder?>(
                 value: o,
@@ -272,42 +299,44 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     );
   }
 
-  Widget _buildDocCard(ColorScheme colors, _DocCardInfo info) {
+  Widget _buildDocCard(BuildContext context, ColorScheme colors, _DocCardInfo info) {
     final isGenerating = _generatingKind == info.kind;
     final ready = _selectedOrder != null && _school != null;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border.all(color: colors.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
+        color: colors.surface,
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+        boxShadow: AppShadows.light1,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(info.icon, color: colors.primary),
+              Icon(info.icon, size: 20, color: BrandAccent.tealOn(context)),
               const Spacer(),
-              Icon(Icons.circle, size: 10, color: ready ? Colors.green : colors.outlineVariant),
+              Icon(Icons.circle, size: 9, color: ready ? BrandAccent.green(context) : colors.outlineVariant),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           // ใช้ SizedBox กำหนดความสูงตรงๆ แทน Expanded — กันปัญหาตัวอักษรไทย
           // (สระบน/ล่าง) ถูกตัดครึ่งเวลาพื้นที่เหลือถูกบีบจนเกือบเป็น 0
           // (Expanded คำนวณพื้นที่เหลือหลังหักส่วนอื่นแล้ว ถ้า title ยาว 2 บรรทัด
           // จะเหลือพื้นที่ให้ subtitle น้อยมากจนวาดสระซ้อนกันเป็นภาพเพี้ยน)
           SizedBox(
-            height: 38,
+            height: 36,
             child: Text(info.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, height: 1.3),
+              style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, height: 1.25, color: colors.onSurface),
               maxLines: 2, overflow: TextOverflow.ellipsis),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 3),
           SizedBox(
-            height: 32,
+            height: 28,
             child: Text(info.subtitle,
-              style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant, height: 1.3),
+              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant, height: 1.25),
               maxLines: 2, overflow: TextOverflow.ellipsis),
           ),
           const Spacer(),
@@ -315,9 +344,15 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: (_generatingKind != null) ? null : () => _generate(info.kind),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                side: BorderSide(color: colors.outline),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+              ),
               child: isGenerating
                   ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                  : const Text('สร้างเอกสาร →', style: TextStyle(fontSize: 12.5)),
+                  : const Text('สร้างเอกสาร →'),
             ),
           ),
         ],

@@ -9,6 +9,48 @@ import '../models/personnel.dart';
 import '../models/work_group.dart';
 import '../services/toast_service.dart';
 import '../widgets/memory_text_field.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/data_table_shell.dart'
+    show
+        DsActionIconButtons,
+        DsRowAction,
+        DsColumn,
+        DsTableHeader,
+        DsTableRow,
+        DsCell;
+import '../widgets/design_system/app_card.dart';
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant;
+
+const _dialogLabelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w600);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+
+/// เดิมฟอร์มนี้ใช้ `border: OutlineInputBorder()` เปล่าๆ (ไม่ระบุสี) ซึ่งเมื่อ
+/// decoration.border ถูกกำหนดเอง Flutter จะทับค่า default จาก
+/// InputDecorationTheme ของธีมทั้งหมด ผลคือช่องกรอกมีเส้นขอบดำเถื่อนตายตัว
+/// ไม่ตอบสนองธีมสว่าง/มืด — เปลี่ยนมาใช้สูตร `_dialogFieldDecoration` เดียวกับ
+/// ที่ใช้แก้ปัญหานี้ในหน้าอื่น (contracts_screen, guarantees_screen ฯลฯ) แทน
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label}) {
+  final colors = Theme.of(context).colorScheme;
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 class WorkGroupsTab extends StatefulWidget {
   const WorkGroupsTab({super.key});
@@ -18,6 +60,14 @@ class WorkGroupsTab extends StatefulWidget {
 }
 
 class _WorkGroupsTabState extends State<WorkGroupsTab> {
+  static const _dialogTitleStyle =
+      TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+  static const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
+  static const _dialogButtonTextStyle =
+      TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+  static const _dialogButtonPadding =
+      EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+
   final _repo = ProcurementRepository();
   List<WorkGroup> _groups = [];
   bool _loading = true;
@@ -50,12 +100,25 @@ class _WorkGroupsTabState extends State<WorkGroupsTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบกลุ่มงาน "${group.name}" ใช่หรือไม่?\n(แผนงบที่เคยใช้กลุ่มงานนี้จะยังคงข้อความเดิมไว้)'),
+        title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
+        content: Text(
+          'ต้องการลบกลุ่มงาน "${group.name}" ใช่หรือไม่?\n(แผนงบที่เคยใช้กลุ่มงานนี้จะยังคงข้อความเดิมไว้)',
+          style: _dialogContentStyle,
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              padding: _dialogButtonPadding,
+              textStyle: _dialogButtonTextStyle,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -68,6 +131,77 @@ class _WorkGroupsTabState extends State<WorkGroupsTab> {
       showAppToast('ลบกลุ่มงานแล้ว');
       _load();
     }
+  }
+
+  // ระยะห่างระหว่างคอลัมน์ — เดิมไม่มีเลย ทำให้ชื่อกลุ่มงาน/หัวหน้ากลุ่มงาน
+  // ดูติดกันเกินไปเวลาชื่อยาว
+  static const _spacing = 14.0;
+
+  static const _columns = [
+    DsColumn('ชื่อกลุ่มงาน/ฝ่าย', flex: 2),
+    DsColumn('หัวหน้ากลุ่มงาน', flex: 2),
+    DsColumn('สถานะ', width: 84),
+    DsColumn('', width: 68),
+  ];
+
+  Widget _buildRow(ColorScheme colors, WorkGroup g, int index) {
+    return DsTableRow(
+      index: index,
+      spacing: _spacing,
+      onTap: () => _openForm(existing: g),
+      cells: [
+        DsCell(
+          column: _columns[0],
+          child: Text(g.name,
+              style: TextStyle(
+                  fontWeight: AppTypography.weightSemiBold,
+                  fontSize: AppTypography.body,
+                  color: colors.onSurface),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+        ),
+        DsCell(
+          column: _columns[1],
+          child: Text(
+            (g.headName?.trim().isNotEmpty ?? false)
+                ? g.headName!
+                : 'ยังไม่กำหนดหัวหน้ากลุ่มงาน',
+            style: TextStyle(
+                color: colors.onSurfaceVariant,
+                fontSize: AppTypography.bodyMedium),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        DsCell(
+          column: _columns[2],
+          child: Align(
+            alignment: Alignment.center,
+            child: StatusBadge(
+              label: g.active ? 'ใช้งานอยู่' : 'ปิดใช้งาน',
+              variant: g.active ? BadgeVariant.success : BadgeVariant.neutral,
+              compact: true,
+            ),
+          ),
+        ),
+        DsCell(
+          column: _columns[3],
+          child: DsActionIconButtons(
+            actions: [
+              DsRowAction(
+                  icon: Icons.edit_outlined,
+                  tooltip: 'แก้ไข',
+                  onTap: () => _openForm(existing: g)),
+              DsRowAction(
+                  icon: Icons.delete_outline,
+                  tooltip: 'ลบ',
+                  onTap: () => _confirmDelete(g),
+                  danger: true),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -84,70 +218,76 @@ class _WorkGroupsTabState extends State<WorkGroupsTab> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.groups_outlined, size: 64, color: colors.onSurfaceVariant),
+                          Icon(Icons.groups_outlined,
+                              size: 64, color: colors.onSurfaceVariant),
                           const SizedBox(height: 12),
-                          Text('ยังไม่มีกลุ่มงาน\nกด "เพิ่มกลุ่มงาน" เพื่อเริ่มต้น',
-                            textAlign: TextAlign.center, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15)),
+                          Text(
+                              'ยังไม่มีกลุ่มงาน\nกด "เพิ่มกลุ่มงาน" เพื่อเริ่มต้น',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                  fontSize: 15)),
                         ],
                       ),
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.only(bottom: 80),
-                      itemCount: _groups.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (_, i) {
-                        final g = _groups[i];
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: colors.outlineVariant),
-                            borderRadius: BorderRadius.circular(10),
-                            color: g.active ? null : colors.surfaceContainerHighest.withValues(alpha: 0.4),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(g.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                  maxLines: 1, overflow: TextOverflow.ellipsis),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  (g.headName?.trim().isNotEmpty ?? false) ? 'หัวหน้า: ${g.headName}' : 'ยังไม่กำหนดหัวหน้ากลุ่มงาน',
-                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
-                                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  // [แก้บั๊ก RenderFlex unbounded height]: AppCard ห่อ child
+                  // ด้วย Padding เฉยๆ ไม่มี Expanded ให้ — ใส่ ListView.builder
+                  // ใน Expanded ไว้ข้างในตรงๆ แล้วชนกับ unbounded height
+                  // constraint แตกทันที เปลี่ยนมาแสดงทุกแถวตรงๆ (ไม่สกอลล์ใน
+                  // การ์ด) แล้วให้ทั้งหน้าเลื่อนแทนด้วย SingleChildScrollView
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          AppCard(
+                            padding: EdgeInsets.zero,
+                            titleWidget: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'กลุ่มงาน/ฝ่าย',
+                                  style: TextStyle(
+                                      fontSize: AppTypography.heading4,
+                                      fontWeight: AppTypography.weightExtraBold,
+                                      color: colors.onSurface),
                                 ),
-                              ),
-                              if (!g.active)
+                                const SizedBox(width: 8),
                                 Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
-                                  child: const Text('ปิดใช้งาน', style: TextStyle(fontSize: 11)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: BrandAccent.surface2(context),
+                                    borderRadius:
+                                        BorderRadius.circular(RadiusSize.full),
+                                  ),
+                                  child: Text(
+                                    '${_groups.length} กลุ่ม',
+                                    style: TextStyle(
+                                        fontSize: AppTypography.micro,
+                                        fontWeight: AppTypography.weightBold,
+                                        color: colors.onSurfaceVariant),
+                                  ),
                                 ),
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined, size: 20),
-                                tooltip: 'แก้ไข',
-                                onPressed: () => _openForm(existing: g),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                tooltip: 'ลบ',
-                                onPressed: () => _confirmDelete(g),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                DsTableHeader(
+                                    columns: _columns, spacing: _spacing),
+                                for (var i = 0; i < _groups.length; i++)
+                                  _buildRow(colors, _groups[i], i),
+                              ],
+                            ),
                           ),
-                        );
-                      },
+                          const SizedBox(height: 80),
+                        ],
+                      ),
                     ),
         ),
         Positioned(
-          right: 8,
-          bottom: 8,
+          right: 24,
+          bottom: 24,
           child: FloatingActionButton.extended(
             heroTag: 'work_group_add_fab',
             onPressed: () => _openForm(),
@@ -208,7 +348,8 @@ class _WorkGroupFormDialogState extends State<_WorkGroupFormDialog> {
     final group = WorkGroup(
       id: widget.existing?.id,
       name: _nameCtrl.text.trim(),
-      headName: _headNameCtrl.text.trim().isEmpty ? null : _headNameCtrl.text.trim(),
+      headName:
+          _headNameCtrl.text.trim().isEmpty ? null : _headNameCtrl.text.trim(),
       active: _active,
     );
     if (widget.existing == null) {
@@ -225,9 +366,14 @@ class _WorkGroupFormDialogState extends State<_WorkGroupFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขกลุ่มงาน' : 'เพิ่มกลุ่มงาน'),
+      title: Text(
+        isEdit ? 'แก้ไขกลุ่มงาน' : 'เพิ่มกลุ่มงาน',
+        style: const TextStyle(
+            fontSize: AppTypography.heading2,
+            fontWeight: AppTypography.weightExtraBold),
+      ),
       content: SizedBox(
-        width: 460,
+        width: 560,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -235,26 +381,33 @@ class _WorkGroupFormDialogState extends State<_WorkGroupFormDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: TextFormField(
                     controller: _nameCtrl,
-                    decoration: const InputDecoration(labelText: 'ชื่อกลุ่มงาน/ฝ่าย *', border: OutlineInputBorder(), isDense: true),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอกชื่อกลุ่มงาน' : null,
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context, label: 'ชื่อกลุ่มงาน/ฝ่าย *'),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'กรุณากรอกชื่อกลุ่มงาน'
+                        : null,
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: MemoryTextField(
                     fieldKey: 'workgroup.headName',
                     presetOptions: _personnel.map((p) => p.name).toList(),
                     controller: _headNameCtrl,
-                    decoration: const InputDecoration(labelText: 'หัวหน้ากลุ่มงาน', border: OutlineInputBorder(), isDense: true),
+                    decoration: _dialogFieldDecoration(context, label: 'หัวหน้ากลุ่มงาน'),
                   ),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('ใช้งานอยู่'),
-                  subtitle: const Text('ปิดไว้เพื่อซ่อนจากตัวเลือกโดยไม่ต้องลบประวัติ', style: TextStyle(fontSize: 12)),
+                  title: const Text('ใช้งานอยู่',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  subtitle: const Text(
+                      'ปิดไว้เพื่อซ่อนจากตัวเลือกโดยไม่ต้องลบประวัติ',
+                      style: TextStyle(fontSize: 13)),
                   value: _active,
                   onChanged: (v) => setState(() => _active = v),
                 ),
@@ -263,13 +416,31 @@ class _WorkGroupFormDialogState extends State<_WorkGroupFormDialog> {
           ),
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          child: const Text('ยกเลิก'),
+        ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary),
+          style: FilledButton.styleFrom(
+            backgroundColor: BrandAccent.teal(context),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           onPressed: _saving ? null : _save,
           child: _saving
-              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: colors.onPrimary))
               : Text(isEdit ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],

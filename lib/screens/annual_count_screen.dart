@@ -5,8 +5,45 @@
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/annual_count.dart';
+import '../services/annual_count_export_service.dart';
+import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
+import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+
+const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+const _dialogFieldStyle = TextStyle(fontSize: 17);
+const _dialogLabelStyle = TextStyle(fontSize: 15);
+
+/// สร้างกรอบช่องกรอกในป๊อปอัพให้ชัดเจนกว่าค่าเริ่มต้นของธีม (colors.outline
+/// จางเกินไปสำหรับช่องกรอกเดี่ยวๆ ที่ไม่มีเงา/สีพื้นต่างช่วยตัดขอบ)
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+  final colors = Theme.of(context).colorScheme;
+  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: borderColor, width: 1.3),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RadiusSize.md),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+    ),
+  );
+}
 
 const _thaiMonths = [
   '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -29,6 +66,7 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
   final _repo = ProcurementRepository();
   List<AnnualCount> _counts = [];
   bool _loading = true;
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -70,12 +108,16 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบบันทึกการตรวจนับปี ${a.fiscalYear} ใช่หรือไม่?'),
+        title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
+        content: Text('ต้องการลบบันทึกการตรวจนับปี ${a.fiscalYear} ใช่หรือไม่?', style: const TextStyle(fontSize: 15, height: 1.4)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            child: const Text('ยกเลิก'),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -85,6 +127,21 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
     if (confirmed == true && a.id != null) {
       await _repo.deleteAnnualCount(a.id!);
       _load();
+    }
+  }
+
+  /// ส่งออกประวัติการตรวจนับที่เห็นอยู่ตอนนี้เป็นไฟล์ Excel แล้วเปิดไฟล์ให้อัตโนมัติ
+  Future<void> _exportToExcel() async {
+    setState(() => _exporting = true);
+    try {
+      await AnnualCountExportService.exportAndOpen(_counts);
+      if (!mounted) return;
+      showAppToast('ส่งออกไฟล์ Excel แล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('ส่งออกไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
     }
   }
 
@@ -98,7 +155,11 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
         'ใช้บันทึกผลการตรวจนับพัสดุ/ครุภัณฑ์จริงประจำปีงบประมาณ เทียบกับจำนวนที่มีอยู่ในทะเบียน ตามที่ระเบียบพัสดุกำหนดให้ตรวจนับอย่างน้อยปีละ 1 ครั้ง',
         'กด "เริ่มการตรวจนับ" มุมขวาล่างเพื่อเปิดรอบตรวจนับใหม่ของปีงบประมาณปัจจุบัน',
         'บันทึกจำนวนที่พบจริง/ชำรุด/สูญหาย ไว้เป็นหลักฐานประกอบการรายงาน สตง. และใช้เทียบกับรอบก่อนหน้าได้',
+        'กดปุ่ม "ส่งออก Excel" มุมบนขวาเพื่อบันทึกประวัติการตรวจนับที่เห็นอยู่ตอนนี้เป็นไฟล์ .xlsx',
       ],
+      // มุมขวาบนชนกับปุ่ม "ส่งออก Excel" ในหัวหน้า และมุมขวาล่างมี FAB
+      // "เริ่มการตรวจนับ" อยู่แล้ว — เหลือแค่มุมซ้ายล่างที่ว่าง
+      corner: Alignment.bottomLeft,
       child: Stack(
         children: [
           Center(
@@ -109,8 +170,32 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ตรวจนับพัสดุประจำปี ${_currentFiscalYear()}',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Icon(Icons.checklist_outlined, color: BrandAccent.tealOn(context), size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text('ตรวจนับพัสดุประจำปี ${_currentFiscalYear()}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: _counts.isEmpty || _exporting ? null : _exportToExcel,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            side: BorderSide(color: colors.outline),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                            textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                          ),
+                          icon: _exporting
+                              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
+                              : const Icon(Icons.file_download_outlined, size: 18),
+                          label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     Expanded(
                       child: _loading
@@ -124,7 +209,7 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
                                       const SizedBox(height: 12),
                                       Text('ยังไม่มีประวัติการตรวจนับ\nกด "เริ่มการตรวจนับ" เพื่อเริ่มต้น',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
+                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
                                     ],
                                   ),
                                 )
@@ -132,7 +217,7 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
                                   itemCount: _counts.length,
                                   padding: const EdgeInsets.only(bottom: 80),
                                   separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (_, i) => _buildCard(colors, _counts[i]),
+                                  itemBuilder: (_, i) => _buildCard(context, colors, _counts[i]),
                                 ),
                     ),
                   ],
@@ -144,6 +229,7 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
             right: 24,
             bottom: 24,
             child: FloatingActionButton.extended(
+              heroTag: 'annual_count_add_fab',
               onPressed: _startNewCount,
               backgroundColor: colors.primary,
               foregroundColor: colors.onPrimary,
@@ -156,17 +242,22 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
     );
   }
 
-  Widget _buildCard(ColorScheme colors, AnnualCount a) {
+  Widget _buildCard(BuildContext context, ColorScheme colors, AnnualCount a) {
     final isDone = a.status == 'เสร็จสิ้น';
     final hasIssue = (a.damagedLostItems ?? 0) > 0;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: colors.outlineVariant)),
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(RadiusSize.card),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
         onTap: () => _openForm(a),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: colors.outline),
+            borderRadius: BorderRadius.circular(RadiusSize.card),
+            boxShadow: AppShadows.light1,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -174,39 +265,46 @@ class _AnnualCountScreenState extends State<AnnualCountScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                    child: Text('ปี ${a.fiscalYear}', style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
+                    decoration: BoxDecoration(
+                      color: BrandAccent.teal(context).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(RadiusSize.sm),
+                    ),
+                    child: Text('ปี ${a.fiscalYear}',
+                      style: TextStyle(fontSize: AppTypography.caption, color: BrandAccent.tealOn(context), fontWeight: AppTypography.weightSemiBold)),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: (isDone ? Colors.green : Colors.orange).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(a.status, style: TextStyle(fontSize: 11.5, color: isDone ? Colors.green : Colors.orange, fontWeight: FontWeight.w600)),
+                  StatusBadge(
+                    label: a.status,
+                    variant: isDone ? BadgeVariant.success : BadgeVariant.warning,
+                    compact: true,
                   ),
                   if (hasIssue) ...[
                     const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
-                      child: Text('พบชำรุด/สูญหาย ${a.damagedLostItems}', style: const TextStyle(fontSize: 11.5, color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                    StatusBadge(
+                      label: 'พบชำรุด/สูญหาย ${a.damagedLostItems}',
+                      variant: BadgeVariant.danger,
+                      compact: true,
                     ),
                   ],
                   const Spacer(),
-                  IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent), onPressed: () => _confirmDelete(a)),
+                  DsActionIconButtons(
+                    actions: [
+                      DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(a), danger: true),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Text('เริ่มตรวจ: ${a.startDate ?? "-"}  ·  ผู้รับผิดชอบ: ${a.responsiblePersons ?? "-"}',
-                style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant)),
+                style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
               Text('ทั้งหมด ${a.totalItems ?? "-"} รายการ  ·  พบจริง ${a.foundItems ?? "-"} รายการ  ·  ชำรุด/สูญหาย ${a.damagedLostItems ?? 0} รายการ',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface)),
               if (a.summaryNotes != null && a.summaryNotes!.isNotEmpty) ...[
                 const SizedBox(height: 4),
-                Text(a.summaryNotes!, style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant)),
+                Text(a.summaryNotes!, style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ],
           ),
@@ -306,9 +404,9 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขบันทึกการตรวจนับ' : 'เริ่มการตรวจนับพัสดุ'),
+      title: Text(isEdit ? 'แก้ไขบันทึกการตรวจนับ' : 'เริ่มการตรวจนับพัสดุ', style: _dialogTitleStyle),
       content: SizedBox(
-        width: 500,
+        width: 580,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -316,68 +414,75 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: TextFormField(
                     controller: _fiscalYearCtrl,
-                    decoration: const InputDecoration(labelText: 'ปีงบประมาณ *', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context, label: 'ปีงบประมาณ *'),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอกปีงบประมาณ' : null,
                   ),
                 ),
                 InkWell(
                   onTap: _pickStartDate,
+                  borderRadius: BorderRadius.circular(RadiusSize.md),
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: 18),
                     child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'วันที่เริ่มตรวจ', border: OutlineInputBorder(), isDense: true),
-                      child: Text(_startDate ?? 'เลือกวันที่'),
+                      decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มตรวจ'),
+                      child: Text(_startDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                     ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: TextFormField(
                     controller: _responsibleCtrl,
-                    decoration: const InputDecoration(labelText: 'ผู้รับผิดชอบ (ชื่อกรรมการ)', hintText: 'คั่นด้วยจุลภาคถ้ามีหลายคน', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context, label: 'ผู้รับผิดชอบ (ชื่อกรรมการ)', hint: 'คั่นด้วยจุลภาคถ้ามีหลายคน'),
                   ),
                 ),
                 Row(
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 18),
                         child: TextFormField(
                           controller: _totalCtrl,
+                          style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'จำนวนรายการทั้งหมด', border: OutlineInputBorder(), isDense: true),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนรายการทั้งหมด'),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 18),
                         child: TextFormField(
                           controller: _foundCtrl,
+                          style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'จำนวนที่พบจริง', border: OutlineInputBorder(), isDense: true),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนที่พบจริง'),
                         ),
                       ),
                     ),
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: TextFormField(
                     controller: _damagedCtrl,
+                    style: _dialogFieldStyle,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'จำนวนที่ชำรุด/สูญหาย', border: OutlineInputBorder(), isDense: true),
+                    decoration: _dialogFieldDecoration(context, label: 'จำนวนที่ชำรุด/สูญหาย'),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String>(
                     initialValue: _status,
-                    decoration: const InputDecoration(labelText: 'สถานะ', border: OutlineInputBorder(), isDense: true),
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context, label: 'สถานะ'),
                     items: const [
                       DropdownMenuItem(value: 'กำลังดำเนินการ', child: Text('กำลังดำเนินการ')),
                       DropdownMenuItem(value: 'เสร็จสิ้น', child: Text('เสร็จสิ้น')),
@@ -387,8 +492,9 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                 ),
                 TextFormField(
                   controller: _notesCtrl,
+                  style: _dialogFieldStyle,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'สรุปผลรายงานการตรวจสอบ', border: OutlineInputBorder(), isDense: true),
+                  decoration: _dialogFieldDecoration(context, label: 'สรุปผลรายงานการตรวจสอบ'),
                 ),
               ],
             ),
@@ -396,9 +502,13 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          child: const Text('ยกเลิก'),
+        ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary),
+          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
               ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
