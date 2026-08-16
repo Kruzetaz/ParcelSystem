@@ -519,6 +519,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   late final TextEditingController _purposeReasonCtrl;
   String? _orderType; // 'ซื้อ' | 'จ้าง'
   String? _fundType;
+  late final TextEditingController _fundTypeOtherCtrl;
   late String _procurementMethod; // ค่า value จาก procurementMethodOptions
   late bool _isRecurringContract;
   bool _generatingReason = false;
@@ -535,7 +536,17 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _activityNameCtrl = TextEditingController(text: widget.draft.activityName);
     _purposeReasonCtrl = TextEditingController(text: widget.draft.purposeReason);
     _orderType = widget.draft.orderType;
-    _fundType = orderFundTypes.contains(widget.draft.fundType) ? widget.draft.fundType : null;
+    // ค่า fundType ที่บันทึกไว้เป็นข้อความเอง (พิมพ์ตอนเลือก "อื่นๆ") จะไม่ตรงกับ
+    // ตัวเลือกในลิสต์ — ในกรณีนี้ให้ dropdown โชว์ "อื่นๆ" ไว้ แล้ว prefill ข้อความ
+    // เดิมลงช่องกรอกเอง แทนที่จะรีเซ็ตเป็น (ไม่ระบุ) ทุกครั้งที่เปิดกลับมาแก้ไข
+    final draftFundType = widget.draft.fundType;
+    if (draftFundType != null && draftFundType.isNotEmpty && !orderFundTypes.contains(draftFundType)) {
+      _fundType = 'อื่นๆ';
+      _fundTypeOtherCtrl = TextEditingController(text: draftFundType);
+    } else {
+      _fundType = orderFundTypes.contains(draftFundType) ? draftFundType : null;
+      _fundTypeOtherCtrl = TextEditingController();
+    }
     _isRecurringContract = widget.draft.isRecurringContract;
     _procurementMethod = widget.draft.procurementMethod ?? procurementMethodOptions.first.value;
     if (widget.draft.procurementMethod == null) {
@@ -578,8 +589,10 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
         title: const Text('เพิ่มแผนงบประมาณแบบด่วน', style: _dialogTitleStyle),
-        content: SingleChildScrollView(
-          child: Column(
+        content: SizedBox(
+          width: 440,
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
@@ -618,6 +631,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 onChanged: (v) => setDialogState(() => source = v ?? budgetSourceSchool),
               ),
             ],
+            ),
           ),
         ),
         actions: [
@@ -686,6 +700,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     _projectNameCtrl.dispose();
     _activityNameCtrl.dispose();
     _purposeReasonCtrl.dispose();
+    _fundTypeOtherCtrl.dispose();
     super.dispose();
   }
 
@@ -938,7 +953,10 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                     ],
                     onChanged: (v) {
                       setState(() => _fundType = v);
-                      widget.onChanged((d) => d.copyWith(fundType: v));
+                      // เลือก "อื่นๆ" แล้วยังไม่ได้พิมพ์ข้อความเอง — บันทึกข้อความ
+                      // ที่เคยพิมพ์ไว้ก่อนหน้า (ถ้ามี) แทนคำว่า "อื่นๆ" ตรงๆ เพื่อให้
+                      // เอกสารที่สร้างออกมาแสดงชื่อประเภทเงินจริงที่ผู้ใช้กรอกเอง
+                      widget.onChanged((d) => d.copyWith(fundType: v == 'อื่นๆ' ? _fundTypeOtherCtrl.text : v));
                     },
                   ),
                 ),
@@ -952,6 +970,14 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 ),
               ],
             ),
+            if (_fundType == 'อื่นๆ') ...[
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _fundTypeOtherCtrl,
+                decoration: _inputDecoration('ระบุประเภทของเงิน'),
+                onChanged: (v) => widget.onChanged((d) => d.copyWith(fundType: v)),
+              ),
+            ],
             const SizedBox(height: 16),
             MemoryTextField(
               fieldKey: 'order.procurementSubject',

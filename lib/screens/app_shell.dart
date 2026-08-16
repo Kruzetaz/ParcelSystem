@@ -1172,7 +1172,7 @@ class _AppShellState extends State<AppShell> {
                                 border: Border.all(color: colors.onPrimary.withValues(alpha: 0.4)),
                               ),
                               child: Text(
-                                'v3.0 FullUpdate',
+                                'v3.2 Retamp',
                                 style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.onPrimary),
                               ),
                             ),
@@ -1181,7 +1181,7 @@ class _AppShellState extends State<AppShell> {
                       ),
                       if (!narrow)
                         Text(
-                          'พัฒนาโดย Kru.Zetaz',
+                          'พัฒนาโดย Acha Srangkannork',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: colors.onPrimary.withValues(alpha: 0.7)),

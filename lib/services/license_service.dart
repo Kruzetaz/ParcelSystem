@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _scriptUrl =
-    'https://script.google.com/macros/s/AKfycbz6zAyDY35iXlXILNQbqlvQi4h473TWJVtHtLkNTLWtbz3QJPGS-oep3uygJ5CBkTWE/exec';
+    'https://script.google.com/macros/s/AKfycbyXkspN6qK_K89YU3pLu3R6pBzGcBGdntyB4yBdrpUf8Ch0cDKmv6uzqYhswHyMjqj9bg/exec';
 
 const _prefHwId        = 'hw_id';
 const _prefCacheStatus = 'cache_status';   // 'ok' | ''
@@ -161,13 +161,8 @@ class LicenseService {
   // ── Main check (เรียกตอนเปิดแอป) ────────────────────────────────
 
   Future<LicenseResult> checkOnStartup() async {
-    // 1. cache ยังใช้ได้อยู่ → ผ่านเลยไม่ยิง request
-    if (await _isCacheValid()) {
-      final orgName = await getCachedOrgName();
-      return LicenseResult(isValid: true, orgName: orgName);
-    }
-
-    // 2. cache หมด/ไม่มี → เช็คออนไลน์ด้วย HWID
+    // เช็ค online ก่อนเสมอทุกครั้งที่เปิดแอป (ให้ revoke มีผลทันที ไม่ต้องรอ
+    // cache หมดอายุ) — cache ใช้เป็น fallback เฉพาะตอนเชื่อมเน็ตไม่ได้จริงๆ
     final hwId = await getHardwareId();
     try {
       final result = await _checkByHwId(hwId);
@@ -175,15 +170,20 @@ class LicenseService {
       if (result.isValid) {
         await _setCache(result.orgName ?? '');
       } else {
-        // Revoked / Expired → ล้าง cache ด้วย
+        // Revoked / Expired / ไม่พบในระบบ → ล้าง cache ด้วย
         if (result.errorReason == 'revoked' ||
-            result.errorReason == 'expired') {
+            result.errorReason == 'expired' ||
+            result.errorReason == 'not_registered') {
           await _clearCache();
         }
       }
       return result;
     } catch (_) {
-      // ออฟไลน์ — cache หมดแล้วและเชื่อมเน็ตไม่ได้
+      // ออฟไลน์จริง — ใช้ cache แทนถ้ายังไม่หมดอายุ (สูงสุด 30 วัน)
+      if (await _isCacheValid()) {
+        final orgName = await getCachedOrgName();
+        return LicenseResult(isValid: true, orgName: orgName);
+      }
       return const LicenseResult(
         isValid: false,
         errorReason: 'network_error',
