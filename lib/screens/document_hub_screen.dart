@@ -11,6 +11,7 @@ import '../models/school_settings.dart';
 import '../services/document_generator.dart';
 import '../services/tor_document_generator.dart';
 import '../services/procurement_document_generator.dart';
+import '../services/blank_template_service.dart';
 import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
@@ -101,6 +102,7 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
   ProcurementOrder? _selectedOrder;
   bool _loading = true;
   _DocKind? _generatingKind;
+  BlankTemplateKind? _downloadingBlank;
 
   @override
   void initState() {
@@ -181,6 +183,20 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     }
   }
 
+  Future<void> _downloadBlank(BlankTemplateInfo info, BlankTemplateFormat format) async {
+    setState(() => _downloadingBlank = info.kind);
+    try {
+      await BlankTemplateService.exportAndOpen(info, format);
+      if (!mounted) return;
+      showAppToast('ดาวน์โหลดแบบฟอร์มแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('ดาวน์โหลดแบบฟอร์มไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _downloadingBlank = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -241,16 +257,27 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
                           ],
                         ),
                       )
-                    : GridView.builder(
+                    : SingleChildScrollView(
                         padding: const EdgeInsets.only(bottom: 24),
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 300,
-                          mainAxisExtent: 170,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 300,
+                                mainAxisExtent: 170,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                              ),
+                              itemCount: _docCards.length,
+                              itemBuilder: (_, i) => _buildDocCard(context, colors, _docCards[i]),
+                            ),
+                            const SizedBox(height: 20),
+                            _buildBlankTemplatesSection(context, colors),
+                          ],
                         ),
-                        itemCount: _docCards.length,
-                        itemBuilder: (_, i) => _buildDocCard(context, colors, _docCards[i]),
                       ),
               ),
             ],
@@ -296,6 +323,76 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
               ))
           .toList(),
       onChanged: (v) => setState(() => _selectedOrder = v),
+    );
+  }
+
+  /// แบบฟอร์มเปล่าที่ไม่ผูกกับรายการอ้างอิงใดๆ — แค่คัดลอกไฟล์ .docx ต้นฉบับ
+  /// ออกมาให้กรอกเอง (คนละแบบกับการ์ดด้านล่างที่ดึงข้อมูล order มาเติมให้)
+  Widget _buildBlankTemplatesSection(BuildContext context, ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(RadiusSize.card),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.download_outlined, size: 18, color: BrandAccent.tealOn(context)),
+              const SizedBox(width: 8),
+              Text('แบบฟอร์มเปล่า',
+                  style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, color: colors.onSurface)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('ดาวน์โหลดไฟล์แบบฟอร์มต้นฉบับ (ยังไม่กรอกข้อมูล) มากรอกเอง',
+              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: blankTemplates.map((info) {
+              final isDownloading = _downloadingBlank == info.kind;
+              return PopupMenuButton<BlankTemplateFormat>(
+                enabled: _downloadingBlank == null,
+                onSelected: (format) => _downloadBlank(info, format),
+                itemBuilder: (_) => info.assetPaths.keys.map((format) {
+                  final label = format == BlankTemplateFormat.docx ? 'ไฟล์ Word (.docx)' : 'ไฟล์ PDF (.pdf)';
+                  final icon = format == BlankTemplateFormat.docx ? Icons.description_outlined : Icons.picture_as_pdf_outlined;
+                  return PopupMenuItem(
+                    value: format,
+                    child: Row(children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)]),
+                  );
+                }).toList(),
+                child: IgnorePointer(
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      side: BorderSide(color: colors.outline),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    ),
+                    icon: isDownloading
+                        ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                        : const Icon(Icons.file_download_outlined, size: 16),
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(info.title, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_drop_down, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
