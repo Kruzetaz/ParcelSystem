@@ -99,6 +99,14 @@ class ProcurementOrder {
   // wizard แล้วไปโผล่อัตโนมัติในหน้า "สัญญาต่อเนื่อง/อาหารกลางวัน"
   final bool isRecurringContract;
 
+  // เช็คลิสต์เอกสารต่อโครงการ (เพิ่มใหม่ปี 2026) — ใช้ในหน้า "ทะเบียนตรวจสอบ
+  // เอกสาร" ตามทะเบียนกระดาษเดิมของโรงเรียน (ตั้งฎีกา = มีอยู่แล้วเพราะ order
+  // นี้ถูกสร้างในระบบแล้ว จึงเช็คแค่ใบเสร็จ/ปริ้นเซ็น/วันที่จ่าย/หมายเหตุ)
+  final bool docChecklistHasReceipt; // ได้รับใบเสร็จจากร้านค้า/ผู้รับจ้างแล้ว
+  final bool docChecklistPrinted; // ปริ้นเอกสารออกมาเซ็นเรียบร้อยแล้ว
+  final String? docChecklistPaidDate; // วันที่จ่ายเงินจริง (dd/MM/yyyy พ.ศ.)
+  final String? docChecklistNote; // หมายเหตุอิสระ
+
   const ProcurementOrder({
     this.id,
     this.budgetId,
@@ -170,6 +178,10 @@ class ProcurementOrder {
     this.progressPercent = 0.0,
     this.currentStatus = 'DRAFT',
     this.isRecurringContract = false,
+    this.docChecklistHasReceipt = false,
+    this.docChecklistPrinted = false,
+    this.docChecklistPaidDate,
+    this.docChecklistNote,
   });
 
   Map<String, dynamic> toMap() => {
@@ -243,6 +255,10 @@ class ProcurementOrder {
         'progress_percent': progressPercent,
         'current_status': currentStatus,
         'is_recurring_contract': isRecurringContract ? 1 : 0,
+        'doc_checklist_has_receipt': docChecklistHasReceipt ? 1 : 0,
+        'doc_checklist_printed': docChecklistPrinted ? 1 : 0,
+        'doc_checklist_paid_date': docChecklistPaidDate,
+        'doc_checklist_note': docChecklistNote,
       };
 
   factory ProcurementOrder.fromMap(Map<String, dynamic> m) => ProcurementOrder(
@@ -316,6 +332,10 @@ class ProcurementOrder {
         progressPercent: (m['progress_percent'] as num?)?.toDouble() ?? 0.0,
         currentStatus: m['current_status'] as String? ?? 'DRAFT',
         isRecurringContract: (m['is_recurring_contract'] as int? ?? 0) == 1,
+        docChecklistHasReceipt: (m['doc_checklist_has_receipt'] as int? ?? 0) == 1,
+        docChecklistPrinted: (m['doc_checklist_printed'] as int? ?? 0) == 1,
+        docChecklistPaidDate: m['doc_checklist_paid_date'] as String?,
+        docChecklistNote: m['doc_checklist_note'] as String?,
       );
 
   ProcurementOrder copyWith({
@@ -389,6 +409,10 @@ class ProcurementOrder {
     double? progressPercent,
     String? currentStatus,
     bool? isRecurringContract,
+    bool? docChecklistHasReceipt,
+    bool? docChecklistPrinted,
+    String? docChecklistPaidDate,
+    String? docChecklistNote,
   }) {
     return ProcurementOrder(
       id: id ?? this.id,
@@ -461,6 +485,10 @@ class ProcurementOrder {
       progressPercent: progressPercent ?? this.progressPercent,
       currentStatus: currentStatus ?? this.currentStatus,
       isRecurringContract: isRecurringContract ?? this.isRecurringContract,
+      docChecklistHasReceipt: docChecklistHasReceipt ?? this.docChecklistHasReceipt,
+      docChecklistPrinted: docChecklistPrinted ?? this.docChecklistPrinted,
+      docChecklistPaidDate: docChecklistPaidDate ?? this.docChecklistPaidDate,
+      docChecklistNote: docChecklistNote ?? this.docChecklistNote,
     );
   }
 }

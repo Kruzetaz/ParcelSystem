@@ -21,6 +21,9 @@ import '../models/procurement_installment.dart';
 import '../models/annual_count.dart';
 import '../models/disposal.dart';
 import '../models/audit_log_entry.dart';
+import '../models/school_branch.dart';
+import '../models/learning_material_record.dart';
+import '../models/learning_material_grade.dart';
 import '../services/audit_service.dart';
 import 'database.dart';
 
@@ -1186,5 +1189,111 @@ class ProcurementRepository {
       where: 'id = ?',
       whereArgs: [orderId],
     );
+  }
+
+  // ─────────────────────────────────────────
+  // SCHOOL BRANCHES + LEARNING MATERIALS (ทะเบียนหนังสือเรียน/อุปกรณ์การเรียน)
+  // ─────────────────────────────────────────
+
+  Future<List<SchoolBranch>> getAllBranches() async {
+    final db = await _db.database;
+    final rows = await db.query('school_branches', orderBy: 'sort_order ASC, id ASC');
+    return rows.map(SchoolBranch.fromMap).toList();
+  }
+
+  Future<int> insertBranch(SchoolBranch b) async {
+    final db = await _db.database;
+    final id = await db.insert('school_branches', b.toMap());
+    await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'สาขาโรงเรียน', description: b.name);
+    return id;
+  }
+
+  Future<void> updateBranch(SchoolBranch b) async {
+    final db = await _db.database;
+    await db.update('school_branches', b.toMap(), where: 'id = ?', whereArgs: [b.id]);
+    await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'สาขาโรงเรียน', description: b.name);
+  }
+
+  /// ลบสาขา — ลบ learning_material_records ที่ผูกอยู่ไปด้วยผ่าน ON DELETE CASCADE
+  Future<void> deleteBranch(int id) async {
+    final db = await _db.database;
+    await db.delete('school_branches', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db, action: 'ลบ', tableLabel: 'สาขาโรงเรียน', description: 'สาขา #$id');
+  }
+
+  Future<List<LearningMaterialRecord>> getLearningMaterialRecords(int branchId, String category) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'learning_material_records',
+      where: 'branch_id = ? AND category = ?',
+      whereArgs: [branchId, category],
+    );
+    return rows.map(LearningMaterialRecord.fromMap).toList();
+  }
+
+  /// ทุกสาขารวมกันของหมวดหมู่เดียว — ใช้ทำสรุปภาพรวม "ทั้งโรงเรียน" ที่ไม่ผูก
+  /// กับสาขาใดสาขาหนึ่ง
+  Future<List<LearningMaterialRecord>> getAllLearningMaterialRecords(String category) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'learning_material_records',
+      where: 'category = ?',
+      whereArgs: [category],
+    );
+    return rows.map(LearningMaterialRecord.fromMap).toList();
+  }
+
+  /// บันทึกยอดของ (สาขา, หมวดหมู่, ชั้น) เดียว — insert ถ้ายังไม่เคยมี หรือ
+  /// update ทับถ้ามีอยู่แล้ว (unique key คือ branch_id+category+grade_level)
+  Future<void> upsertLearningMaterialRecord(LearningMaterialRecord r) async {
+    final db = await _db.database;
+    final existing = await db.query(
+      'learning_material_records',
+      where: 'branch_id = ? AND category = ? AND grade_level = ?',
+      whereArgs: [r.branchId, r.category, r.gradeLevel],
+      limit: 1,
+    );
+    if (existing.isEmpty) {
+      await db.insert('learning_material_records', r.toMap());
+    } else {
+      await db.update(
+        'learning_material_records',
+        r.toMap(),
+        where: 'id = ?',
+        whereArgs: [existing.first['id']],
+      );
+    }
+  }
+
+  Future<List<LearningMaterialGrade>> getAllLearningMaterialGrades() async {
+    final db = await _db.database;
+    final rows = await db.query('learning_material_grades', orderBy: 'sort_order ASC, id ASC');
+    return rows.map(LearningMaterialGrade.fromMap).toList();
+  }
+
+  Future<int> insertLearningMaterialGrade(LearningMaterialGrade g) async {
+    final db = await _db.database;
+    return db.insert('learning_material_grades', g.toMap());
+  }
+
+  /// เปลี่ยนชื่อชั้น — ต้อง cascade อัปเดต grade_level ในระเบียนที่กรอกไว้แล้ว
+  /// ด้วย เพราะ learning_material_records ผูกชั้นด้วยชื่อ (ไม่ใช่ FK id)
+  Future<void> renameLearningMaterialGrade(LearningMaterialGrade g, String newName) async {
+    final db = await _db.database;
+    await db.update('learning_material_grades', {'name': newName}, where: 'id = ?', whereArgs: [g.id]);
+    await db.update(
+      'learning_material_records',
+      {'grade_level': newName},
+      where: 'grade_level = ?',
+      whereArgs: [g.name],
+    );
+  }
+
+  /// ลบชั้น — ลบระเบียนหนังสือเรียน/อุปกรณ์การเรียนของชั้นนี้ทุกสาขา/หมวดหมู่
+  /// ไปด้วย (แจ้งเตือนผู้ใช้ก่อนแล้วในหน้าจอ)
+  Future<void> deleteLearningMaterialGrade(LearningMaterialGrade g) async {
+    final db = await _db.database;
+    await db.delete('learning_material_grades', where: 'id = ?', whereArgs: [g.id]);
+    await db.delete('learning_material_records', where: 'grade_level = ?', whereArgs: [g.name]);
   }
 }

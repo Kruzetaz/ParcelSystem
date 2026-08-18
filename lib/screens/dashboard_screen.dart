@@ -42,6 +42,8 @@ const _optionalQuickActionsCatalog = [
   _OptionalQuickAction(id: 'document_hub', icon: Icons.file_copy_outlined, label: 'สร้างเอกสารราชการ', mode: AppMode.documentHub),
   _OptionalQuickAction(id: 'order_register', icon: Icons.numbers_outlined, label: 'ทะเบียนคุมเลขที่', mode: AppMode.orderRegister),
   _OptionalQuickAction(id: 'control_log', icon: Icons.receipt_long_outlined, label: 'ทะเบียนคุมเลขบันทึก/TOR', mode: AppMode.controlLog),
+  _OptionalQuickAction(id: 'document_checklist', icon: Icons.fact_check_outlined, label: 'ทะเบียนตรวจสอบเอกสาร', mode: AppMode.documentChecklist),
+  _OptionalQuickAction(id: 'learning_materials', icon: Icons.menu_book_outlined, label: 'หนังสือเรียน/อุปกรณ์การเรียน', mode: AppMode.learningMaterials),
   _OptionalQuickAction(id: 'fixed_assets', icon: Icons.inventory_2_outlined, label: 'ทะเบียนครุภัณฑ์', mode: AppMode.fixedAssets),
   _OptionalQuickAction(id: 'repair_history', icon: Icons.build_outlined, label: 'ประวัติซ่อมครุภัณฑ์', mode: AppMode.repairHistory),
   _OptionalQuickAction(id: 'materials', icon: Icons.inventory_outlined, label: 'วัสดุ/คลังพัสดุ', mode: AppMode.materials),

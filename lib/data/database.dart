@@ -17,7 +17,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 30;
+  static const int _version = 33;
 
   Database? _db;
 
@@ -481,6 +481,74 @@ class AppDatabase {
             await db.execute('ALTER TABLE procurement_orders ADD COLUMN vendor_postal_code TEXT');
           } catch (_) {}
         }
+        if (oldVersion < 31) {
+          // เช็คลิสต์เอกสารต่อโครงการ ("ทะเบียนตรวจสอบเอกสาร") — เทียบมาจาก
+          // ทะเบียนกระดาษเดิมของโรงเรียน (ตั้งฎีกา = มีอยู่แล้วเพราะ order นี้
+          // ถูกสร้างในระบบแล้ว จึงเช็คแค่ใบเสร็จ/ปริ้นเซ็น/วันที่จ่าย/หมายเหตุ)
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders ADD COLUMN doc_checklist_has_receipt INTEGER NOT NULL DEFAULT 0',
+            );
+          } catch (_) {}
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders ADD COLUMN doc_checklist_printed INTEGER NOT NULL DEFAULT 0',
+            );
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE procurement_orders ADD COLUMN doc_checklist_paid_date TEXT');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE procurement_orders ADD COLUMN doc_checklist_note TEXT');
+          } catch (_) {}
+        }
+        if (oldVersion < 32) {
+          // ทะเบียนหนังสือเรียน/อุปกรณ์การเรียนทั้งโรงเรียน — แยกเก็บสาขาของ
+          // โรงเรียน (school_branches) กับยอดสรุปนักเรียน/จำนวนสั่งซื้อต่อ
+          // (สาขา, หมวดหมู่, ชั้น) ใน learning_material_records
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS school_branches (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              sort_order INTEGER DEFAULT 0
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS learning_material_records (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              branch_id INTEGER NOT NULL,
+              category TEXT NOT NULL,
+              grade_level TEXT NOT NULL,
+              student_count INTEGER NOT NULL DEFAULT 0,
+              ordered_count INTEGER NOT NULL DEFAULT 0,
+              unit_price REAL,
+              actual_amount REAL,
+              as_of_date TEXT,
+              note TEXT,
+              UNIQUE(branch_id, category, grade_level),
+              FOREIGN KEY (branch_id) REFERENCES school_branches(id) ON DELETE CASCADE
+            )
+          ''');
+        }
+        if (oldVersion < 33) {
+          // รายชื่อชั้นเรียนของทะเบียนหนังสือเรียน/อุปกรณ์การเรียน — เดิม fix
+          // ตายตัวเป็น อ.2-ม.3 ในโค้ด ย้ายมาเก็บในตารางแทนเพื่อให้ผู้ใช้เพิ่ม/
+          // ลบ/เปลี่ยนชื่อชั้นเองได้จากหน้า "จัดการชั้นเรียน" — ใส่ค่าเริ่มต้น
+          // อ.2-ม.3 ให้ครั้งแรกเพื่อไม่ให้ข้อมูลที่กรอกไว้แล้วหายไป
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS learning_material_grades (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL UNIQUE,
+              sort_order INTEGER DEFAULT 0
+            )
+          ''');
+          const defaultGrades = ['อ.2', 'อ.3', 'ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6', 'ม.1', 'ม.2', 'ม.3'];
+          for (var i = 0; i < defaultGrades.length; i++) {
+            try {
+              await db.insert('learning_material_grades', {'name': defaultGrades[i], 'sort_order': i});
+            } catch (_) {}
+          }
+        }
       },
     );
   }
@@ -636,6 +704,12 @@ class AppDatabase {
         -- สัญญาแบบต่อเนื่องหลายเดือน (เช่น อาหารกลางวัน) — ตั้งได้จาก Tab 1
         -- ของ wizard แล้วไปโผล่อัตโนมัติในหน้า "สัญญาต่อเนื่อง/อาหารกลางวัน"
         is_recurring_contract INTEGER NOT NULL DEFAULT 0,
+
+        -- เช็คลิสต์เอกสารต่อโครงการ ("ทะเบียนตรวจสอบเอกสาร")
+        doc_checklist_has_receipt INTEGER NOT NULL DEFAULT 0,
+        doc_checklist_printed INTEGER NOT NULL DEFAULT 0,
+        doc_checklist_paid_date TEXT,
+        doc_checklist_note TEXT,
 
         FOREIGN KEY (budget_id) REFERENCES budgets(id)
       )
@@ -883,5 +957,41 @@ class AppDatabase {
         user_name TEXT
       )
     ''');
+
+    // ── ทะเบียนหนังสือเรียน/อุปกรณ์การเรียนทั้งโรงเรียน ──────────────
+    await db.execute('''
+      CREATE TABLE school_branches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE learning_material_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        branch_id INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        grade_level TEXT NOT NULL,
+        student_count INTEGER NOT NULL DEFAULT 0,
+        ordered_count INTEGER NOT NULL DEFAULT 0,
+        unit_price REAL,
+        actual_amount REAL,
+        as_of_date TEXT,
+        note TEXT,
+        UNIQUE(branch_id, category, grade_level),
+        FOREIGN KEY (branch_id) REFERENCES school_branches(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE learning_material_grades (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        sort_order INTEGER DEFAULT 0
+      )
+    ''');
+    const defaultGrades = ['อ.2', 'อ.3', 'ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6', 'ม.1', 'ม.2', 'ม.3'];
+    for (var i = 0; i < defaultGrades.length; i++) {
+      await db.insert('learning_material_grades', {'name': defaultGrades[i], 'sort_order': i});
+    }
   }
 }

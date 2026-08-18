@@ -18,6 +18,8 @@ import 'easy_wizard_screen.dart';
 import 'document_hub_screen.dart';
 import 'order_register_screen.dart';
 import 'control_log_screen.dart';
+import 'document_checklist_screen.dart';
+import 'learning_materials_screen.dart';
 import 'budget_list_screen.dart';
 import 'tor_screen.dart';
 import 'contracts_screen.dart';
@@ -260,6 +262,8 @@ class _AppShellState extends State<AppShell> {
       'installment_contracts': AppMode.installmentContracts,
       'order_register': AppMode.orderRegister,
       'control_log': AppMode.controlLog,
+      'document_checklist': AppMode.documentChecklist,
+      'learning_materials': AppMode.learningMaterials,
       'fixed_assets': AppMode.fixedAssets,
       'repair_history': AppMode.repairHistory,
       'materials': AppMode.materials,
@@ -468,6 +472,10 @@ class _AppShellState extends State<AppShell> {
         return const OrderRegisterScreen();
       case AppMode.controlLog:
         return ControlLogScreen(onGenerateDocument: _onGenerateDocumentForOrder);
+      case AppMode.documentChecklist:
+        return const DocumentChecklistScreen();
+      case AppMode.learningMaterials:
+        return const LearningMaterialsScreen();
       case AppMode.fixedAssets:
         return FixedAssetsScreen(
           key: ValueKey('fixed_assets_$_fixedAssetsInitialSelectedId'),
