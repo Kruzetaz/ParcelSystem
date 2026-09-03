@@ -94,11 +94,12 @@ class DocumentGenerator {
     final folderName = await getSchoolDocumentsFolderName();
     final outputDir = '${docsDir.path}/$folderName';
 
+    // ชื่อไฟล์ = "{เลขที่จัดซื้อ}_{หัวเรื่อง}"
     return DocxTemplateService.saveOutput(
       docxBytes: resultBytes,
       outputDir: outputDir,
       procurementNumber: order.procurementNumber ?? 'ไม่ระบุเลขที่',
-      projectName: order.projectName ?? 'ไม่ระบุชื่อโครงการ',
+      projectName: order.procurementSubject ?? 'ไม่ระบุหัวเรื่อง',
     );
   }
 
@@ -183,6 +184,19 @@ class DocumentGenerator {
       // ใบตรวจรับ/บันทึกเบิกเงิน/ใบสำคัญรับเงิน แบบรายงวด) จึงต้องตัดชุดนี้ทิ้ง
       // กันไม่ให้ปนกับชุดเอกสารรายงวดที่ตามมาต่อจากใบสั่งจ้าง
       'single_purchase_completion_docs': !o.isRecurringContract,
+      // คำเรียกเขต/อำเภอในที่อยู่ผู้ขาย/ผู้รับจ้าง — กรุงเทพฯ ใช้ "แขวง"/"เขต"
+      // จังหวัดอื่นใช้ "ตำบล"/"อำเภอ" (ผู้ขายบางรายอยู่ในเขตที่ไม่มีตำบล/อำเภอ
+      // เช่น ถนนราชมนตรี แขวงบางแคเหนือ เขตบางแค กรุงเทพมหานคร)
+      // จับแบบ contains ไม่ใช่ตรงเป๊ะ เพราะช่องจังหวัดเป็นช่องพิมพ์เอง ผู้ใช้อาจ
+      // พิมพ์ "กรุงเทพฯ"/"กรุงเทพ"/"กทม." ก็ได้ ไม่ใช่แค่ "กรุงเทพมหานคร" เป๊ะๆ
+      'vendor_is_bangkok': o.vendorProvince?.contains('กรุงเทพ') ?? false,
+      'vendor_not_bangkok': !(o.vendorProvince?.contains('กรุงเทพ') ?? false),
+      // ร้านค้าบางรายไม่มีชื่อร้าน มีแต่ชื่อเจ้าของ — ถ้าปล่อยช่องชื่อร้านว่างไว้
+      // vendor_name จะ fallback ไปใช้ชื่อเจ้าของแทน (ดู _buildFieldMap) ธงนี้ใช้ตัด
+      // ข้อความที่จะให้เห็นชื่อซ้ำกัน 2 รอบ เช่น "ข้าพเจ้า [เจ้าของ] ในนาม [ชื่อร้าน]"
+      // หรือ "[ชื่อร้าน] ([เจ้าของ])" เวลาทั้งสองช่องเป็นชื่อเดียวกัน
+      'vendor_has_shop_name': (o.vendorName?.trim().isNotEmpty ?? false) &&
+          o.vendorName!.trim() != (o.vendorOwner?.trim() ?? ''),
     };
   }
 
@@ -220,6 +234,8 @@ class DocumentGenerator {
       'egp_project_id': _str(o.egpProjectId),
       'contract_control_number': _str(o.contractControlNumber),
       'inspection_control_number': _str(o.inspectionControlNumber),
+      'fund_type': _str(o.fundType),
+      'project_number': _str(o.projectNumber),
 
       // งบประมาณ
       'allocated_amount': _money(o.allocatedAmount),
@@ -256,8 +272,13 @@ class DocumentGenerator {
       'inspector_3': _str(o.inspector3),
       'inspector_3_pos': _str(o.inspector3Pos),
 
-      // ผู้ขาย/คู่สัญญา
-      'vendor_name': _str(o.vendorName),
+      // ผู้ขาย/คู่สัญญา — ร้านที่ไม่มีชื่อร้าน (มีแค่ชื่อเจ้าของ) ปล่อยช่อง
+      // vendor_name ว่างไว้ได้ ระบบจะเอาชื่อเจ้าของมาแสดงแทนอัตโนมัติ กันข้อมูล
+      // ขาดในเอกสาร (ดู vendor_has_shop_name ใน buildConditionalFlags ที่ใช้คู่กัน
+      // ตัดข้อความซ้ำในจุดที่เทมเพลตโชว์ทั้งชื่อร้านและชื่อเจ้าของติดกัน)
+      'vendor_name': _str(
+        (o.vendorName?.trim().isNotEmpty ?? false) ? o.vendorName : o.vendorOwner,
+      ),
       'vendor_owner': _str(o.vendorOwner),
       'vendor_address_no': _str(o.vendorAddressNo),
       'vendor_subdistrict': _str(o.vendorSubdistrict),

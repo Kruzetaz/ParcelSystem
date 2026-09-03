@@ -58,11 +58,12 @@ class TorDocumentGenerator {
     final folderName = await getSchoolDocumentsFolderName();
     final outputDir = '${docsDir.path}/$folderName';
 
+    // ชื่อไฟล์ = "TOR_{เลขที่จัดซื้อ}_{หัวเรื่อง}"
     return DocxTemplateService.saveOutput(
       docxBytes: resultBytes,
       outputDir: outputDir,
       procurementNumber: 'TOR_${order.procurementNumber ?? "ไม่ระบุเลขที่"}',
-      projectName: order.projectName ?? 'ไม่ระบุชื่อโครงการ',
+      projectName: order.procurementSubject ?? 'ไม่ระบุหัวเรื่อง',
     );
   }
 

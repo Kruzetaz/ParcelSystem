@@ -65,6 +65,8 @@ class _AppShellState extends State<AppShell> {
 
   // dirty tracking — wizard set ค่านี้ผ่าน callback
   bool _wizardIsDirty = false;
+  bool _wizardAiBusy = false;
+  bool _budgetsAiBusy = false;
 
   // existingOrder สำหรับกรณีกดแก้ไขจาก dashboard
   ProcurementOrder? _editingOrder;
@@ -175,6 +177,15 @@ class _AppShellState extends State<AppShell> {
   String? _pendingDashboardFilter;
 
   Future<void> _requestModeChange(AppMode newMode, {ProcurementOrder? editingOrder, String? dashboardFilter}) async {
+    // ถ้า AI กำลังทำงานอยู่ (เขียนเหตุผล/อ่านใบเสร็จ/นำเข้าไฟล์แผนงบ) → เตือน
+    // ก่อน (สลับหน้า = ทำลาย state ทั้งหมด ผลลัพธ์ที่ AI กำลังจะได้จะหายไป
+    // เงียบๆ โดยไม่มีข้อความแจ้งอะไรเลย)
+    final aiBusyOnCurrentPage =
+        (_mode == AppMode.newOrder && _wizardAiBusy) || (_mode == AppMode.budgets && _budgetsAiBusy);
+    if (aiBusyOnCurrentPage) {
+      final confirmed = await _showAiBusyDialog();
+      if (!confirmed) return;
+    }
     // ถ้าอยู่หน้า wizard และมีข้อมูลค้าง → ถามก่อน
     if (_mode == AppMode.newOrder && _wizardIsDirty) {
       final confirmed = await _showDirtyDialog();
@@ -186,6 +197,8 @@ class _AppShellState extends State<AppShell> {
       _editingOrder = editingOrder;
       _pendingDashboardFilter = dashboardFilter;
       _wizardIsDirty = false;
+      _wizardAiBusy = false;
+      _budgetsAiBusy = false;
       // เคลียร์รายการที่เลือกล่วงหน้าไว้ทุกครั้งที่ไม่ได้ไปหน้าเอกสารโดยตรง กัน
       // ค่าเก่าค้างจากปุ่มลัดครั้งก่อนไปโผล่ตอนเข้าเมนู "สร้างเอกสารราชการ" ปกติ
       if (newMode != AppMode.documentHub) _docHubInitialOrderId = null;
@@ -198,6 +211,32 @@ class _AppShellState extends State<AppShell> {
     // จนกว่าจะกดปุ่ม "รีเฟรชข้อมูล" เอง — จุดนี้ query เบามาก (แค่ DISTINCT ปีงบ
     // สองตาราง) ไม่กระทบ performance ที่สลับหน้าบ่อยๆ
     _loadFiscalYears();
+  }
+
+  Future<bool> _showAiBusyDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('AI กำลังเขียนเหตุผลอยู่'),
+            content: const Text(
+              'ถ้าออกจากหน้านี้ตอนนี้ ผลลัพธ์ที่ AI กำลังเขียนจะหายไป\n'
+              'ต้องการออกเลยหรือรอให้เขียนเสร็จก่อน?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('รอให้เขียนเสร็จก่อน'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('ออกเลย'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Future<bool> _showDirtyDialog() async {
@@ -414,9 +453,22 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  void _onWizardAiBusyChanged(bool isBusy) {
+    if (_wizardAiBusy != isBusy) {
+      setState(() => _wizardAiBusy = isBusy);
+    }
+  }
+
+  void _onBudgetsAiBusyChanged(bool isBusy) {
+    if (_budgetsAiBusy != isBusy) {
+      setState(() => _budgetsAiBusy = isBusy);
+    }
+  }
+
   void _onWizardSaved() {
     setState(() {
       _wizardIsDirty = false;
+      _wizardAiBusy = false;
       _mode = AppMode.dashboard;
       _editingOrder = null;
     });
@@ -448,11 +500,12 @@ class _AppShellState extends State<AppShell> {
           existingOrder: _editingOrder,
           onDirtyChanged: _onWizardDirtyChanged,
           onSaved: _onWizardSaved,
+          onAiBusyChanged: _onWizardAiBusyChanged,
         );
       case AppMode.easyWizard:
         return EasyWizardScreen(onCreated: _onEasyWizardCreated);
       case AppMode.budgets:
-        return const BudgetListScreen();
+        return BudgetListScreen(onAiBusyChanged: _onBudgetsAiBusyChanged);
       case AppMode.tor:
         return const TorScreen();
       case AppMode.contracts:

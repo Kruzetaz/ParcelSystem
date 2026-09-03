@@ -41,7 +41,12 @@ enum _DuplicateResolution { replace, keepBoth, skip }
 enum _BulkAssignField { none, department, responsiblePerson }
 
 class BudgetListScreen extends StatefulWidget {
-  const BudgetListScreen({super.key});
+  // แจ้ง AppShell ว่า AI กำลังนำเข้าไฟล์แผนงบประมาณอยู่หรือไม่ — กันผู้ใช้
+  // สลับหน้าออกไประหว่างรอ (สลับหน้า = ทำลาย state หน้านี้ทิ้ง ผลลัพธ์ที่ AI
+  // กำลังจะได้จะหายไปเงียบๆ)
+  final ValueChanged<bool>? onAiBusyChanged;
+
+  const BudgetListScreen({super.key, this.onAiBusyChanged});
   @override
   State<BudgetListScreen> createState() => _BudgetListScreenState();
 }
@@ -486,6 +491,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     if (result == null || result.files.single.path == null) return;
 
     setState(() => _importing = true);
+    widget.onAiBusyChanged?.call(true);
     try {
       final parsed = await BudgetImportService.instance.importFromFile(result.files.single.path!);
       if (!mounted) return;
@@ -504,6 +510,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       if (!mounted) return;
       setState(() => _importing = false);
       showAppToast('นำเข้าไฟล์ไม่สำเร็จ: $e', isError: true);
+    } finally {
+      widget.onAiBusyChanged?.call(false);
     }
   }
 

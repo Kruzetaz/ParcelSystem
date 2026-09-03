@@ -317,7 +317,7 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
           .map((o) => DropdownMenuItem<ProcurementOrder?>(
                 value: o,
                 child: Text(
-                  '${o.procurementNumber ?? "(ไม่มีเลขที่)"} — ${o.projectName ?? o.procurementSubject ?? "เอกสาร #${o.id}"}',
+                  '${o.procurementNumber ?? "(ไม่มีเลขที่)"} — ${o.procurementSubject ?? o.projectName ?? "เอกสาร #${o.id}"}',
                   overflow: TextOverflow.ellipsis,
                 ),
               ))

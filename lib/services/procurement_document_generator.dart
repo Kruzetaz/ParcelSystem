@@ -155,12 +155,13 @@ class ProcurementDocumentGenerator {
     final folderName = await getSchoolDocumentsFolderName();
     final outputDir = '${docsDir.path}/$folderName';
 
+    // ชื่อไฟล์ = "{ประเภทเอกสาร}_{เลขที่จัดซื้อ}{ต่อท้ายงวดถ้ามี}_{หัวเรื่อง}"
     return DocxTemplateService.saveOutput(
       docxBytes: resultBytes,
       outputDir: outputDir,
       procurementNumber:
           '${_outputPrefixes[type]}_${order.procurementNumber ?? "ไม่ระบุเลขที่"}$outputSuffix',
-      projectName: order.projectName ?? 'ไม่ระบุชื่อโครงการ',
+      projectName: order.procurementSubject ?? 'ไม่ระบุหัวเรื่อง',
     );
   }
 
@@ -327,11 +328,12 @@ class ProcurementDocumentGenerator {
     final folderName = await getSchoolDocumentsFolderName();
     final outputDir = '${docsDir.path}/$folderName';
 
+    // ชื่อไฟล์ = "เอกสารรวม_{เลขที่จัดซื้อ}_{หัวเรื่อง}"
     return DocxTemplateService.saveOutput(
       docxBytes: mergedBytes,
       outputDir: outputDir,
       procurementNumber: 'เอกสารรวม_${order.procurementNumber ?? "ไม่ระบุเลขที่"}',
-      projectName: order.projectName ?? 'ไม่ระบุชื่อโครงการ',
+      projectName: order.procurementSubject ?? 'ไม่ระบุหัวเรื่อง',
     );
   }
 
@@ -369,12 +371,13 @@ class ProcurementDocumentGenerator {
     final folderName = await getSchoolDocumentsFolderName();
     final outputDir = '${docsDir.path}/$folderName';
 
+    // ชื่อไฟล์ = "ชุดเอกสารงวด{N}_{เลขที่จัดซื้อ}_{หัวเรื่อง}"
     return DocxTemplateService.saveOutput(
       docxBytes: mergedBytes,
       outputDir: outputDir,
       procurementNumber:
           'ชุดเอกสารงวด${installment.periodNo}_${order.procurementNumber ?? "ไม่ระบุเลขที่"}',
-      projectName: order.projectName ?? 'ไม่ระบุชื่อโครงการ',
+      projectName: order.procurementSubject ?? 'ไม่ระบุหัวเรื่อง',
     );
   }
 

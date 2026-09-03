@@ -47,7 +47,7 @@ class GlobalSearchService {
         items: orders.take(_perGroupLimit).map((o) {
           return SearchResultItem(
             type: SearchResultType.order,
-            title: o.projectName ?? o.procurementSubject ?? '(ไม่มีชื่อโครงการ)',
+            title: o.procurementSubject ?? o.projectName ?? '(ไม่มีชื่อโครงการ)',
             subtitle: [
               if (o.procurementNumber?.trim().isNotEmpty ?? false) o.procurementNumber,
               if (o.vendorName?.trim().isNotEmpty ?? false) o.vendorName,

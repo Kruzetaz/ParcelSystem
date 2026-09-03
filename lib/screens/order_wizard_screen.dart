@@ -76,12 +76,16 @@ class OrderWizardScreen extends StatefulWidget {
   // (shell จะสลับกลับไป dashboard ให้)
   final void Function(bool isDirty) onDirtyChanged;
   final VoidCallback onSaved;
+  // แจ้ง shell ว่า AI กำลังเขียนเหตุผลอยู่หรือไม่ — กันผู้ใช้สลับเมนูออกไป
+  // ระหว่างรอผลลัพธ์ (ไม่งั้นผลลัพธ์จะถูกทิ้งไปเงียบๆ เพราะ wizard ถูกทำลายทิ้ง)
+  final ValueChanged<bool>? onAiBusyChanged;
 
   const OrderWizardScreen({
     super.key,
     this.existingOrder,
     required this.onDirtyChanged,
     required this.onSaved,
+    this.onAiBusyChanged,
   });
 
   @override
@@ -210,8 +214,10 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       done++;
     }
 
-    // Tab 3: ชื่อร้านค้า + ระยะเวลาส่งมอบ
-    if ((_draft.vendorName?.trim().isNotEmpty ?? false) && _draft.shippingDays != null) {
+    // Tab 3: ชื่อร้านค้า (หรือชื่อเจ้าของร้าน ถ้าร้านไม่มีชื่อร้าน) + ระยะเวลาส่งมอบ
+    if (((_draft.vendorName?.trim().isNotEmpty ?? false) ||
+            (_draft.vendorOwner?.trim().isNotEmpty ?? false)) &&
+        _draft.shippingDays != null) {
       done++;
     }
 
@@ -282,10 +288,14 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     orderToSave = orderToSave.id == null ? orderToSave.copyWith(id: savedId) : orderToSave;
     setState(() => _draft = orderToSave);
 
-    // จำข้อมูลร้านค้าไว้ให้เลือกใช้ซ้ำได้ในเอกสารครั้งถัดไป
-    if ((orderToSave.vendorName?.trim().isNotEmpty ?? false)) {
+    // จำข้อมูลร้านค้าไว้ให้เลือกใช้ซ้ำได้ในเอกสารครั้งถัดไป — ร้านที่ไม่มีชื่อร้าน
+    // (มีแค่ชื่อเจ้าของ) ใช้ชื่อเจ้าของแทนเป็นชื่อที่บันทึกไว้ค้นหา/เลือกซ้ำได้
+    final vendorDisplayName = (orderToSave.vendorName?.trim().isNotEmpty ?? false)
+        ? orderToSave.vendorName!.trim()
+        : orderToSave.vendorOwner?.trim();
+    if (vendorDisplayName != null && vendorDisplayName.isNotEmpty) {
       await _repo.upsertVendor(Vendor(
-        name: orderToSave.vendorName!.trim(),
+        name: vendorDisplayName,
         owner: orderToSave.vendorOwner,
         addressNo: orderToSave.vendorAddressNo,
         subdistrict: orderToSave.vendorSubdistrict,
@@ -387,7 +397,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _Tab1SchoolBudget(draft: _draft, onChanged: _updateDraft, repo: _repo),
+              _Tab1SchoolBudget(draft: _draft, onChanged: _updateDraft, repo: _repo, onAiBusyChanged: widget.onAiBusyChanged),
               _Tab2Officers(draft: _draft, onChanged: _updateDraft),
               _Tab3VendorTerms(draft: _draft, onChanged: _updateDraft, itemsSubtotal: _itemsSubtotal),
               _Tab4Items(
@@ -400,6 +410,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                   });
                   _markDirty();
                 },
+                onAiBusyChanged: widget.onAiBusyChanged,
               ),
               _Tab5Timeline(draft: _draft, onChanged: _updateDraft),
             ],
@@ -494,11 +505,16 @@ class _Tab1SchoolBudget extends StatefulWidget {
   final ProcurementOrder draft;
   final void Function(ProcurementOrder Function(ProcurementOrder)) onChanged;
   final ProcurementRepository repo;
+  // แจ้ง AppShell ว่า AI กำลังเขียนเหตุผลอยู่หรือไม่ — กันผู้ใช้สลับหน้าออกไป
+  // ระหว่างรอ (สลับหน้า = ทำลาย state ของ wizard ทั้งหมด รวมผลลัพธ์ AI ที่
+  // กำลังจะได้ ทำให้ดูเหมือน "เจนไม่ได้" ทั้งที่จริงคือถูกทิ้งไปเงียบๆ)
+  final ValueChanged<bool>? onAiBusyChanged;
 
   const _Tab1SchoolBudget({
     required this.draft,
     required this.onChanged,
     required this.repo,
+    this.onAiBusyChanged,
   });
 
   @override
@@ -717,6 +733,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     }
 
     setState(() => _generatingReason = true);
+    widget.onAiBusyChanged?.call(true);
     try {
       final isJang = _orderType == 'จ้าง';
       final actionVerb = isJang ? 'จัดจ้าง/จ้างเหมา' : 'จัดซื้อ';
@@ -755,6 +772,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       if (!mounted) return;
       setState(() => _generatingReason = false);
       showAppToast('AI เขียนเหตุผลไม่สำเร็จ: $e', isError: true);
+    } finally {
+      widget.onAiBusyChanged?.call(false);
     }
   }
 
@@ -1865,7 +1884,9 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.name',
                     controller: _vendorNameCtrl,
-                    decoration: _inputDecoration('ชื่อร้านค้า/บริษัท'),
+                    decoration: _inputDecoration('ชื่อร้านค้า/บริษัท').copyWith(
+                      hintText: 'ถ้าร้านไม่มีชื่อร้าน เว้นว่างได้ ระบบจะใช้ชื่อเจ้าของร้านแทน',
+                    ),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorName: v)),
                   ),
                 ),
@@ -1887,7 +1908,9 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.addressNo',
                     controller: _vendorAddressNoCtrl,
-                    decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่'),
+                    decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่').copyWith(
+                      hintText: 'เช่น 123 หมู่ 4 ถนนราชมนตรี',
+                    ),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorAddressNo: v)),
                   ),
                 ),
@@ -2152,11 +2175,15 @@ class _Tab4Items extends StatefulWidget {
   final List<ProcurementItem> initialItems;
   final ItemsTableEditorController itemsController;
   final void Function(List<ProcurementItem> items, double subtotal) onChanged;
+  // แจ้ง AppShell ว่า AI กำลังอ่านใบเสร็จอยู่หรือไม่ — กันผู้ใช้สลับหน้าออกไป
+  // ระหว่างรอ (เหตุผลเดียวกับ Tab1: สลับหน้า = ทำลาย wizard ทั้งหมด)
+  final ValueChanged<bool>? onAiBusyChanged;
 
   const _Tab4Items({
     required this.initialItems,
     required this.itemsController,
     required this.onChanged,
+    this.onAiBusyChanged,
   });
 
   @override
@@ -2211,6 +2238,7 @@ class _Tab4ItemsState extends State<_Tab4Items> {
     };
 
     setState(() => _readingReceipt = true);
+    widget.onAiBusyChanged?.call(true);
     try {
       final bytes = await File(path).readAsBytes();
       final responseText = await GeminiService.instance.generateFromFile(
@@ -2236,6 +2264,8 @@ class _Tab4ItemsState extends State<_Tab4Items> {
       if (!mounted) return;
       setState(() => _readingReceipt = false);
       showAppToast('อ่านใบเสร็จไม่สำเร็จ: $e', isError: true);
+    } finally {
+      widget.onAiBusyChanged?.call(false);
     }
   }
 
