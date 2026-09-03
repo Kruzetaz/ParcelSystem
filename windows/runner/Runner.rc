@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "ban_pa_lao_procurement" "\0"
+            VALUE "FileDescription", "ParcelSystem v3.2 Retamp" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "ban_pa_lao_procurement" "\0"
+            VALUE "InternalName", "ParcelSystem v3.2 Retamp" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "ban_pa_lao_procurement.exe" "\0"
-            VALUE "ProductName", "ban_pa_lao_procurement" "\0"
+            VALUE "OriginalFilename", "ParcelSystem v3.2 Retamp.exe" "\0"
+            VALUE "ProductName", "ParcelSystem v3.2 Retamp" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
