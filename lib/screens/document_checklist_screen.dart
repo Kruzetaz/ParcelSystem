@@ -119,7 +119,7 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(o.projectName ?? o.procurementSubject ?? '(ไม่มีชื่อรายการ)',
+                Text(o.procurementSubject ?? o.projectName ?? '(ไม่มีชื่อรายการ)',
                     maxLines: 2, overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
@@ -355,7 +355,11 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
 
   Widget _buildRow(ColorScheme colors, int index, ProcurementOrder o) {
     final docNumber = o.orderNumber ?? o.procurementNumber ?? '-';
-    final itemLabel = o.projectName ?? o.procurementSubject ?? '(ไม่มีชื่อรายการ)';
+    // เอา procurementSubject ขึ้นก่อน projectName ให้ตรงกับหน้า "สร้างเอกสารราชการ"
+    // (document_hub_screen.dart) — subject เป็นชื่อเฉพาะต่อรายการ (มักมีชื่อร้าน/
+    // ผู้รับจ้างติดมาด้วย) ต่างจาก projectName ที่เป็นชื่อโครงการรวมๆ ใช้ซ้ำได้
+    // หลายรายการ ทำให้แยกแยะแต่ละแถวในตารางนี้ยากถ้าใช้ projectName ก่อน
+    final itemLabel = o.procurementSubject ?? o.projectName ?? '(ไม่มีชื่อรายการ)';
     final complete = _isComplete(o);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
