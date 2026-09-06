@@ -29,7 +29,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -618,7 +619,7 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                 child: DropdownButtonFormField<String?>(
                   initialValue: _guaranteeType,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'ประเภทหลักประกัน'),
+                  decoration: _dialogFieldDecoration(context, label: 'ประเภทหลักประกัน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                   items: [
                     const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                     ..._guaranteeTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))),
@@ -632,7 +633,16 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                   initialValue: _contractId,
                   isExpanded: true,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'ผูกกับสัญญา'),
+                  decoration: _dialogFieldDecoration(context, label: 'ผูกกับสัญญา').copyWith(
+                    floatingLabelBehavior: FloatingLabelBehavior.auto,
+                    suffixIcon: _contractId != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            tooltip: 'ล้างค่าที่เลือก',
+                            onPressed: () => setState(() => _contractId = null),
+                          )
+                        : null,
+                  ),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับสัญญา)')),
                     ..._contracts.where((c) => c.id != null).map((c) => DropdownMenuItem<int?>(
@@ -651,7 +661,7 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                 child: TextFormField(
                   controller: _counterpartyCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _dialogFieldDecoration(context, label: 'ผู้เสนอราคา/คู่สัญญา'),
+                  decoration: _dialogFieldDecoration(context, label: 'ผู้เสนอราคา/คู่สัญญา', hint: 'เช่น บริษัท เอบีซี จำกัด'),
                 ),
               ),
               Padding(
@@ -660,7 +670,7 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                   controller: _amountCtrl,
                   style: _dialogFieldStyle,
                   keyboardType: TextInputType.number,
-                  decoration: _dialogFieldDecoration(context, label: 'วงเงินค้ำประกัน (บาท)'),
+                  decoration: _dialogFieldDecoration(context, label: 'วงเงินค้ำประกัน (บาท)', hint: 'เช่น 50000.00'),
                 ),
               ),
               Row(
@@ -670,7 +680,7 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                       onTap: () => _pickDate(isStart: true),
                       borderRadius: BorderRadius.circular(RadiusSize.md),
                       child: InputDecorator(
-                        decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มค้ำประกัน'),
+                        decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มค้ำประกัน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                         child: Text(_startDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                       ),
                     ),
@@ -681,7 +691,7 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                       onTap: () => _pickDate(isStart: false),
                       borderRadius: BorderRadius.circular(RadiusSize.md),
                       child: InputDecorator(
-                        decoration: _dialogFieldDecoration(context, label: 'วันหมดอายุ'),
+                        decoration: _dialogFieldDecoration(context, label: 'วันหมดอายุ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                         child: Text(_expiryDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                       ),
                     ),

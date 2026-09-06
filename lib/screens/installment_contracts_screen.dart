@@ -38,7 +38,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
     labelText: label,
     hintText: hint,
     suffixIcon: suffixIcon,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -501,7 +502,7 @@ class _OrderPickerDialogState extends State<_OrderPickerDialog> {
           children: [
             TextField(
               style: _dialogFieldStyle,
-              decoration: _dialogFieldDecoration(context, label: 'ค้นหาชื่อโครงการ/ผู้ขาย', suffixIcon: const Icon(Icons.search)),
+              decoration: _dialogFieldDecoration(context, label: 'ค้นหาชื่อโครงการ/ผู้ขาย', suffixIcon: const Icon(Icons.search), hint: 'พิมพ์เพื่อค้นหา'),
               onChanged: (v) => setState(() => _query = v),
             ),
             const SizedBox(height: 14),
@@ -611,7 +612,7 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
                 controller: ctrl,
                 style: _dialogFieldStyle,
                 keyboardType: TextInputType.number,
-                decoration: _dialogFieldDecoration(ctx, label: 'จำนวนงวด'),
+                decoration: _dialogFieldDecoration(ctx, label: 'จำนวนงวด', hint: 'เช่น 10'),
                 autofocus: true,
               ),
             ],
@@ -1231,8 +1232,8 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
     setState(() => onPicked(_formatThaiDate(picked)));
   }
 
-  InputDecoration _dec(String label, {Widget? suffixIcon}) =>
-      _dialogFieldDecoration(context, label: label, suffixIcon: suffixIcon);
+  InputDecoration _dec(String label, {Widget? suffixIcon, String? hint}) =>
+      _dialogFieldDecoration(context, label: label, suffixIcon: suffixIcon, hint: hint);
 
   void _save() {
     final periodNo = int.tryParse(_periodNoCtrl.text.trim()) ?? widget.nextPeriodNo;
@@ -1276,7 +1277,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                     child: TextField(
                       controller: _periodNoCtrl,
                       style: _dialogFieldStyle,
-                      decoration: _dec('งวดที่'),
+                      decoration: _dec('งวดที่', hint: 'เช่น 1'),
                       keyboardType: TextInputType.number,
                     ),
                   ),
@@ -1286,7 +1287,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                     child: TextField(
                       controller: _periodLabelCtrl,
                       style: _dialogFieldStyle,
-                      decoration: _dec('ป้ายกำกับงวด (เช่น พฤษภาคม 2569)'),
+                      decoration: _dec('ป้ายกำกับงวด', hint: 'เช่น พฤษภาคม 2569'),
                     ),
                   ),
                 ],
@@ -1295,21 +1296,21 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
               TextField(
                 controller: _amountCtrl,
                 style: _dialogFieldStyle,
-                decoration: _dec('จำนวนเงินงวดนี้ (บาท)'),
+                decoration: _dec('จำนวนเงินงวดนี้ (บาท)', hint: 'เช่น 5000.00'),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
               const SizedBox(height: 18),
               TextField(
                 controller: _controlNumberCtrl,
                 style: _dialogFieldStyle,
-                decoration: _dec('เลขคุมตรวจรับ (ถ้ามี)'),
+                decoration: _dec('เลขคุมตรวจรับ (ถ้ามี)', hint: 'เช่น ตรวจรับที่ 5/2569'),
               ),
               const SizedBox(height: 18),
               TextField(
                 readOnly: true,
                 controller: TextEditingController(text: _dateDelivery ?? ''),
                 style: _dialogFieldStyle,
-                decoration: _dec('วันที่ส่งมอบงาน', suffixIcon: const Icon(Icons.calendar_today, size: 18)),
+                decoration: _dec('วันที่ส่งมอบงาน', suffixIcon: const Icon(Icons.calendar_today, size: 18)).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 onTap: () => _pickDate('วันที่ส่งมอบงาน', _dateDelivery, (v) => _dateDelivery = v),
               ),
               const SizedBox(height: 18),
@@ -1317,7 +1318,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 readOnly: true,
                 controller: TextEditingController(text: _dateInspection ?? ''),
                 style: _dialogFieldStyle,
-                decoration: _dec('วันที่ตรวจรับ', suffixIcon: const Icon(Icons.calendar_today, size: 18)),
+                decoration: _dec('วันที่ตรวจรับ', suffixIcon: const Icon(Icons.calendar_today, size: 18)).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 onTap: () => _pickDate('วันที่ตรวจรับ', _dateInspection, (v) => _dateInspection = v),
               ),
               const SizedBox(height: 18),
@@ -1325,7 +1326,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 readOnly: true,
                 controller: TextEditingController(text: _dateDisbursement ?? ''),
                 style: _dialogFieldStyle,
-                decoration: _dec('วันที่อนุมัติเบิกจ่าย', suffixIcon: const Icon(Icons.calendar_today, size: 18)),
+                decoration: _dec('วันที่อนุมัติเบิกจ่าย', suffixIcon: const Icon(Icons.calendar_today, size: 18)).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 onTap: () =>
                     _pickDate('วันที่อนุมัติเบิกจ่าย', _dateDisbursement, (v) => _dateDisbursement = v),
               ),
@@ -1333,7 +1334,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
               DropdownButtonFormField<String>(
                 initialValue: _inspectionResult,
                 style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _dec('ผลการตรวจรับ'),
+                decoration: _dec('ผลการตรวจรับ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: _inspectionResultOptions
                     .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                     .toList(),
@@ -1350,7 +1351,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 TextField(
                   controller: _penaltyAmountCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _dec('จำนวนเงินค่าปรับ (บาท)'),
+                  decoration: _dec('จำนวนเงินค่าปรับ (บาท)', hint: 'เช่น 500.00'),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 ),
             ],

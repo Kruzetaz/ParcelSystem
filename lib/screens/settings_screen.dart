@@ -126,11 +126,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     }
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {String? hint}) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
@@ -219,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: TextField(
                             controller: _currentUserCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('ชื่อผู้ใช้งาน'),
+                            decoration: _inputDecoration('ชื่อผู้ใช้งาน', hint: 'เช่น นายสมชาย ใจดี'),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -252,13 +255,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     TextFormField(
                       controller: _schoolNameCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('ชื่อโรงเรียน'),
+                      decoration: _inputDecoration('ชื่อโรงเรียน', hint: 'เช่น โรงเรียนบ้านป่าเลา'),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _schoolAddressNoCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่'),
+                      decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่', hint: 'เช่น 123 หมู่ 4'),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -267,7 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: TextFormField(
                             controller: _schoolSubdistrictCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('ตำบล/แขวง'),
+                            decoration: _inputDecoration('ตำบล/แขวง', hint: 'เช่น ในเมือง'),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -275,7 +278,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: TextFormField(
                             controller: _schoolAmphoeCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('อำเภอ/เขต'),
+                            decoration: _inputDecoration('อำเภอ/เขต', hint: 'เช่น เมืองลำพูน'),
                           ),
                         ),
                       ],
@@ -284,13 +287,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     TextFormField(
                       controller: _schoolChangwatCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('จังหวัด'),
+                      decoration: _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _schoolPhoneCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('เบอร์โทรโรงเรียน'),
+                      decoration: _inputDecoration('เบอร์โทรโรงเรียน', hint: 'เช่น 053-511111'),
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 28),
@@ -313,7 +316,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     TextFormField(
                       controller: _directorNameCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('ผู้อำนวยการโรงเรียน'),
+                      decoration: _inputDecoration('ผู้อำนวยการโรงเรียน', hint: 'เช่น นายสมชาย ใจดี'),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -322,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: TextFormField(
                             controller: _procurementOfficerCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('เจ้าหน้าที่พัสดุ'),
+                            decoration: _inputDecoration('เจ้าหน้าที่พัสดุ', hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -330,7 +333,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: TextFormField(
                             controller: _procurementHeadCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('หัวหน้าเจ้าหน้าที่พัสดุ'),
+                            decoration: _inputDecoration('หัวหน้าเจ้าหน้าที่พัสดุ', hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
                           ),
                         ),
                       ],
@@ -339,7 +342,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     TextFormField(
                       controller: _financeOfficerCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('เจ้าหน้าที่การเงิน'),
+                      decoration: _inputDecoration('เจ้าหน้าที่การเงิน', hint: 'เช่น นางสมศรี มีทรัพย์'),
                     ),
                     const SizedBox(height: 28),
                     SizedBox(

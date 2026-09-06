@@ -31,7 +31,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
     hintText: hint,
     helperText: helper,
     helperMaxLines: 2,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -623,9 +624,9 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: _field(_contractNumberCtrl, 'เลขที่สัญญา')),
+                    Expanded(child: _field(_contractNumberCtrl, 'เลขที่สัญญา', hint: 'เช่น สัญญาที่ 5/2569')),
                     const SizedBox(width: 12),
-                    Expanded(child: _field(_egpNumberCtrl, 'เลขที่ e-GP')),
+                    Expanded(child: _field(_egpNumberCtrl, 'เลขที่ e-GP', hint: 'เช่น 69000000000')),
                   ],
                 ),
                 Padding(
@@ -638,6 +639,15 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                       context,
                       label: 'รายการจัดซื้อจัดจ้างที่เกี่ยวข้อง',
                       helper: 'เลือกแล้วระบบจะดึงเลขที่คุมสัญญา/e-GP/ผู้ขาย/วงเงินจากรายการนี้มาเติมให้อัตโนมัติทันที (ทับข้อมูลเดิมในช่องนั้นถ้ามี)',
+                    ).copyWith(
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      suffixIcon: _orderId != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              tooltip: 'ล้างค่าที่เลือก',
+                              onPressed: () => _onOrderSelected(null),
+                            )
+                          : null,
                     ),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับเอกสาร)')),
@@ -657,7 +667,7 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                   child: DropdownButtonFormField<String?>(
                     initialValue: _contractType,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ประเภทสัญญา'),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภทสัญญา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ..._contractTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))),
@@ -665,12 +675,12 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                     onChanged: (v) => setState(() => _contractType = v),
                   ),
                 ),
-                _field(_vendorNameCtrl, 'คู่สัญญา (ชื่อบริษัท/ร้านค้า)'),
+                _field(_vendorNameCtrl, 'คู่สัญญา (ชื่อบริษัท/ร้านค้า)', hint: 'เช่น บริษัท เอบีซี จำกัด'),
                 Row(
                   children: [
-                    Expanded(child: _field(_contractAmountCtrl, 'วงเงินตามสัญญา (บาท)', keyboardType: TextInputType.number)),
+                    Expanded(child: _field(_contractAmountCtrl, 'วงเงินตามสัญญา (บาท)', keyboardType: TextInputType.number, hint: 'เช่น 50000.00')),
                     const SizedBox(width: 12),
-                    Expanded(child: _field(_installmentCtrl, 'จำนวนงวดงาน', keyboardType: TextInputType.number)),
+                    Expanded(child: _field(_installmentCtrl, 'จำนวนงวดงาน', keyboardType: TextInputType.number, hint: 'เช่น 3')),
                   ],
                 ),
                 Row(
@@ -682,7 +692,7 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 18),
                           child: InputDecorator(
-                            decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มสัญญา'),
+                            decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มสัญญา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                             child: Text(_startDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                           ),
                         ),
@@ -696,7 +706,7 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 18),
                           child: InputDecorator(
-                            decoration: _dialogFieldDecoration(context, label: 'วันที่สิ้นสุดสัญญา'),
+                            decoration: _dialogFieldDecoration(context, label: 'วันที่สิ้นสุดสัญญา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                             child: Text(_endDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                           ),
                         ),
@@ -707,7 +717,7 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                 DropdownButtonFormField<String>(
                   initialValue: _status,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'สถานะสัญญา'),
+                  decoration: _dialogFieldDecoration(context, label: 'สถานะสัญญา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                   items: _contractStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                   onChanged: (v) => setState(() => _status = v ?? 'กำลังดำเนินการ'),
                 ),
@@ -734,14 +744,14 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
     );
   }
 
-  Widget _field(TextEditingController ctrl, String label, {TextInputType? keyboardType}) {
+  Widget _field(TextEditingController ctrl, String label, {TextInputType? keyboardType, String? hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: TextFormField(
         controller: ctrl,
         style: _dialogFieldStyle,
         keyboardType: keyboardType,
-        decoration: _dialogFieldDecoration(context, label: label),
+        decoration: _dialogFieldDecoration(context, label: label, hint: hint),
       ),
     );
   }

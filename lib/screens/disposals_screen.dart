@@ -372,7 +372,7 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
     Navigator.pop(context, true);
   }
 
-  InputDecoration _fieldDecoration(BuildContext context, String label) {
+  InputDecoration _fieldDecoration(BuildContext context, String label, {String? hint}) {
     final colors = Theme.of(context).colorScheme;
     // colors.outline (0xFFE1E7EB โหมดสว่าง) จางเกินไปสำหรับช่องกรอกลอยเดี่ยวๆ
     // ในป๊อปอัพ (ไม่มีเงา/สีพื้นต่างจากไดอะล็อกช่วยตัดขอบให้เหมือนตารางอื่น) —
@@ -380,7 +380,9 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
     final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
     return InputDecoration(
       labelText: label,
-      labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+      hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(
@@ -416,7 +418,16 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                   initialValue: _assetId,
                   isExpanded: true,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _fieldDecoration(context, 'ครุภัณฑ์ที่จะจำหน่าย'),
+                  decoration: _fieldDecoration(context, 'ครุภัณฑ์ที่จะจำหน่าย').copyWith(
+                    floatingLabelBehavior: FloatingLabelBehavior.auto,
+                    suffixIcon: _assetId != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            tooltip: 'ล้างค่าที่เลือก',
+                            onPressed: () => setState(() => _assetId = null),
+                          )
+                        : null,
+                  ),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('(พิมพ์ชื่อรายการเอง)')),
                     ...widget.assets.where((a) => a.id != null).map((a) => DropdownMenuItem<int?>(
@@ -433,7 +444,7 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                   child: TextField(
                     controller: _itemNameCtrl,
                     style: _dialogFieldStyle,
-                    decoration: _fieldDecoration(context, 'ชื่อรายการ'),
+                    decoration: _fieldDecoration(context, 'ชื่อรายการ', hint: 'เช่น โต๊ะทำงานชำรุด'),
                   ),
                 ),
               Padding(
@@ -441,7 +452,7 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                 child: DropdownButtonFormField<String?>(
                   initialValue: _method,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _fieldDecoration(context, 'วิธีการจำหน่าย'),
+                  decoration: _fieldDecoration(context, 'วิธีการจำหน่าย').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                   items: [
                     const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                     ..._disposalMethods.map((m) => DropdownMenuItem(value: m, child: Text(m))),
@@ -455,7 +466,7 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: InputDecorator(
-                    decoration: _fieldDecoration(context, 'วันที่อนุมัติจำหน่าย'),
+                    decoration: _fieldDecoration(context, 'วันที่อนุมัติจำหน่าย').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     child: Text(_approvedDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                   ),
                 ),
@@ -465,13 +476,13 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                 child: TextField(
                   controller: _approverCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _fieldDecoration(context, 'ผู้ลงนามอนุมัติ'),
+                  decoration: _fieldDecoration(context, 'ผู้ลงนามอนุมัติ', hint: 'เช่น นายสมชาย ใจดี'),
                 ),
               ),
               DropdownButtonFormField<String>(
                 initialValue: _status,
                 style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _fieldDecoration(context, 'สถานะการตัดยอด'),
+                decoration: _fieldDecoration(context, 'สถานะการตัดยอด').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: const [
                   DropdownMenuItem(value: 'รอดำเนินการ', child: Text('รอดำเนินการ')),
                   DropdownMenuItem(value: 'ตัดยอดแล้ว', child: Text('ตัดยอดแล้ว')),

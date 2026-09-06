@@ -147,7 +147,8 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                           decoration: InputDecoration(
                             isDense: true,
                             labelText: 'ปีงบประมาณ',
-                            labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                            floatingLabelBehavior: FloatingLabelBehavior.auto,
+                            labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700, color: colors.onSurfaceVariant),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(RadiusSize.md),

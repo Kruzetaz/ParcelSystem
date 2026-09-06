@@ -35,7 +35,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -655,7 +656,7 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                 child: TextFormField(
                   controller: _numberCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _dialogFieldDecoration(context, label: 'เลขที่ตรวจรับ'),
+                  decoration: _dialogFieldDecoration(context, label: 'เลขที่ตรวจรับ', hint: 'เช่น ตรวจรับที่ 5/2569'),
                 ),
               ),
               Padding(
@@ -664,7 +665,16 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                   initialValue: _orderId,
                   isExpanded: true,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'รายการจัดซื้อจัดจ้าง'),
+                  decoration: _dialogFieldDecoration(context, label: 'รายการจัดซื้อจัดจ้าง').copyWith(
+                    floatingLabelBehavior: FloatingLabelBehavior.auto,
+                    suffixIcon: _orderId != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            tooltip: 'ล้างค่าที่เลือก',
+                            onPressed: () => setState(() => _orderId = null),
+                          )
+                        : null,
+                  ),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับเอกสาร)')),
                     ...widget.orders.where((o) => o.id != null).map((o) => DropdownMenuItem<int?>(
@@ -684,7 +694,7 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
                         child: InputDecorator(
-                          decoration: _dialogFieldDecoration(context, label: 'วันที่ครบกำหนด'),
+                          decoration: _dialogFieldDecoration(context, label: 'วันที่ครบกำหนด').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                           child: Text(_dueDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                         ),
                       ),
@@ -698,7 +708,7 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
                         child: InputDecorator(
-                          decoration: _dialogFieldDecoration(context, label: 'วันที่ส่งมอบจริง'),
+                          decoration: _dialogFieldDecoration(context, label: 'วันที่ส่งมอบจริง').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                           child: Text(_actualDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                         ),
                       ),
@@ -709,7 +719,7 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
               DropdownButtonFormField<String?>(
                 initialValue: _result,
                 style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _dialogFieldDecoration(context, label: 'ผลการตรวจรับ'),
+                decoration: _dialogFieldDecoration(context, label: 'ผลการตรวจรับ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: const [
                   DropdownMenuItem<String?>(value: null, child: Text('รอตรวจรับ')),
                   DropdownMenuItem<String?>(value: 'ผ่าน', child: Text('ผ่าน')),

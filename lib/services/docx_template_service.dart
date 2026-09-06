@@ -82,6 +82,9 @@ class DocxTemplateService {
     required Map<String, String> fieldValues,
     required List<ProcurementItemData> items,
     Map<String, bool> conditionalFlags = const {},
+    // ตารางแถวผู้เดินทาง (ใบเบิกค่าใช้จ่ายเดินทางไปราชการ แบบ ๘๗๐๘) —
+    // seed key คงที่ {{participant_name}} เหมือน items ใช้ {{item_name}}
+    List<Map<String, String>> participantRows = const [],
   }) {
     final archive = ZipDecoder().decodeBytes(templateBytes);
 
@@ -113,6 +116,15 @@ class DocxTemplateService {
 
     // STEP 2: Clone table rows ตาม items
     xml = _cloneItemRows(xml, items);
+
+    // STEP 2.1: Clone table rows ตามผู้เดินทาง (ถ้าเทมเพลตมีตารางนี้)
+    if (participantRows.isNotEmpty || xml.contains('{{participant_name}}')) {
+      xml = _cloneRowsGeneric(
+        xml,
+        seedKey: 'participant_name',
+        rows: participantRows,
+      );
+    }
 
     // STEP 2.5: ตัด/เก็บข้อความบางช่วงตามเงื่อนไข (เช่น ย่อหน้าที่ใช้ได้แค่
     // กรณีผู้ตรวจรับคนเดียว ไม่ใช่คณะกรรมการ) — ต้องทำก่อน replace placeholder
@@ -498,6 +510,24 @@ class DocxTemplateService {
   }
 
   static String _cloneItemRows(String xml, List<ProcurementItemData> items) {
+    return _cloneRowsGeneric(
+      xml,
+      seedKey: 'item_name',
+      rows: [for (final item in items) item.toPlaceholderMap()],
+      blankAfterFirst: const ['procurement_number', 'purpose_reason', 'order_number'],
+    );
+  }
+
+  /// Clone แถวตาราง (<w:tr>) ที่มี seed key `{{seedKey}}` อยู่ ตามจำนวน [rows]
+  /// — ใช้ร่วมกันได้กับตารางแบบ loop ไหนก็ได้ในเทมเพลต ไม่ใช่แค่ตารางรายการ
+  /// พัสดุ (เช่น ตารางผู้เดินทางในใบเบิกค่าใช้จ่ายเดินทางไปราชการ) แต่ละ
+  /// entry ใน [rows] คือ Map<placeholder key, ค่าที่แสดง> ของแถวนั้น
+  static String _cloneRowsGeneric(
+    String xml, {
+    required String seedKey,
+    required List<Map<String, String>> rows,
+    List<String> blankAfterFirst = const [],
+  }) {
     final rowPattern = RegExp(r'<w:tr\b[^>]*>.*?</w:tr>', dotAll: true);
 
     final buffer = StringBuffer();
@@ -506,7 +536,7 @@ class DocxTemplateService {
 
     for (final m in rowPattern.allMatches(xml)) {
       final rowXml = m.group(0)!;
-      if (!rowXml.contains('{{item_name}}')) continue;
+      if (!rowXml.contains('{{$seedKey}}')) continue;
 
       foundAnySeed = true;
       final prefix = xml.substring(lastEnd, m.start);
@@ -515,29 +545,24 @@ class DocxTemplateService {
       // ให้ผู้ใช้ไปกด "Repeat Header Rows" เองใน Word ทุกครั้งที่ generate ใหม่
       buffer.write(_markLastRowAsHeader(prefix));
 
-      if (items.isNotEmpty) {
-        for (var i = 0; i < items.length; i++) {
-          var clonedRow = rowXml;
-          final rowValues = items[i].toPlaceholderMap();
-          for (final entry in rowValues.entries) {
-            clonedRow = clonedRow.replaceAll(
-              '{{${entry.key}}}',
-              _escapeXmlText(entry.value),
-            );
-          }
-          // แถวที่ 2+ ให้ลบ form-level placeholder ออกจาก cell
-          // เพื่อไม่ให้ข้อมูลอย่าง procurement_number และ purpose_reason
-          // ซ้ำในทุกแถว (แสดงแค่แถวแรก แถวถัดไปว่าง)
-          if (i > 0) {
-            clonedRow = clonedRow
-                .replaceAll('{{procurement_number}}', '')
-                .replaceAll('{{purpose_reason}}', '')
-                .replaceAll('{{order_number}}', '');
-          }
-          buffer.write(clonedRow);
+      for (var i = 0; i < rows.length; i++) {
+        var clonedRow = rowXml;
+        for (final entry in rows[i].entries) {
+          clonedRow = clonedRow.replaceAll(
+            '{{${entry.key}}}',
+            _escapeXmlText(entry.value),
+          );
         }
+        // แถวที่ 2+ ให้ลบ form-level placeholder ออกจาก cell เพื่อไม่ให้
+        // ข้อมูลที่ควรโชว์แค่แถวแรก (เช่น เลขที่เอกสาร) ซ้ำในทุกแถว
+        if (i > 0) {
+          for (final key in blankAfterFirst) {
+            clonedRow = clonedRow.replaceAll('{{$key}}', '');
+          }
+        }
+        buffer.write(clonedRow);
       }
-      // items.isEmpty → ลบ seed row ทิ้ง (ไม่ write อะไร)
+      // rows ว่าง → ลบ seed row ทิ้ง (ไม่ write อะไร)
 
       lastEnd = m.end;
     }

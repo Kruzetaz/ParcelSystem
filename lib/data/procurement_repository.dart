@@ -24,6 +24,8 @@ import '../models/audit_log_entry.dart';
 import '../models/school_branch.dart';
 import '../models/learning_material_record.dart';
 import '../models/learning_material_grade.dart';
+import '../models/travel_reimbursement.dart';
+import '../models/travel_participant.dart';
 import '../services/audit_service.dart';
 import 'database.dart';
 
@@ -1295,5 +1297,65 @@ class ProcurementRepository {
     final db = await _db.database;
     await db.delete('learning_material_grades', where: 'id = ?', whereArgs: [g.id]);
     await db.delete('learning_material_records', where: 'grade_level = ?', whereArgs: [g.name]);
+  }
+
+  // ── เบิกจ่ายค่าใช้จ่ายเดินทางไปราชการ (แบบ ๘๗๐๘) ──────────────────
+
+  Future<List<TravelReimbursement>> getAllTravelReimbursements() async {
+    final db = await _db.database;
+    final rows = await db.query('travel_reimbursements', orderBy: 'id DESC');
+    return rows.map(TravelReimbursement.fromMap).toList();
+  }
+
+  Future<List<TravelParticipant>> getTravelParticipants(int reimbursementId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'travel_participants',
+      where: 'reimbursement_id = ?',
+      whereArgs: [reimbursementId],
+      orderBy: 'sort_order ASC, id ASC',
+    );
+    return rows.map(TravelParticipant.fromMap).toList();
+  }
+
+  /// บันทึกใบเบิกฯ พร้อมรายชื่อผู้เดินทางทั้งชุดในธุรกรรมเดียว — ลบรายชื่อ
+  /// เดิมแล้ว insert ใหม่ทั้งหมด (ง่ายกว่า diff รายแถว) ตาม pattern เดียวกับ
+  /// saveOrderWithItems ที่ใช้กับ procurement_items
+  Future<int> saveTravelReimbursementWithParticipants(
+    TravelReimbursement reimbursement,
+    List<TravelParticipant> participants,
+  ) async {
+    final db = await _db.database;
+    return db.transaction((txn) async {
+      late final int reimbursementId;
+
+      if (reimbursement.id != null) {
+        await txn.update(
+          'travel_reimbursements',
+          reimbursement.toMap(),
+          where: 'id = ?',
+          whereArgs: [reimbursement.id],
+        );
+        reimbursementId = reimbursement.id!;
+      } else {
+        reimbursementId = await txn.insert('travel_reimbursements', reimbursement.toMap());
+      }
+
+      await txn.delete('travel_participants', where: 'reimbursement_id = ?', whereArgs: [reimbursementId]);
+      for (var i = 0; i < participants.length; i++) {
+        await txn.insert(
+          'travel_participants',
+          participants[i].copyWith(reimbursementId: reimbursementId, sortOrder: i).toMap(),
+        );
+      }
+
+      return reimbursementId;
+    });
+  }
+
+  Future<void> deleteTravelReimbursement(int id) async {
+    final db = await _db.database;
+    await db.delete('travel_participants', where: 'reimbursement_id = ?', whereArgs: [id]);
+    await db.delete('travel_reimbursements', where: 'id = ?', whereArgs: [id]);
   }
 }

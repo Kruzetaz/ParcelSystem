@@ -1669,7 +1669,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     // ตัวหนังสือ/ป๊อปอัพเดิมเล็กไป (ใช้ isDense + ฟอนต์ default ของ Material ที่
     // ค่อนข้างเล็กเมื่อเทียบกับกล่องโต้ตอบขนาด 500px) — ขยายทั้งกล่อง (500→600)
     // และฟอนต์ทุกช่อง/ปุ่ม/หัวข้อ ให้อ่านง่ายขึ้นชัดเจน รองรับผู้ใช้ช่วงวัยกว้าง
-    const labelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w600);
+    const labelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w700);
     const inputStyle = TextStyle(fontSize: 17);
     return AlertDialog(
       title: Text(
@@ -1693,7 +1693,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
                     style: inputStyle.copyWith(color: colors.onSurface),
                     borderRadius: BorderRadius.circular(RadiusSize.card),
                     decoration: InputDecoration(
-                      labelText: 'ฝ่าย/แผนงาน', labelStyle: labelStyle,
+                      labelText: 'ฝ่าย/แผนงาน', labelStyle: labelStyle, floatingLabelBehavior: FloatingLabelBehavior.auto,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
@@ -1728,7 +1728,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
                     style: inputStyle.copyWith(color: colors.onSurface),
                     borderRadius: BorderRadius.circular(RadiusSize.card),
                     decoration: InputDecoration(
-                      labelText: 'แหล่งงบประมาณ', labelStyle: labelStyle,
+                      labelText: 'แหล่งงบประมาณ', labelStyle: labelStyle, floatingLabelBehavior: FloatingLabelBehavior.auto,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
@@ -1749,12 +1749,12 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
                     onChanged: (v) => setState(() => _budgetSource = v ?? budgetSourceSchool),
                   ),
                 ),
-                _field(_projectName, 'ชื่อโครงการ (โครงการหลัก)'),
-                _field(_activityName, 'กิจกรรม/โครงการย่อย'),
-                _field(_egpNumber, 'เลขที่ e-GP'),
+                _field(_projectName, 'ชื่อโครงการ (โครงการหลัก)', hint: 'เช่น โครงการพัฒนาห้องสมุดโรงเรียน'),
+                _field(_activityName, 'กิจกรรม/โครงการย่อย', hint: 'เช่น จัดซื้อหนังสือเข้าห้องสมุด'),
+                _field(_egpNumber, 'เลขที่ e-GP', hint: 'เช่น 69000000000'),
                 _field(_allocatedAmount, 'วงเงินที่ได้รับจัดสรร (บาท) *',
                   required: true, keyboardType: TextInputType.number, hint: 'เช่น 50000.00'),
-                _field(_responsiblePerson, 'ผู้รับผิดชอบ'),
+                _field(_responsiblePerson, 'ผู้รับผิดชอบ', hint: 'เช่น นายสมชาย ใจดี'),
               ],
             ),
           ),
@@ -1798,7 +1798,8 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
         style: const TextStyle(fontSize: 17),
         decoration: InputDecoration(
           labelText: label, hintText: hint,
-          labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           hintStyle: const TextStyle(fontSize: 15),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
           border: OutlineInputBorder(borderSide: BorderSide(color: borderColor, width: 1.3)),

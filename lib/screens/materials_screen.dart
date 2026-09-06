@@ -31,7 +31,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -248,19 +249,19 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 autofocus: true,
                 style: _dialogFieldStyle,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: _dialogFieldDecoration(ctx, label: 'จำนวน${isIn ? "ที่รับเข้า" : "ที่เบิกจ่าย"} (${m.unit ?? "หน่วย"})'),
+                decoration: _dialogFieldDecoration(ctx, label: 'จำนวน${isIn ? "ที่รับเข้า" : "ที่เบิกจ่าย"} (${m.unit ?? "หน่วย"})', hint: 'เช่น 10'),
               ),
               const SizedBox(height: 18),
               TextField(
                 controller: counterpartyCtrl,
                 style: _dialogFieldStyle,
-                decoration: _dialogFieldDecoration(ctx, label: isIn ? 'รับจาก (ไม่บังคับ)' : 'จ่ายให้ (ไม่บังคับ)'),
+                decoration: _dialogFieldDecoration(ctx, label: isIn ? 'รับจาก (ไม่บังคับ)' : 'จ่ายให้ (ไม่บังคับ)', hint: isIn ? 'เช่น ร้านเจริญพาณิชย์' : 'เช่น ครูประจำชั้น ป.1'),
               ),
               const SizedBox(height: 18),
               TextField(
                 controller: refCtrl,
                 style: _dialogFieldStyle,
-                decoration: _dialogFieldDecoration(ctx, label: 'เลขที่เอกสารอ้างอิง (ไม่บังคับ)'),
+                decoration: _dialogFieldDecoration(ctx, label: 'เลขที่เอกสารอ้างอิง (ไม่บังคับ)', hint: 'เช่น ใบเบิกที่ 12/2569'),
               ),
             ],
           ),
@@ -963,7 +964,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                   child: TextFormField(
                     controller: _codeCtrl,
                     style: _dialogFieldStyle,
-                    decoration: _dialogFieldDecoration(context, label: 'รหัสวัสดุ'),
+                    decoration: _dialogFieldDecoration(context, label: 'รหัสวัสดุ', hint: 'เช่น MAT-001'),
                   ),
                 ),
                 Padding(
@@ -971,7 +972,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                   child: TextFormField(
                     controller: _nameCtrl,
                     style: _dialogFieldStyle,
-                    decoration: _dialogFieldDecoration(context, label: 'ชื่อวัสดุ *'),
+                    decoration: _dialogFieldDecoration(context, label: 'ชื่อวัสดุ *', hint: 'เช่น กระดาษ A4'),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอกชื่อวัสดุ' : null,
                   ),
                 ),
@@ -980,7 +981,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                   child: DropdownButtonFormField<String?>(
                     initialValue: _category,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ประเภทวัสดุ'),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภทวัสดุ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ..._materialCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
@@ -1008,7 +1009,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                           controller: _unitPriceCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: _dialogFieldDecoration(context, label: 'ราคาต่อหน่วย'),
+                          decoration: _dialogFieldDecoration(context, label: 'ราคาต่อหน่วย', hint: 'เช่น 120.00'),
                         ),
                       ),
                     ),
@@ -1039,7 +1040,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                           controller: _minStockCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: _dialogFieldDecoration(context, label: 'จำนวนอย่างต่ำ'),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนอย่างต่ำ', hint: 'เช่น 10'),
                         ),
                       ),
                     ),
@@ -1051,7 +1052,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                           controller: _maxStockCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: _dialogFieldDecoration(context, label: 'จำนวนอย่างสูง'),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนอย่างสูง', hint: 'เช่น 100'),
                         ),
                       ),
                     ),

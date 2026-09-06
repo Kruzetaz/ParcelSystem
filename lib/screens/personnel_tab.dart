@@ -30,12 +30,14 @@ const _dialogFieldStyle = TextStyle(fontSize: 17);
 /// focusedBorder ของธีม) ผลคือช่องกรอกทุกช่องมีเส้นขอบดำเถื่อนตายตัว ไม่ตอบ
 /// สนองธีมสว่าง/มืดเลย — เปลี่ยนมาใช้สูตร `_dialogFieldDecoration` เดียวกับที่
 /// ใช้แก้ปัญหานี้ในหน้าอื่น (contracts_screen, guarantees_screen ฯลฯ) แทน
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label}) {
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
   final colors = Theme.of(context).colorScheme;
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
   return InputDecoration(
     labelText: label,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    hintText: hint,
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(RadiusSize.md),
@@ -547,7 +549,7 @@ class _PersonnelFormDialogState extends State<_PersonnelFormDialog> {
                   child: TextFormField(
                     controller: _nameCtrl,
                     style: _dialogFieldStyle,
-                    decoration: _dialogFieldDecoration(context, label: 'ชื่อ-นามสกุล *'),
+                    decoration: _dialogFieldDecoration(context, label: 'ชื่อ-นามสกุล *', hint: 'เช่น นายสมชาย ใจดี'),
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? 'กรุณากรอกชื่อ'
                         : null,
@@ -568,7 +570,7 @@ class _PersonnelFormDialogState extends State<_PersonnelFormDialog> {
                     controller: _phoneCtrl,
                     style: _dialogFieldStyle,
                     keyboardType: TextInputType.phone,
-                    decoration: _dialogFieldDecoration(context, label: 'เบอร์โทรศัพท์'),
+                    decoration: _dialogFieldDecoration(context, label: 'เบอร์โทรศัพท์', hint: 'เช่น 081-234-5678'),
                   ),
                 ),
                 Padding(
@@ -577,7 +579,7 @@ class _PersonnelFormDialogState extends State<_PersonnelFormDialog> {
                     controller: _emailCtrl,
                     style: _dialogFieldStyle,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: _dialogFieldDecoration(context, label: 'อีเมล'),
+                    decoration: _dialogFieldDecoration(context, label: 'อีเมล', hint: 'เช่น example@email.com'),
                   ),
                 ),
                 SwitchListTile(

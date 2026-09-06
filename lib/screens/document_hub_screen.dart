@@ -295,9 +295,17 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
       style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
       decoration: InputDecoration(
         labelText: 'รายการจัดซื้อจัดจ้างที่อ้างอิง',
-        labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700, color: colors.onSurfaceVariant),
         isDense: true,
         prefixIcon: const Icon(Icons.link),
+        suffixIcon: _selectedOrder != null
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                tooltip: 'ล้างค่าที่เลือก',
+                onPressed: () => setState(() => _selectedOrder = null),
+              )
+            : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(RadiusSize.md),
@@ -313,15 +321,16 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
         ),
       ),
       borderRadius: BorderRadius.circular(RadiusSize.md),
-      items: _orders
-          .map((o) => DropdownMenuItem<ProcurementOrder?>(
-                value: o,
-                child: Text(
-                  '${o.procurementNumber ?? "(ไม่มีเลขที่)"} — ${o.procurementSubject ?? o.projectName ?? "เอกสาร #${o.id}"}',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ))
-          .toList(),
+      items: [
+        const DropdownMenuItem<ProcurementOrder?>(value: null, child: Text('(ยังไม่เลือก)')),
+        ..._orders.map((o) => DropdownMenuItem<ProcurementOrder?>(
+              value: o,
+              child: Text(
+                '${o.procurementNumber ?? "(ไม่มีเลขที่)"} — ${o.procurementSubject ?? o.projectName ?? "เอกสาร #${o.id}"}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            )),
+      ],
       onChanged: (v) => setState(() => _selectedOrder = v),
     );
   }

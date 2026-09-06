@@ -27,7 +27,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -418,7 +419,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                   child: TextFormField(
                     controller: _fiscalYearCtrl,
                     style: _dialogFieldStyle,
-                    decoration: _dialogFieldDecoration(context, label: 'ปีงบประมาณ *'),
+                    decoration: _dialogFieldDecoration(context, label: 'ปีงบประมาณ *', hint: 'เช่น 2569'),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอกปีงบประมาณ' : null,
                   ),
                 ),
@@ -428,7 +429,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 18),
                     child: InputDecorator(
-                      decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มตรวจ'),
+                      decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มตรวจ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                       child: Text(_startDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                     ),
                   ),
@@ -450,7 +451,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                           controller: _totalCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: _dialogFieldDecoration(context, label: 'จำนวนรายการทั้งหมด'),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนรายการทั้งหมด', hint: 'เช่น 50'),
                         ),
                       ),
                     ),
@@ -462,7 +463,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                           controller: _foundCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
-                          decoration: _dialogFieldDecoration(context, label: 'จำนวนที่พบจริง'),
+                          decoration: _dialogFieldDecoration(context, label: 'จำนวนที่พบจริง', hint: 'เช่น 48'),
                         ),
                       ),
                     ),
@@ -474,7 +475,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                     controller: _damagedCtrl,
                     style: _dialogFieldStyle,
                     keyboardType: TextInputType.number,
-                    decoration: _dialogFieldDecoration(context, label: 'จำนวนที่ชำรุด/สูญหาย'),
+                    decoration: _dialogFieldDecoration(context, label: 'จำนวนที่ชำรุด/สูญหาย', hint: 'เช่น 2'),
                   ),
                 ),
                 Padding(
@@ -482,7 +483,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                   child: DropdownButtonFormField<String>(
                     initialValue: _status,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'สถานะ'),
+                    decoration: _dialogFieldDecoration(context, label: 'สถานะ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: const [
                       DropdownMenuItem(value: 'กำลังดำเนินการ', child: Text('กำลังดำเนินการ')),
                       DropdownMenuItem(value: 'เสร็จสิ้น', child: Text('เสร็จสิ้น')),
@@ -494,7 +495,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                   controller: _notesCtrl,
                   style: _dialogFieldStyle,
                   maxLines: 3,
-                  decoration: _dialogFieldDecoration(context, label: 'สรุปผลรายงานการตรวจสอบ'),
+                  decoration: _dialogFieldDecoration(context, label: 'สรุปผลรายงานการตรวจสอบ', hint: 'เช่น ตรวจนับครุภัณฑ์ครบถ้วน พบชำรุด 2 รายการ'),
                 ),
               ],
             ),

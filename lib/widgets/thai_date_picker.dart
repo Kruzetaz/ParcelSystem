@@ -230,6 +230,8 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                   labelText: 'วว/ดด/ปปปป (พ.ศ.)',
                   hintText: 'เช่น 24/01/2569 หรือ 24 มี.ค. 2569',
                   errorText: _manualError,
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   isDense: true,
                   prefixIcon: const Icon(Icons.edit_calendar_outlined, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

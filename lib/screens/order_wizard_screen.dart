@@ -50,7 +50,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -66,6 +67,41 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
       borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
     ),
   );
+}
+
+/// ปุ่มฟีเจอร์ AI (ช่วยเขียนเหตุผล / อ่านจากใบเสร็จ) — ใส่กรอบสีม่วงเด่นแยกจาก
+/// ปุ่มอื่นๆ ในหน้าให้เห็นชัดว่าเป็นฟีเจอร์ AI ตามที่ผู้ใช้ขอ (เดิมเป็นปุ่มสีเทา
+/// ธรรมดา กลืนไปกับปุ่มอื่นจนสังเกตยาก)
+class _AiActionButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final Widget icon;
+  final String label;
+
+  const _AiActionButton({required this.onPressed, required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final purple = BrandAccent.purple(context);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        border: Border.all(color: purple.withValues(alpha: 0.6), width: 1.4),
+        boxShadow: [BoxShadow(color: purple.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: TextButton.icon(
+        onPressed: onPressed,
+        icon: icon,
+        label: Text(label),
+        style: TextButton.styleFrom(
+          foregroundColor: purple,
+          backgroundColor: purple.withValues(alpha: 0.08),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
 }
 
 class OrderWizardScreen extends StatefulWidget {
@@ -640,7 +676,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 initialValue: source,
                 isExpanded: true,
                 style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _dialogFieldDecoration(context, label: 'แหล่งงบประมาณ'),
+                decoration: _dialogFieldDecoration(context, label: 'แหล่งงบประมาณ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: budgetSources
                     .map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
                     .toList(),
@@ -842,7 +878,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                   )
                 : DropdownButtonFormField<Budget>(
                     initialValue: selectedBudget,
-                    decoration: _inputDecoration('แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ)'),
+                    decoration: _inputDecoration('แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ)').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     isExpanded: true,
                     items: _budgets
                         .map((b) => DropdownMenuItem(
@@ -877,7 +913,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             _sectionTitle(colors, 'ประเภทเอกสาร'),
             DropdownButtonFormField<String>(
               initialValue: _orderType,
-              decoration: _inputDecoration('จัดซื้อ หรือ จัดจ้าง'),
+              decoration: _inputDecoration('จัดซื้อ หรือ จัดจ้าง').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
               items: const [
                 DropdownMenuItem(value: 'ซื้อ', child: Text('จัดซื้อ')),
                 DropdownMenuItem(value: 'จ้าง', child: Text('จัดจ้าง')),
@@ -891,7 +927,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             _sectionTitle(colors, 'วิธี/ระเบียบการจัดซื้อจัดจ้าง'),
             DropdownButtonFormField<String>(
               initialValue: _procurementMethod,
-              decoration: _inputDecoration('เลือกวิธีที่ใช้'),
+              decoration: _inputDecoration('เลือกวิธีที่ใช้').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
               items: [
                 for (final opt in procurementMethodOptions)
                   DropdownMenuItem(
@@ -952,7 +988,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 Expanded(
                   child: TextFormField(
                     controller: _procurementNumberCtrl,
-                    decoration: _inputDecoration('เลขที่จัดซื้อ (เช่น ซ.1/2569)'),
+                    decoration: _inputDecoration('เลขที่จัดซื้อ', hint: 'เช่น ซ.1/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementNumber: v)),
                   ),
                 ),
@@ -960,7 +996,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 Expanded(
                   child: TextFormField(
                     controller: _orderNumberCtrl,
-                    decoration: _inputDecoration('เลขที่คำสั่ง'),
+                    decoration: _inputDecoration('เลขที่คำสั่ง', hint: 'เช่น คำสั่งที่ 15/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(orderNumber: v)),
                   ),
                 ),
@@ -969,7 +1005,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _egpProjectIdCtrl,
-              decoration: _inputDecoration('เลขที่โครงการ e-GP (auto-fill จากแผนงบ แก้ไขเองได้)'),
+              decoration: _inputDecoration('เลขที่โครงการ e-GP', hint: 'auto-fill จากแผนงบ แก้ไขเองได้'),
               onChanged: (v) => widget.onChanged((d) => d.copyWith(egpProjectId: v)),
             ),
             const SizedBox(height: 16),
@@ -979,7 +1015,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                   child: DropdownButtonFormField<String?>(
                     initialValue: _fundType,
                     isExpanded: true,
-                    decoration: _inputDecoration('ประเภทของเงิน'),
+                    decoration: _inputDecoration('ประเภทของเงิน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ...orderFundTypes.map((f) => DropdownMenuItem(value: f, child: Text(f))),
@@ -997,7 +1033,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 Expanded(
                   child: TextFormField(
                     controller: _projectNumberCtrl,
-                    decoration: _inputDecoration('เลขที่โครงการ (ทะเบียนคุมภายใน)'),
+                    decoration: _inputDecoration('เลขที่โครงการ (ทะเบียนคุมภายใน)', hint: 'เช่น 001/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(projectNumber: v)),
                   ),
                 ),
@@ -1007,7 +1043,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _fundTypeOtherCtrl,
-                decoration: _inputDecoration('ระบุประเภทของเงิน'),
+                decoration: _inputDecoration('ระบุประเภทของเงิน', hint: 'เช่น เงินอุดหนุนรายหัว'),
                 onChanged: (v) => widget.onChanged((d) => d.copyWith(fundType: v)),
               ),
             ],
@@ -1016,7 +1052,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               fieldKey: 'order.procurementSubject',
               controller: _procurementSubjectCtrl,
               decoration: _inputDecoration(
-                'หัวเรื่อง (เช่น จัดซื้อวัสดุแข่งขันทักษะทางวิชาการระดับเครือข่าย)',
+                'หัวเรื่อง',
+                hint: 'เช่น จัดซื้อวัสดุแข่งขันทักษะทางวิชาการระดับเครือข่าย',
               ),
               onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementSubject: v)),
             ),
@@ -1024,14 +1061,14 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             MemoryTextField(
               fieldKey: 'order.projectName',
               controller: _projectNameCtrl,
-              decoration: _inputDecoration('ชื่อโครงการ'),
+              decoration: _inputDecoration('ชื่อโครงการ', hint: 'เช่น โครงการพัฒนาห้องสมุดโรงเรียน'),
               onChanged: (v) => widget.onChanged((d) => d.copyWith(projectName: v)),
             ),
             const SizedBox(height: 16),
             MemoryTextField(
               fieldKey: 'order.activityName',
               controller: _activityNameCtrl,
-              decoration: _inputDecoration('ชื่อกิจกรรม'),
+              decoration: _inputDecoration('ชื่อกิจกรรม', hint: 'เช่น จัดซื้อหนังสือเข้าห้องสมุด'),
               onChanged: (v) => widget.onChanged((d) => d.copyWith(activityName: v)),
             ),
             const SizedBox(height: 24),
@@ -1039,22 +1076,22 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(child: _sectionTitle(colors, 'เหตุผลความจำเป็น')),
-                TextButton.icon(
+                _AiActionButton(
                   onPressed: _generatingReason ? null : _generateReason,
                   icon: _generatingReason
                       ? SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: BrandAccent.purple(context)),
                         )
                       : const Icon(Icons.auto_awesome, size: 16),
-                  label: Text(_generatingReason ? 'กำลังเขียน...' : '✨ ช่วยเขียนเหตุผล'),
+                  label: _generatingReason ? 'กำลังเขียน...' : '✨ ช่วยเขียนเหตุผล',
                 ),
               ],
             ),
             TextFormField(
               controller: _purposeReasonCtrl,
-              decoration: _inputDecoration('เหตุผลความจำเป็น'),
+              decoration: _inputDecoration('เหตุผลความจำเป็น', hint: 'เช่น เพื่อใช้ในการจัดการเรียนการสอนให้มีประสิทธิภาพ'),
               maxLines: 4,
               onChanged: (v) => widget.onChanged((d) => d.copyWith(purposeReason: v)),
             ),
@@ -1097,11 +1134,14 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
         ),
       );
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {String? hint}) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
@@ -1114,7 +1154,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       key: ValueKey('$label-$value'),
       readOnly: true,
       initialValue: value == null ? '-' : '${formatBaht(value)} บาท',
-      decoration: _inputDecoration(label),
+      decoration: _inputDecoration(label).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
     );
   }
 }
@@ -1323,7 +1363,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _ownerNameCtrl,
-                    decoration: _inputDecoration('ชื่อเจ้าของงบ/โครงการ').copyWith(
+                    decoration: _inputDecoration('ชื่อเจ้าของงบ/โครงการ', hint: 'เช่น นายสมชาย ใจดี').copyWith(
                       suffixIcon: _personnelPickerButton(
                         nameCtrl: _ownerNameCtrl,
                         posCtrl: _ownerPositionCtrl,
@@ -1344,7 +1384,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _ownerPositionCtrl,
-                    decoration: _inputDecoration('ตำแหน่ง'),
+                    decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(ownerPosition: v)),
                   ),
                 ),
@@ -1358,7 +1398,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _specCreatorNameCtrl,
-                    decoration: _inputDecoration('ผู้จัดทำรายละเอียดคุณลักษณะ (สเปค)').copyWith(
+                    decoration: _inputDecoration('ผู้จัดทำรายละเอียดคุณลักษณะ (สเปค)', hint: 'เช่น นางสาวสมหญิง ตั้งใจ').copyWith(
                       suffixIcon: _personnelPickerButton(
                         nameCtrl: _specCreatorNameCtrl,
                         posCtrl: _specCreatorPositionCtrl,
@@ -1379,7 +1419,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _specCreatorPositionCtrl,
-                    decoration: _inputDecoration('ตำแหน่ง'),
+                    decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(specCreatorPosition: v)),
                   ),
                 ),
@@ -1403,7 +1443,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _inspector1Ctrl,
-                    decoration: _inputDecoration(isCommittee ? 'กรรมการคนที่ 1' : 'ผู้ตรวจรับพัสดุ').copyWith(
+                    decoration: _inputDecoration(isCommittee ? 'กรรมการคนที่ 1' : 'ผู้ตรวจรับพัสดุ', hint: 'เช่น นายสมชาย ใจดี').copyWith(
                       suffixIcon: _personnelPickerButton(
                         nameCtrl: _inspector1Ctrl,
                         posCtrl: _inspector1PosCtrl,
@@ -1424,7 +1464,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _inspector1PosCtrl,
-                    decoration: _inputDecoration('ตำแหน่ง'),
+                    decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector1Pos: v)),
                   ),
                 ),
@@ -1439,7 +1479,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personName',
                       presetOptions: _personnelNames,
                       controller: _inspector2Ctrl,
-                      decoration: _inputDecoration('กรรมการคนที่ 2').copyWith(
+                      decoration: _inputDecoration('กรรมการคนที่ 2', hint: 'เช่น นายสมชาย ใจดี').copyWith(
                         suffixIcon: _personnelPickerButton(
                           nameCtrl: _inspector2Ctrl,
                           posCtrl: _inspector2PosCtrl,
@@ -1460,7 +1500,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                       controller: _inspector2PosCtrl,
-                      decoration: _inputDecoration('ตำแหน่ง'),
+                      decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
                       onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector2Pos: v)),
                     ),
                   ),
@@ -1474,7 +1514,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personName',
                       presetOptions: _personnelNames,
                       controller: _inspector3Ctrl,
-                      decoration: _inputDecoration('กรรมการคนที่ 3').copyWith(
+                      decoration: _inputDecoration('กรรมการคนที่ 3', hint: 'เช่น นายสมชาย ใจดี').copyWith(
                         suffixIcon: _personnelPickerButton(
                           nameCtrl: _inspector3Ctrl,
                           posCtrl: _inspector3PosCtrl,
@@ -1495,7 +1535,7 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                       controller: _inspector3PosCtrl,
-                      decoration: _inputDecoration('ตำแหน่ง'),
+                      decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
                       onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector3Pos: v)),
                     ),
                   ),
@@ -1624,11 +1664,14 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         ),
       );
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {String? hint}) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
@@ -1863,7 +1906,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               DropdownButtonFormField<Vendor>(
                 initialValue: null,
                 isExpanded: true,
-                decoration: _inputDecoration('เลือกร้านค้าที่เคยบันทึกไว้ (เติมข้อมูลอัตโนมัติ)'),
+                decoration: _inputDecoration('เลือกร้านค้าที่เคยบันทึกไว้ (เติมข้อมูลอัตโนมัติ)').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: _savedVendors
                     .map((v) => DropdownMenuItem(
                           value: v,
@@ -1895,7 +1938,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.owner',
                     controller: _vendorOwnerCtrl,
-                    decoration: _inputDecoration('เจ้าของร้าน'),
+                    decoration: _inputDecoration('เจ้าของร้าน', hint: 'เช่น นายสมชาย ใจดี'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorOwner: v)),
                   ),
                 ),
@@ -1919,7 +1962,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.subdistrict',
                     controller: _vendorSubdistrictCtrl,
-                    decoration: _inputDecoration('ตำบล/แขวง'),
+                    decoration: _inputDecoration('ตำบล/แขวง', hint: 'เช่น ในเมือง'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorSubdistrict: v)),
                   ),
                 ),
@@ -1932,7 +1975,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.district',
                     controller: _vendorDistrictCtrl,
-                    decoration: _inputDecoration('อำเภอ/เขต'),
+                    decoration: _inputDecoration('อำเภอ/เขต', hint: 'เช่น เมืองลำพูน'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorDistrict: v)),
                   ),
                 ),
@@ -1941,7 +1984,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.province',
                     controller: _vendorProvinceCtrl,
-                    decoration: _inputDecoration('จังหวัด'),
+                    decoration: _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorProvince: v)),
                   ),
                 ),
@@ -1950,7 +1993,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.postalCode',
                     controller: _vendorPostalCodeCtrl,
-                    decoration: _inputDecoration('รหัสไปรษณีย์'),
+                    decoration: _inputDecoration('รหัสไปรษณีย์', hint: 'เช่น 51000'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorPostalCode: v)),
                   ),
                 ),
@@ -1963,7 +2006,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.phone',
                     controller: _vendorPhoneCtrl,
-                    decoration: _inputDecoration('เบอร์โทรศัพท์'),
+                    decoration: _inputDecoration('เบอร์โทรศัพท์', hint: 'เช่น 053-511111'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorPhone: v)),
                   ),
                 ),
@@ -1972,7 +2015,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.taxId',
                     controller: _vendorTaxIdCtrl,
-                    decoration: _inputDecoration('เลขประจำตัวผู้เสียภาษี'),
+                    decoration: _inputDecoration('เลขประจำตัวผู้เสียภาษี', hint: 'เช่น 1234567890123'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorTaxId: v)),
                   ),
                 ),
@@ -1985,7 +2028,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: currentDocType,
-                    decoration: _inputDecoration('ใช้เอกสารอะไรตรวจรับ'),
+                    decoration: _inputDecoration('ใช้เอกสารอะไรตรวจรับ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: _docTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocType: v)),
                   ),
@@ -1994,7 +2037,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: TextFormField(
                     controller: _deliveryDocNumberCtrl,
-                    decoration: _inputDecoration('เลขที่เอกสารหลักฐาน (เช่น เลขที่ 001)'),
+                    decoration: _inputDecoration('เลขที่เอกสารหลักฐาน', hint: 'เช่น เลขที่ 001'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocNumber: v)),
                   ),
                 ),
@@ -2091,7 +2134,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: TextFormField(
                     controller: _warrantyPeriodCtrl,
-                    decoration: _inputDecoration('ระยะเวลาประกัน (เช่น 1 ปี)'),
+                    decoration: _inputDecoration('ระยะเวลาประกัน', hint: 'เช่น 1 ปี'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(warrantyPeriod: v)),
                   ),
                 ),
@@ -2119,7 +2162,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: TextFormField(
                     controller: _contractControlNumberCtrl,
-                    decoration: _inputDecoration('เลขที่ควบคุมสัญญา'),
+                    decoration: _inputDecoration('เลขที่ควบคุมสัญญา', hint: 'เช่น สัญญาที่ 5/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(contractControlNumber: v)),
                   ),
                 ),
@@ -2127,7 +2170,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: TextFormField(
                     controller: _inspectionControlNumberCtrl,
-                    decoration: _inputDecoration('เลขที่ควบคุมการตรวจรับ'),
+                    decoration: _inputDecoration('เลขที่ควบคุมการตรวจรับ', hint: 'เช่น ตรวจรับที่ 5/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(inspectionControlNumber: v)),
                   ),
                 ),
@@ -2154,11 +2197,14 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
         ),
       );
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {String? hint}) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
@@ -2306,21 +2352,16 @@ class _Tab4ItemsState extends State<_Tab4Items> {
           children: [
             Align(
               alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
+              child: _AiActionButton(
                 onPressed: _readingReceipt ? null : _pickAndReadReceipt,
                 icon: _readingReceipt
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: BrandAccent.purple(context)),
                       )
                     : const Icon(Icons.camera_alt_outlined),
-                label: Text(_readingReceipt ? 'กำลังอ่านใบเสร็จ...' : '📷 อ่านจากใบเสร็จ'),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: colors.outline),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                  textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
-                ),
+                label: _readingReceipt ? 'กำลังอ่านใบเสร็จ...' : '📷 อ่านจากใบเสร็จ',
               ),
             ),
             const SizedBox(height: 12),
@@ -2528,6 +2569,7 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
                         controller: _controllers[i],
                         readOnly: true,
                         decoration: _inputDecoration(_fields[i].label).copyWith(
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
                           prefixIcon: Padding(
                             padding: const EdgeInsets.all(12),
                             child: CircleAvatar(
@@ -2639,11 +2681,14 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
         ),
       );
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {String? hint}) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold),
+      hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),

@@ -289,13 +289,15 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   }
 
   InputDecoration _fieldDecoration(BuildContext context,
-      {required String label, Widget? suffixIcon, Widget? prefixIcon}) {
+      {required String label, Widget? suffixIcon, Widget? prefixIcon, String? hint}) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(
+      hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: const TextStyle(
           fontSize: AppTypography.bodyMedium,
-          fontWeight: AppTypography.weightSemiBold),
+          fontWeight: FontWeight.w700),
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
@@ -402,6 +404,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   decoration: _fieldDecoration(
                     context,
                     label: 'Gemini API Key',
+                    hint: 'วางคีย์ที่คัดลอกมาจาก Google AI Studio',
                     prefixIcon: Icon(Icons.vpn_key_outlined,
                         color: colors.onSurfaceVariant, size: 20),
                     suffixIcon: IconButton(

@@ -143,6 +143,8 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'วันที่จ่ายเงิน',
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                       isDense: true,
                       prefixIcon: const Icon(Icons.event_outlined, size: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
@@ -156,6 +158,9 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                   maxLines: 3,
                   decoration: InputDecoration(
                     labelText: 'หมายเหตุ',
+                    hintText: 'เช่น จ่ายล่าช้าเพราะรอใบเสร็จจากร้านค้า',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                     isDense: true,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
                   ),
@@ -248,6 +253,8 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                           decoration: InputDecoration(
                             isDense: true,
                             labelText: 'ปีงบประมาณ',
+                            floatingLabelBehavior: FloatingLabelBehavior.auto,
+                            labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
                           ),

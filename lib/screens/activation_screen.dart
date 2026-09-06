@@ -160,8 +160,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       hintText: 'XXXX-XXXX-XXXX-XXXX',
                       errorText: _errorMsg,
                       isDense: true,
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                      labelStyle: TextStyle(fontSize: 15, color: colors.onSurfaceVariant),
+                      labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurfaceVariant),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
                         borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),

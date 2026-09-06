@@ -29,12 +29,14 @@ const _dialogFieldStyle = TextStyle(fontSize: 17);
 /// InputDecorationTheme ของธีมทั้งหมด ผลคือช่องกรอกมีเส้นขอบดำเถื่อนตายตัว
 /// ไม่ตอบสนองธีมสว่าง/มืด — เปลี่ยนมาใช้สูตร `_dialogFieldDecoration` เดียวกับ
 /// ที่ใช้แก้ปัญหานี้ในหน้าอื่น (contracts_screen, guarantees_screen ฯลฯ) แทน
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label}) {
+InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
   final colors = Theme.of(context).colorScheme;
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
   return InputDecoration(
     labelText: label,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    hintText: hint,
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(RadiusSize.md),
@@ -499,8 +501,8 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
   }
 
   Widget _field(TextEditingController ctrl, String label,
-      {bool required = false, String? fieldKey}) {
-    final decoration = _dialogFieldDecoration(context, label: label);
+      {bool required = false, String? fieldKey, String? hint}) {
+    final decoration = _dialogFieldDecoration(context, label: label, hint: hint);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: fieldKey != null
@@ -546,7 +548,7 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
                     initialValue: _vendorType,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
                     borderRadius: BorderRadius.circular(RadiusSize.card),
-                    decoration: _dialogFieldDecoration(context, label: 'ประเภท'),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภท').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: vendorTypes
                         .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                         .toList(),
@@ -554,19 +556,19 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
                         setState(() => _vendorType = v ?? vendorTypeIndividual),
                   ),
                 ),
-                _field(_nameCtrl, 'ชื่อร้านค้า/บริษัท *', required: true),
-                _field(_ownerCtrl, 'เจ้าของร้าน'),
-                _field(_taxIdCtrl, 'เลขประจำตัวผู้เสียภาษี'),
-                _field(_phoneCtrl, 'เบอร์โทรศัพท์'),
+                _field(_nameCtrl, 'ชื่อร้านค้า/บริษัท *', required: true, hint: 'เช่น ร้านเจริญพาณิชย์'),
+                _field(_ownerCtrl, 'เจ้าของร้าน', hint: 'เช่น นายสมชาย ใจดี'),
+                _field(_taxIdCtrl, 'เลขประจำตัวผู้เสียภาษี', hint: 'เช่น 1234567890123'),
+                _field(_phoneCtrl, 'เบอร์โทรศัพท์', hint: 'เช่น 081-234-5678'),
                 _field(_addressNoCtrl, 'เลขที่ตั้ง/ที่อยู่',
-                    fieldKey: 'vendor.addressNo'),
-                _field(_mooNumberCtrl, 'หมู่ที่'),
+                    fieldKey: 'vendor.addressNo', hint: 'เช่น 123 หมู่ 4 ถนนราชมนตรี'),
+                _field(_mooNumberCtrl, 'หมู่ที่', hint: 'เช่น 4'),
                 _field(_subdistrictCtrl, 'ตำบล/แขวง',
-                    fieldKey: 'address.subdistrict'),
+                    fieldKey: 'address.subdistrict', hint: 'เช่น ในเมือง'),
                 _field(_districtCtrl, 'อำเภอ/เขต',
-                    fieldKey: 'address.district'),
-                _field(_provinceCtrl, 'จังหวัด', fieldKey: 'address.province'),
-                _field(_postalCodeCtrl, 'รหัสไปรษณีย์'),
+                    fieldKey: 'address.district', hint: 'เช่น เมืองลำพูน'),
+                _field(_provinceCtrl, 'จังหวัด', fieldKey: 'address.province', hint: 'เช่น ลำพูน'),
+                _field(_postalCodeCtrl, 'รหัสไปรษณีย์', hint: 'เช่น 51000'),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('ใช้งานอยู่',

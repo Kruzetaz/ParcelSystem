@@ -133,7 +133,13 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                       child: TextField(
                         controller: studentCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'จำนวนนักเรียน', isDense: true),
+                        decoration: const InputDecoration(
+                          labelText: 'จำนวนนักเรียน',
+                          hintText: 'เช่น 30',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          isDense: true,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -141,7 +147,13 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                       child: TextField(
                         controller: orderedCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'จำนวนที่สั่งซื้อ', isDense: true),
+                        decoration: const InputDecoration(
+                          labelText: 'จำนวนที่สั่งซื้อ',
+                          hintText: 'เช่น 30',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          isDense: true,
+                        ),
                       ),
                     ),
                   ],
@@ -153,7 +165,13 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                       child: TextField(
                         controller: unitPriceCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'ราคาต่อหัว (บาท)', isDense: true),
+                        decoration: const InputDecoration(
+                          labelText: 'ราคาต่อหัว (บาท)',
+                          hintText: 'เช่น 150.00',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          isDense: true,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -161,7 +179,13 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                       child: TextField(
                         controller: actualAmountCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'จัดซื้อจริง (บาท)', isDense: true),
+                        decoration: const InputDecoration(
+                          labelText: 'จัดซื้อจริง (บาท)',
+                          hintText: 'เช่น 4500.00',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          isDense: true,
+                        ),
                       ),
                     ),
                   ],
@@ -170,7 +194,13 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                 TextField(
                   controller: noteCtrl,
                   maxLines: 2,
-                  decoration: const InputDecoration(labelText: 'หมายเหตุ', isDense: true),
+                  decoration: const InputDecoration(
+                    labelText: 'หมายเหตุ',
+                    hintText: 'เช่น สั่งซื้อเพิ่มเติมระหว่างเทอม',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    isDense: true,
+                  ),
                 ),
               ],
             ),

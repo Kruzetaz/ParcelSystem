@@ -221,6 +221,8 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(
@@ -298,7 +300,7 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
                 controller: _quantityCtrl,
                 style: TextStyle(fontSize: AppTypography.body),
                 keyboardType: TextInputType.number,
-                decoration: _fieldDecoration(context, label: 'จำนวน *'),
+                decoration: _fieldDecoration(context, label: 'จำนวน *', hint: 'เช่น 10'),
                 onChanged: (_) => setState(() {}),
               ),
             ),
@@ -316,7 +318,7 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
                 controller: _unitPriceCtrl,
                 style: TextStyle(fontSize: AppTypography.body),
                 keyboardType: TextInputType.number,
-                decoration: _fieldDecoration(context, label: 'ราคาต่อหน่วย (บาท) *'),
+                decoration: _fieldDecoration(context, label: 'ราคาต่อหน่วย (บาท) *', hint: 'เช่น 120.00'),
                 onChanged: (_) => setState(() {}),
               ),
             ),
@@ -391,14 +393,14 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
         TextField(
           controller: _vendorNameCtrl,
           style: TextStyle(fontSize: AppTypography.body),
-          decoration: _fieldDecoration(context, label: 'ชื่อร้านค้า/บริษัท *'),
+          decoration: _fieldDecoration(context, label: 'ชื่อร้านค้า/บริษัท *', hint: 'เช่น ร้านเจริญพาณิชย์'),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 14),
         TextField(
           controller: _vendorOwnerCtrl,
           style: TextStyle(fontSize: AppTypography.body),
-          decoration: _fieldDecoration(context, label: 'ชื่อเจ้าของ/ผู้ติดต่อ (ถ้ามี)'),
+          decoration: _fieldDecoration(context, label: 'ชื่อเจ้าของ/ผู้ติดต่อ (ถ้ามี)', hint: 'เช่น นายสมชาย ใจดี'),
         ),
       ],
     );

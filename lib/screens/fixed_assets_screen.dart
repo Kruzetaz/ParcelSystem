@@ -37,7 +37,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -786,7 +787,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
           autofocus: true,
           maxLines: 3,
           style: _dialogFieldStyle,
-          decoration: _dialogFieldDecoration(ctx, label: 'รายละเอียดการซ่อม'),
+          decoration: _dialogFieldDecoration(ctx, label: 'รายละเอียดการซ่อม', hint: 'เช่น เปลี่ยนแบตเตอรี่'),
         ),
         actions: [
           TextButton(
@@ -819,7 +820,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
           controller: locCtrl,
           autofocus: true,
           style: _dialogFieldStyle,
-          decoration: _dialogFieldDecoration(ctx, label: 'สถานที่ใหม่'),
+          decoration: _dialogFieldDecoration(ctx, label: 'สถานที่ใหม่', hint: 'เช่น ห้องพัสดุ ชั้น 2'),
         ),
         actions: [
           TextButton(
@@ -1109,8 +1110,8 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                _field(_assetNumberCtrl, 'เลขครุภัณฑ์'),
-                _field(_nameCtrl, 'รายการ *', required: true),
+                _field(_assetNumberCtrl, 'เลขครุภัณฑ์', hint: 'เช่น ครภ.001/2569'),
+                _field(_nameCtrl, 'รายการ *', required: true, hint: 'เช่น โต๊ะทำงาน'),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
@@ -1130,19 +1131,19 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                 ),
                 Row(
                   children: [
-                    Expanded(child: _field(_quantityCtrl, 'จำนวน', keyboardType: TextInputType.number)),
+                    Expanded(child: _field(_quantityCtrl, 'จำนวน', keyboardType: TextInputType.number, hint: 'เช่น 1')),
                     const SizedBox(width: 12),
-                    Expanded(child: _field(_unitPriceCtrl, 'ราคาต่อหน่วย (บาท)', keyboardType: TextInputType.number)),
+                    Expanded(child: _field(_unitPriceCtrl, 'ราคาต่อหน่วย (บาท)', keyboardType: TextInputType.number, hint: 'เช่น 3500.00')),
                   ],
                 ),
-                _field(_locationCtrl, 'สถานที่จัดวาง'),
+                _field(_locationCtrl, 'สถานที่จัดวาง', hint: 'เช่น ห้องพัสดุ ชั้น 2'),
                 InkWell(
                   onTap: _pickAcquiredDate,
                   borderRadius: BorderRadius.circular(RadiusSize.md),
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 18),
                     child: InputDecorator(
-                      decoration: _dialogFieldDecoration(context, label: 'วันที่ได้มา'),
+                      decoration: _dialogFieldDecoration(context, label: 'วันที่ได้มา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                       child: Text(_acquiredDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
                     ),
                   ),
@@ -1150,7 +1151,7 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                 DropdownButtonFormField<String>(
                   initialValue: _status,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'สถานะ'),
+                  decoration: _dialogFieldDecoration(context, label: 'สถานะ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                   items: _assetStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                   onChanged: (v) => setState(() => _status = v ?? 'ใช้งานปกติ'),
                 ),
@@ -1161,14 +1162,14 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                     style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
                 ),
                 const SizedBox(height: 10),
-                _field(_vendorNameCtrl, 'ผู้ขาย/ผู้รับจ้าง'),
+                _field(_vendorNameCtrl, 'ผู้ขาย/ผู้รับจ้าง', hint: 'เช่น ร้านเจริญพาณิชย์'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String?>(
                     initialValue: _fundType,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ประเภทเงิน'),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภทเงิน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ...fixedAssetFundTypes.map((f) => DropdownMenuItem(value: f, child: Text(f))),
@@ -1182,7 +1183,7 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                     initialValue: _procurementMethod,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'วิธีการได้มา'),
+                    decoration: _dialogFieldDecoration(context, label: 'วิธีการได้มา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ...fixedAssetProcurementMethods.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
@@ -1190,7 +1191,7 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                     onChanged: (v) => setState(() => _procurementMethod = v),
                   ),
                 ),
-                _field(_usefulLifeYearsCtrl, 'อายุการใช้งาน (ปี)', keyboardType: TextInputType.number),
+                _field(_usefulLifeYearsCtrl, 'อายุการใช้งาน (ปี)', keyboardType: TextInputType.number, hint: 'เช่น 5'),
                 Text(
                   'กรอกอายุการใช้งานเพื่อให้ระบบคำนวณค่าเสื่อมราคาโดยประมาณให้อัตโนมัติ (ไม่บังคับ)',
                   style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
@@ -1217,14 +1218,14 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
     );
   }
 
-  Widget _field(TextEditingController ctrl, String label, {bool required = false, TextInputType? keyboardType}) {
+  Widget _field(TextEditingController ctrl, String label, {bool required = false, TextInputType? keyboardType, String? hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: TextFormField(
         controller: ctrl,
         style: _dialogFieldStyle,
         keyboardType: keyboardType,
-        decoration: _dialogFieldDecoration(context, label: label),
+        decoration: _dialogFieldDecoration(context, label: label, hint: hint),
         validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null : null,
       ),
     );

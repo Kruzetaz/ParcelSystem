@@ -17,7 +17,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 33;
+  static const int _version = 37;
 
   Database? _db;
 
@@ -549,6 +549,76 @@ class AppDatabase {
             } catch (_) {}
           }
         }
+        if (oldVersion < 34) {
+          // โมดูลเบิกจ่ายค่าใช้จ่ายเดินทางไปราชการ (แบบ ๘๗๐๘) — 1 ใบเบิก
+          // ต่อการเดินทางหนึ่งครั้ง (travel_reimbursements) มีผู้เดินทางได้
+          // หลายคน (travel_participants) แยกยอดเบี้ยเลี้ยง/ที่พัก/พาหนะ/
+          // ค่าลงทะเบียนต่อคน — snapshot ชื่อ/ตำแหน่งไว้ในแถวเสมอ (เหมือน
+          // vendor/personnel ที่อื่นในระบบ) กันแก้ทำเนียบบุคลากรทีหลังแล้ว
+          // เอกสารเก่าเพี้ยน
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS travel_reimbursements (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              budget_id INTEGER,
+              document_number TEXT,
+              subject TEXT,
+              destination TEXT,
+              start_date TEXT,
+              end_date TEXT,
+              is_advance_payer INTEGER NOT NULL DEFAULT 0,
+              advance_payer_personnel_id INTEGER,
+              checker_personnel_id INTEGER,
+              total_amount REAL,
+              total_amount_th TEXT,
+              created_at TEXT
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS travel_participants (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              reimbursement_id INTEGER NOT NULL,
+              personnel_id INTEGER,
+              participant_name TEXT NOT NULL,
+              position TEXT,
+              allowance_amount REAL NOT NULL DEFAULT 0,
+              accommodation_amount REAL NOT NULL DEFAULT 0,
+              transport_amount REAL NOT NULL DEFAULT 0,
+              registration_fee REAL NOT NULL DEFAULT 0,
+              sort_order INTEGER NOT NULL DEFAULT 0,
+              FOREIGN KEY (reimbursement_id) REFERENCES travel_reimbursements(id) ON DELETE CASCADE
+            )
+          ''');
+        }
+        if (oldVersion < 35) {
+          // แบบ ๘๗๐๘ ส่วนที่ 1 จริงแยกโชว์ "ประเภท" (อัตรา/หลักเกณฑ์การเบิก)
+          // ของค่าเบี้ยเลี้ยง/ที่พัก/พาหนะ/ค่าใช้จ่ายอื่นแต่ละบรรทัด แยกจาก
+          // ยอดเงินรวม — เป็นข้อความอธิบายอัตราอิสระต่อการเบิกครั้งนั้น
+          // ไม่ผูกกับผู้เดินทางคนใดคนหนึ่ง จึงเก็บเป็น field ระดับใบเบิก
+          for (final col in [
+            'allowance_type',
+            'accommodation_type',
+            'transport_type',
+            'other_expense_type',
+          ]) {
+            await db.execute('ALTER TABLE travel_reimbursements ADD COLUMN $col TEXT');
+          }
+        }
+        if (oldVersion < 36) {
+          // แบบ ๘๗๐๘ ส่วนที่ 1 มี checkbox "ออกเดินทางจาก ☐ที่พัก ☐สำนักงาน"
+          // — ค่าเริ่มต้นเป็นที่พัก (1) เพราะเป็นกรณีทั่วไปที่พบบ่อยที่สุด
+          await db.execute(
+            'ALTER TABLE travel_reimbursements ADD COLUMN departs_from_home INTEGER NOT NULL DEFAULT 1',
+          );
+        }
+        if (oldVersion < 37) {
+          // ตอนเลือก "ข้าพเจ้าคนเดียว" (ไม่มีผู้สำรองจ่าย) เดิมระบบเดา
+          // "ผู้ขอเบิก/ผู้รับเงิน" จากผู้เดินทางคนแรกในตารางเสมอ ทำให้ผิดคน
+          // ถ้าลำดับในตารางไม่ตรงกับตัวจริง — เพิ่มช่องเลือกเองชัดเจนแยกจาก
+          // advance_payer_personnel_id (ซึ่งใช้เฉพาะตอนติ๊ก "และคณะ" เท่านั้น)
+          await db.execute(
+            'ALTER TABLE travel_reimbursements ADD COLUMN requester_personnel_id INTEGER',
+          );
+        }
       },
     );
   }
@@ -993,5 +1063,45 @@ class AppDatabase {
     for (var i = 0; i < defaultGrades.length; i++) {
       await db.insert('learning_material_grades', {'name': defaultGrades[i], 'sort_order': i});
     }
+
+    // ── โมดูลเบิกจ่ายค่าใช้จ่ายเดินทางไปราชการ (แบบ ๘๗๐๘) ──────────────
+    await db.execute('''
+      CREATE TABLE travel_reimbursements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        budget_id INTEGER,
+        document_number TEXT,
+        subject TEXT,
+        destination TEXT,
+        start_date TEXT,
+        end_date TEXT,
+        is_advance_payer INTEGER NOT NULL DEFAULT 0,
+        advance_payer_personnel_id INTEGER,
+        checker_personnel_id INTEGER,
+        total_amount REAL,
+        total_amount_th TEXT,
+        created_at TEXT,
+        allowance_type TEXT,
+        accommodation_type TEXT,
+        transport_type TEXT,
+        other_expense_type TEXT,
+        departs_from_home INTEGER NOT NULL DEFAULT 1,
+        requester_personnel_id INTEGER
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE travel_participants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reimbursement_id INTEGER NOT NULL,
+        personnel_id INTEGER,
+        participant_name TEXT NOT NULL,
+        position TEXT,
+        allowance_amount REAL NOT NULL DEFAULT 0,
+        accommodation_amount REAL NOT NULL DEFAULT 0,
+        transport_amount REAL NOT NULL DEFAULT 0,
+        registration_fee REAL NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (reimbursement_id) REFERENCES travel_reimbursements(id) ON DELETE CASCADE
+      )
+    ''');
   }
 }

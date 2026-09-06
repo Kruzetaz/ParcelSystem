@@ -16,6 +16,7 @@ import 'dashboard_screen_v2.dart';
 import 'order_wizard_screen.dart';
 import 'easy_wizard_screen.dart';
 import 'document_hub_screen.dart';
+import 'travel_reimbursement_screen.dart';
 import 'order_register_screen.dart';
 import 'control_log_screen.dart';
 import 'document_checklist_screen.dart';
@@ -295,6 +296,7 @@ class _AppShellState extends State<AppShell> {
       'reports': AppMode.reports,
       'inspections': AppMode.inspections,
       'document_hub': AppMode.documentHub,
+      'travel_reimbursement': AppMode.travelReimbursement,
       'easy_wizard': AppMode.easyWizard,
       'procurement_calendar': AppMode.procurementCalendar,
       'guarantees': AppMode.guarantees,
@@ -521,6 +523,8 @@ class _AppShellState extends State<AppShell> {
           key: ValueKey('doc_hub_$_docHubInitialOrderId'),
           initialOrderId: _docHubInitialOrderId,
         );
+      case AppMode.travelReimbursement:
+        return const TravelReimbursementScreen();
       case AppMode.orderRegister:
         return const OrderRegisterScreen();
       case AppMode.controlLog:
@@ -583,6 +587,8 @@ class _AppShellState extends State<AppShell> {
             decoration: const InputDecoration(
               labelText: 'ปีงบประมาณ (พ.ศ.)',
               hintText: 'เช่น 2570',
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+              labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               border: OutlineInputBorder(),
             ),
           ),
@@ -632,6 +638,8 @@ class _AppShellState extends State<AppShell> {
                 autofocus: true,
                 decoration: const InputDecoration(
                   labelText: 'ปีงบประมาณใหม่ (พ.ศ.)',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   border: OutlineInputBorder(),
                 ),
               ),

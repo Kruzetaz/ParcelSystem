@@ -43,7 +43,7 @@ const _sidebarAnimDuration = Duration(milliseconds: 220);
 const _sidebarAnimCurve = Curves.easeInOut;
 const _sidebarOrderPrefsKey = 'sidebar_item_order_v1';
 
-enum AppMode { dashboard, procurementCalendar, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, installmentContracts, documentHub, orderRegister, controlLog, documentChecklist, learningMaterials, fixedAssets, repairHistory, materials, annualCount, disposals, reports, settings, aiSettings }
+enum AppMode { dashboard, procurementCalendar, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, installmentContracts, documentHub, travelReimbursement, orderRegister, controlLog, documentChecklist, learningMaterials, fixedAssets, repairHistory, materials, annualCount, disposals, reports, settings, aiSettings }
 
 /// ไอคอน+ชื่อเมนูของแต่ละ AppMode — แยกออกมาจากลำดับการแสดงผล เพื่อให้ลำดับ
 /// ที่ผู้ใช้ลากจัดเองแล้ว ยังหาไอคอน/ชื่อที่ถูกต้องมาแสดงได้เสมอไม่ว่าจะสลับ
@@ -60,6 +60,7 @@ const Map<AppMode, (IconData, String)> modeMeta = {
   AppMode.inspections: (Icons.fact_check_outlined, 'ตรวจรับพัสดุ'),
   AppMode.installmentContracts: (Icons.event_repeat_outlined, 'สัญญาต่อเนื่องหลายงวด'),
   AppMode.documentHub: (Icons.file_copy_outlined, 'สร้างเอกสารราชการ'),
+  AppMode.travelReimbursement: (Icons.card_travel_outlined, 'เบิกจ่ายเดินทางไปราชการ (แบบ ๘๗๐๘)'),
   AppMode.orderRegister: (Icons.numbers_outlined, 'ทะเบียนคุมเลขที่'),
   AppMode.controlLog: (Icons.receipt_long_outlined, 'ทะเบียนคุมเลขบันทึก/TOR'),
   AppMode.documentChecklist: (Icons.fact_check_outlined, 'ทะเบียนตรวจสอบเอกสาร'),
@@ -95,6 +96,7 @@ const _sections = [
     AppMode.newOrder,
     AppMode.easyWizard,
     AppMode.documentHub,
+    AppMode.travelReimbursement,
   ]),
   _SidebarSection('prepare', 'วางแผน/จัดเตรียมการจัดซื้อ', [
     AppMode.budgets,

@@ -29,7 +29,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant),
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -479,15 +480,24 @@ class _TorFormDialogState extends State<_TorFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _field(_documentNumberCtrl, 'เลขที่'),
-                _field(_titleCtrl, 'ชื่อโครงการ/รายชื่อพัสดุ *', required: true),
+                _field(_documentNumberCtrl, 'เลขที่', hint: 'เช่น TOR-01/2569'),
+                _field(_titleCtrl, 'ชื่อโครงการ/รายชื่อพัสดุ *', required: true, hint: 'เช่น จัดซื้อเครื่องคอมพิวเตอร์'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<int?>(
                     initialValue: _orderId,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ผูกกับรายการจัดซื้อจัดจ้าง (สำหรับออกเอกสาร Word)'),
+                    decoration: _dialogFieldDecoration(context, label: 'ผูกกับรายการจัดซื้อจัดจ้าง (สำหรับออกเอกสาร Word)').copyWith(
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      suffixIcon: _orderId != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              tooltip: 'ล้างค่าที่เลือก',
+                              onPressed: () => setState(() => _orderId = null),
+                            )
+                          : null,
+                    ),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูก)')),
                       ...widget.orders.where((o) => o.id != null).map((o) => DropdownMenuItem<int?>(
@@ -503,7 +513,7 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                   child: DropdownButtonFormField<String?>(
                     initialValue: _category,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ประเภท'),
+                    decoration: _dialogFieldDecoration(context, label: 'ประเภท').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
                       const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
                       ..._torCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
@@ -511,13 +521,13 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                     onChanged: (v) => setState(() => _category = v),
                   ),
                 ),
-                _field(_estimatedAmountCtrl, 'วงเงินโดยประมาณ (บาท)', keyboardType: TextInputType.number),
+                _field(_estimatedAmountCtrl, 'วงเงินโดยประมาณ (บาท)', keyboardType: TextInputType.number, hint: 'เช่น 50000.00'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String>(
                     initialValue: _status,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'สถานะ'),
+                    decoration: _dialogFieldDecoration(context, label: 'สถานะ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: _torStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                     onChanged: (v) => setState(() => _status = v ?? 'ร่าง'),
                   ),
@@ -553,7 +563,7 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                _field(_specTextCtrl, 'รายละเอียดคุณลักษณะเฉพาะ', maxLines: 6),
+                _field(_specTextCtrl, 'รายละเอียดคุณลักษณะเฉพาะ', maxLines: 6, hint: 'เช่น หน่วยประมวลผลไม่ต่ำกว่า...'),
               ],
             ),
           ),
@@ -578,7 +588,7 @@ class _TorFormDialogState extends State<_TorFormDialog> {
   }
 
   Widget _field(TextEditingController ctrl, String label,
-      {bool required = false, TextInputType? keyboardType, int maxLines = 1}) {
+      {bool required = false, TextInputType? keyboardType, int maxLines = 1, String? hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: TextFormField(
@@ -586,7 +596,7 @@ class _TorFormDialogState extends State<_TorFormDialog> {
         style: _dialogFieldStyle,
         keyboardType: keyboardType,
         maxLines: maxLines,
-        decoration: _dialogFieldDecoration(context, label: label),
+        decoration: _dialogFieldDecoration(context, label: label, hint: hint),
         validator: required
             ? (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null
             : null,
