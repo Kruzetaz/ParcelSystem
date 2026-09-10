@@ -16,6 +16,7 @@ import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/design_system/status_badge.dart' show DSFilterChip;
 import '../theme/design_tokens.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 class LearningMaterialsScreen extends StatefulWidget {
   const LearningMaterialsScreen({super.key});
@@ -130,7 +131,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: ClearableTextField(
                         controller: studentCtrl,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -144,7 +145,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: ClearableTextField(
                         controller: orderedCtrl,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -162,7 +163,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: ClearableTextField(
                         controller: unitPriceCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: const InputDecoration(
@@ -176,7 +177,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: ClearableTextField(
                         controller: actualAmountCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: const InputDecoration(
@@ -191,7 +192,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                ClearableTextField(
                   controller: noteCtrl,
                   maxLines: 2,
                   decoration: const InputDecoration(
@@ -601,7 +602,7 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('แก้ไขชื่อสาขา'),
-        content: TextField(controller: ctrl, autofocus: true),
+        content: ClearableTextField(controller: ctrl, autofocus: true),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
           FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text.trim()), child: const Text('บันทึก')),
@@ -674,7 +675,7 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: _newBranchCtrl,
                     decoration: const InputDecoration(hintText: 'ชื่อสาขาใหม่', isDense: true),
                     onSubmitted: (_) => _add(),
@@ -737,7 +738,7 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('แก้ไขชื่อชั้น'),
-        content: TextField(controller: ctrl, autofocus: true),
+        content: ClearableTextField(controller: ctrl, autofocus: true),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
           FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text.trim()), child: const Text('บันทึก')),
@@ -809,7 +810,7 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: _newGradeCtrl,
                     decoration: const InputDecoration(hintText: 'ชื่อชั้นใหม่ เช่น ป.7', isDense: true),
                     onSubmitted: (_) => _add(),

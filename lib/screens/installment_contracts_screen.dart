@@ -14,6 +14,7 @@ import '../models/procurement_order.dart';
 import '../models/procurement_item.dart';
 import '../models/procurement_installment.dart';
 import '../models/school_settings.dart';
+import '../services/feature_access_service.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
 import '../utils/calc_engine.dart';
@@ -23,6 +24,7 @@ import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
 import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
@@ -500,7 +502,7 @@ class _OrderPickerDialogState extends State<_OrderPickerDialog> {
         height: 420,
         child: Column(
           children: [
-            TextField(
+            ClearableTextField(
               style: _dialogFieldStyle,
               decoration: _dialogFieldDecoration(context, label: 'ค้นหาชื่อโครงการ/ผู้ขาย', suffixIcon: const Icon(Icons.search), hint: 'พิมพ์เพื่อค้นหา'),
               onChanged: (v) => setState(() => _query = v),
@@ -608,7 +610,7 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
             children: [
               const Text('จำนวนงวดทั้งหมด (ทั่วไปอาหารกลางวัน 1 ภาคเรียน = 10 งวด/100 วัน)', style: _dialogContentStyle),
               const SizedBox(height: 14),
-              TextField(
+              ClearableTextField(
                 controller: ctrl,
                 style: _dialogFieldStyle,
                 keyboardType: TextInputType.number,
@@ -657,6 +659,7 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     if (_order == null) return;
     setState(() => _generatingCombined = true);
     try {
+      FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
       final school = await widget.repo.getSchoolSettings();
       await ProcurementDocumentGenerator.generateCombinedRecurringContractFileAndOpen(
         order: _order!,
@@ -720,6 +723,7 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     if (_order == null) return;
     setState(() => _generatingId = installment.id);
     try {
+      FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
       final school = await widget.repo.getSchoolSettings();
       await ProcurementDocumentGenerator.generateAndOpen(
         type: type,
@@ -744,6 +748,7 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     if (_order == null) return;
     setState(() => _generatingId = installment.id);
     try {
+      FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
       final school = await widget.repo.getSchoolSettings();
       await ProcurementDocumentGenerator.generateInstallmentDocumentSetFileAndOpen(
         order: _order!,
@@ -1274,7 +1279,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 children: [
                   Expanded(
                     flex: 1,
-                    child: TextField(
+                    child: ClearableTextField(
                       controller: _periodNoCtrl,
                       style: _dialogFieldStyle,
                       decoration: _dec('งวดที่', hint: 'เช่น 1'),
@@ -1284,7 +1289,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
-                    child: TextField(
+                    child: ClearableTextField(
                       controller: _periodLabelCtrl,
                       style: _dialogFieldStyle,
                       decoration: _dec('ป้ายกำกับงวด', hint: 'เช่น พฤษภาคม 2569'),
@@ -1293,20 +1298,20 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 ],
               ),
               const SizedBox(height: 18),
-              TextField(
+              ClearableTextField(
                 controller: _amountCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dec('จำนวนเงินงวดนี้ (บาท)', hint: 'เช่น 5000.00'),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
               const SizedBox(height: 18),
-              TextField(
+              ClearableTextField(
                 controller: _controlNumberCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dec('เลขคุมตรวจรับ (ถ้ามี)', hint: 'เช่น ตรวจรับที่ 5/2569'),
               ),
               const SizedBox(height: 18),
-              TextField(
+              ClearableTextField(
                 readOnly: true,
                 controller: TextEditingController(text: _dateDelivery ?? ''),
                 style: _dialogFieldStyle,
@@ -1314,7 +1319,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 onTap: () => _pickDate('วันที่ส่งมอบงาน', _dateDelivery, (v) => _dateDelivery = v),
               ),
               const SizedBox(height: 18),
-              TextField(
+              ClearableTextField(
                 readOnly: true,
                 controller: TextEditingController(text: _dateInspection ?? ''),
                 style: _dialogFieldStyle,
@@ -1322,7 +1327,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 onTap: () => _pickDate('วันที่ตรวจรับ', _dateInspection, (v) => _dateInspection = v),
               ),
               const SizedBox(height: 18),
-              TextField(
+              ClearableTextField(
                 readOnly: true,
                 controller: TextEditingController(text: _dateDisbursement ?? ''),
                 style: _dialogFieldStyle,
@@ -1348,7 +1353,7 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 onChanged: (v) => setState(() => _hasPenalty = v),
               ),
               if (_hasPenalty)
-                TextField(
+                ClearableTextField(
                   controller: _penaltyAmountCtrl,
                   style: _dialogFieldStyle,
                   decoration: _dec('จำนวนเงินค่าปรับ (บาท)', hint: 'เช่น 500.00'),

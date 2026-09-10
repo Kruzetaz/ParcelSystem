@@ -12,6 +12,7 @@ import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
 import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
 import '../services/asset_repair_export_service.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 class RepairHistoryScreen extends StatefulWidget {
   // ปุ่มลัด "ดูครุภัณฑ์" ต่อแถว — พาไปหน้าทะเบียนครุภัณฑ์พร้อมเลือกชิ้นนั้นไว้แล้ว
@@ -163,7 +164,7 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: TextField(
+                            child: ClearableTextField(
                               style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
                               decoration: InputDecoration(
                                 isDense: true,

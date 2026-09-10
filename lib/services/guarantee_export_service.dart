@@ -6,6 +6,7 @@ import 'package:excel/excel.dart' as xls;
 import 'package:path_provider/path_provider.dart';
 import '../models/guarantee.dart';
 import '../utils/app_folder_name.dart';
+import 'feature_access_service.dart';
 
 class GuaranteeExportService {
   static Future<File> export(List<Guarantee> guarantees) async {
@@ -54,6 +55,7 @@ class GuaranteeExportService {
   }
 
   static Future<void> exportAndOpen(List<Guarantee> guarantees) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'หลักประกัน');
     final file = await export(guarantees);
     await _openFile(file.path);
   }

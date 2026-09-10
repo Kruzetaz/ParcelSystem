@@ -15,6 +15,8 @@ import '../widgets/thai_date_picker.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant, DSFilterChip;
 import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/hover_clear_button.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
@@ -629,36 +631,34 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
-                child: DropdownButtonFormField<int?>(
-                  initialValue: _contractId,
-                  isExpanded: true,
-                  style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'ผูกกับสัญญา').copyWith(
-                    floatingLabelBehavior: FloatingLabelBehavior.auto,
-                    suffixIcon: _contractId != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            tooltip: 'ล้างค่าที่เลือก',
-                            onPressed: () => setState(() => _contractId = null),
-                          )
-                        : null,
+                child: HoverBuilder(
+                  builder: (context, hovering) => DropdownButtonFormField<int?>(
+                    initialValue: _contractId,
+                    isExpanded: true,
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context, label: 'ผูกกับสัญญา').copyWith(
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      suffixIcon: hovering && _contractId != null
+                          ? clearIconButton(context, () => setState(() => _contractId = null))
+                          : null,
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับสัญญา)')),
+                      ..._contracts.where((c) => c.id != null).map((c) => DropdownMenuItem<int?>(
+                            value: c.id,
+                            child: Text(
+                              '${c.contractNumber ?? "เอกสาร #${c.id}"} — ${c.vendorName ?? "-"}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )),
+                    ],
+                    onChanged: (v) => setState(() => _contractId = v),
                   ),
-                  items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับสัญญา)')),
-                    ..._contracts.where((c) => c.id != null).map((c) => DropdownMenuItem<int?>(
-                          value: c.id,
-                          child: Text(
-                            '${c.contractNumber ?? "เอกสาร #${c.id}"} — ${c.vendorName ?? "-"}',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        )),
-                  ],
-                  onChanged: (v) => setState(() => _contractId = v),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
-                child: TextFormField(
+                child: ClearableTextField(
                   controller: _counterpartyCtrl,
                   style: _dialogFieldStyle,
                   decoration: _dialogFieldDecoration(context, label: 'ผู้เสนอราคา/คู่สัญญา', hint: 'เช่น บริษัท เอบีซี จำกัด'),
@@ -666,7 +666,7 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
-                child: TextFormField(
+                child: ClearableTextField(
                   controller: _amountCtrl,
                   style: _dialogFieldStyle,
                   keyboardType: TextInputType.number,

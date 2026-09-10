@@ -13,6 +13,8 @@ import '../widgets/thai_date_picker.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
 import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/hover_clear_button.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
@@ -414,34 +416,32 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
-                child: DropdownButtonFormField<int?>(
-                  initialValue: _assetId,
-                  isExpanded: true,
-                  style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _fieldDecoration(context, 'ครุภัณฑ์ที่จะจำหน่าย').copyWith(
-                    floatingLabelBehavior: FloatingLabelBehavior.auto,
-                    suffixIcon: _assetId != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            tooltip: 'ล้างค่าที่เลือก',
-                            onPressed: () => setState(() => _assetId = null),
-                          )
-                        : null,
+                child: HoverBuilder(
+                  builder: (context, hovering) => DropdownButtonFormField<int?>(
+                    initialValue: _assetId,
+                    isExpanded: true,
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _fieldDecoration(context, 'ครุภัณฑ์ที่จะจำหน่าย').copyWith(
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      suffixIcon: hovering && _assetId != null
+                          ? clearIconButton(context, () => setState(() => _assetId = null))
+                          : null,
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(value: null, child: Text('(พิมพ์ชื่อรายการเอง)')),
+                      ...widget.assets.where((a) => a.id != null).map((a) => DropdownMenuItem<int?>(
+                            value: a.id,
+                            child: Text('${a.assetNumber ?? ""} ${a.name}'.trim(), overflow: TextOverflow.ellipsis),
+                          )),
+                    ],
+                    onChanged: (v) => setState(() => _assetId = v),
                   ),
-                  items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('(พิมพ์ชื่อรายการเอง)')),
-                    ...widget.assets.where((a) => a.id != null).map((a) => DropdownMenuItem<int?>(
-                          value: a.id,
-                          child: Text('${a.assetNumber ?? ""} ${a.name}'.trim(), overflow: TextOverflow.ellipsis),
-                        )),
-                  ],
-                  onChanged: (v) => setState(() => _assetId = v),
                 ),
               ),
               if (_assetId == null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: _itemNameCtrl,
                     style: _dialogFieldStyle,
                     decoration: _fieldDecoration(context, 'ชื่อรายการ', hint: 'เช่น โต๊ะทำงานชำรุด'),
@@ -473,7 +473,7 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 18),
-                child: TextField(
+                child: ClearableTextField(
                   controller: _approverCtrl,
                   style: _dialogFieldStyle,
                   decoration: _fieldDecoration(context, 'ผู้ลงนามอนุมัติ', hint: 'เช่น นายสมชาย ใจดี'),

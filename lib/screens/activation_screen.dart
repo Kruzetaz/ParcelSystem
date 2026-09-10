@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../services/license_service.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 class ActivationScreen extends StatefulWidget {
   const ActivationScreen({super.key});
@@ -53,6 +54,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
         return 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ต';
       case 'server_error':
         return 'เกิดข้อผิดพลาดในระบบ กรุณาติดต่อผู้พัฒนา';
+      case 'invalid_token':
+        return 'ข้อมูลสิทธิ์การใช้งานที่ได้รับไม่ถูกต้อง กรุณาลองใหม่หรือติดต่อผู้พัฒนา';
+      case 'hwid_mismatch':
+        return 'สิทธิ์การใช้งานนี้ผูกกับเครื่องอื่น กรุณา activate ใหม่บนเครื่องนี้';
       default:
         return 'เกิดข้อผิดพลาด: ${reason ?? "unknown"} กรุณาติดต่อผู้พัฒนา';
     }
@@ -152,7 +157,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  ClearableTextField(
                     controller: _codeCtrl,
                     style: const TextStyle(fontSize: 17),
                     decoration: InputDecoration(

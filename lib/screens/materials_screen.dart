@@ -9,6 +9,7 @@ import '../models/material_item.dart';
 import '../models/material_transaction.dart';
 import '../models/procurement_item.dart';
 import '../models/procurement_order.dart';
+import '../services/feature_access_service.dart';
 import '../services/material_ledger_export_service.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
@@ -17,6 +18,7 @@ import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
 import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
@@ -244,7 +246,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              ClearableTextField(
                 controller: qtyCtrl,
                 autofocus: true,
                 style: _dialogFieldStyle,
@@ -252,13 +254,13 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 decoration: _dialogFieldDecoration(ctx, label: 'จำนวน${isIn ? "ที่รับเข้า" : "ที่เบิกจ่าย"} (${m.unit ?? "หน่วย"})', hint: 'เช่น 10'),
               ),
               const SizedBox(height: 18),
-              TextField(
+              ClearableTextField(
                 controller: counterpartyCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dialogFieldDecoration(ctx, label: isIn ? 'รับจาก (ไม่บังคับ)' : 'จ่ายให้ (ไม่บังคับ)', hint: isIn ? 'เช่น ร้านเจริญพาณิชย์' : 'เช่น ครูประจำชั้น ป.1'),
               ),
               const SizedBox(height: 18),
-              TextField(
+              ClearableTextField(
                 controller: refCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dialogFieldDecoration(ctx, label: 'เลขที่เอกสารอ้างอิง (ไม่บังคับ)', hint: 'เช่น ใบเบิกที่ 12/2569'),
@@ -336,6 +338,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       return;
     }
     try {
+      FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
       await ProcurementDocumentGenerator.generateAndOpen(
         type: ProcurementDocumentType.requisition,
         order: ProcurementOrder(dateShipping: _todayThai()),
@@ -413,7 +416,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: ClearableTextField(
                             style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
                             decoration: InputDecoration(
                               isDense: true,
@@ -961,7 +964,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _codeCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'รหัสวัสดุ', hint: 'เช่น MAT-001'),
@@ -969,7 +972,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _nameCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'ชื่อวัสดุ *', hint: 'เช่น กระดาษ A4'),
@@ -994,7 +997,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
-                        child: TextFormField(
+                        child: ClearableTextField(
                           controller: _unitCtrl,
                           style: _dialogFieldStyle,
                           decoration: _dialogFieldDecoration(context, label: 'หน่วยนับ', hint: 'เช่น ชิ้น, กล่อง'),
@@ -1005,7 +1008,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
-                        child: TextFormField(
+                        child: ClearableTextField(
                           controller: _unitPriceCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
@@ -1017,7 +1020,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _sizeSpecCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'ขนาดหรือลักษณะ', hint: 'เช่น 180 แกรม, A4'),
@@ -1025,7 +1028,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _storageLocationCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'ที่เก็บ', hint: 'เช่น ห้องพัสดุ ชั้น 2'),
@@ -1036,7 +1039,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
-                        child: TextFormField(
+                        child: ClearableTextField(
                           controller: _minStockCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
@@ -1048,7 +1051,7 @@ class _MaterialFormDialogState extends State<_MaterialFormDialog> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
-                        child: TextFormField(
+                        child: ClearableTextField(
                           controller: _maxStockCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,

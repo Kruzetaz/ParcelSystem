@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../models/procurement_item.dart';
 import '../utils/money_format.dart';
 import 'memory_text_field.dart';
+import 'design_system/clearable_text_field.dart';
 
 /// แถวหนึ่งในตาราง — ผูก TextEditingController ของแต่ละ field ไว้ในตัวเดียว
 /// เพื่อไม่ให้ cursor กระโดดตอนพิมพ์ (ปัญหาคลาสสิกของ dynamic form ใน Flutter)
@@ -420,7 +421,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
             width: 90,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: ClearableTextField(
                 controller: row.quantity,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.right,
@@ -453,7 +454,7 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
             width: 110,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: ClearableTextField(
                 controller: row.unitPrice,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.right,

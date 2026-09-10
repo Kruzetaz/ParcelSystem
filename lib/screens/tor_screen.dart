@@ -15,6 +15,8 @@ import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
 import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/hover_clear_button.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
@@ -413,7 +415,7 @@ class _TorFormDialogState extends State<_TorFormDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('บันทึกเป็น Template', style: _dialogTitleStyle),
-        content: TextField(
+        content: ClearableTextField(
           controller: nameCtrl,
           autofocus: true,
           style: _dialogFieldStyle,
@@ -484,28 +486,26 @@ class _TorFormDialogState extends State<_TorFormDialog> {
                 _field(_titleCtrl, 'ชื่อโครงการ/รายชื่อพัสดุ *', required: true, hint: 'เช่น จัดซื้อเครื่องคอมพิวเตอร์'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: DropdownButtonFormField<int?>(
-                    initialValue: _orderId,
-                    isExpanded: true,
-                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ผูกกับรายการจัดซื้อจัดจ้าง (สำหรับออกเอกสาร Word)').copyWith(
-                      floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      suffixIcon: _orderId != null
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              tooltip: 'ล้างค่าที่เลือก',
-                              onPressed: () => setState(() => _orderId = null),
-                            )
-                          : null,
+                  child: HoverBuilder(
+                    builder: (context, hovering) => DropdownButtonFormField<int?>(
+                      initialValue: _orderId,
+                      isExpanded: true,
+                      style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                      decoration: _dialogFieldDecoration(context, label: 'ผูกกับรายการจัดซื้อจัดจ้าง (สำหรับออกเอกสาร Word)').copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.auto,
+                        suffixIcon: hovering && _orderId != null
+                            ? clearIconButton(context, () => setState(() => _orderId = null))
+                            : null,
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูก)')),
+                        ...widget.orders.where((o) => o.id != null).map((o) => DropdownMenuItem<int?>(
+                              value: o.id,
+                              child: Text(o.projectName ?? o.procurementSubject ?? 'เอกสาร #${o.id}', overflow: TextOverflow.ellipsis),
+                            )),
+                      ],
+                      onChanged: (v) => setState(() => _orderId = v),
                     ),
-                    items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูก)')),
-                      ...widget.orders.where((o) => o.id != null).map((o) => DropdownMenuItem<int?>(
-                            value: o.id,
-                            child: Text(o.projectName ?? o.procurementSubject ?? 'เอกสาร #${o.id}', overflow: TextOverflow.ellipsis),
-                          )),
-                    ],
-                    onChanged: (v) => setState(() => _orderId = v),
                   ),
                 ),
                 Padding(
@@ -591,7 +591,7 @@ class _TorFormDialogState extends State<_TorFormDialog> {
       {bool required = false, TextInputType? keyboardType, int maxLines = 1, String? hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
-      child: TextFormField(
+      child: ClearableTextField(
         controller: ctrl,
         style: _dialogFieldStyle,
         keyboardType: keyboardType,
@@ -649,7 +649,7 @@ class _TemplatePickerDialogState extends State<_TemplatePickerDialog> {
             children: [
               Text('เลือกจาก Template', style: _dialogTitleStyle.copyWith(color: colors.onSurface)),
               const SizedBox(height: 14),
-              TextField(
+              ClearableTextField(
                 style: _dialogFieldStyle,
                 decoration: _dialogFieldDecoration(context, label: '', hint: 'ค้นหา Template').copyWith(
                   labelText: null,

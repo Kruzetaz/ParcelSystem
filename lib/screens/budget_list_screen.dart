@@ -23,6 +23,7 @@ import '../widgets/column_visibility_menu.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/data_table_shell.dart' show DsCheckbox, DsActionIconButtons, DsRowAction;
 import '../widgets/design_system/kpi_card.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 /// คอลัมน์ที่ซ่อน/แสดงได้ในมุมมองตาราง — "ฝ่าย/ปีงบ/โครงการ/คงเหลือ" แสดงเสมอ
 const _budgetTableOptionalColumns = ['เลข e-GP', 'ผู้รับผิดชอบ', 'วงเงิน'];
@@ -419,7 +420,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: _bulkPersonCtrl,
                     style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
                     decoration: InputDecoration(
@@ -985,7 +986,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       children: [
         Expanded(
           flex: 2,
-          child: TextField(
+          child: ClearableTextField(
             controller: _searchCtrl,
             style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
             decoration: InputDecoration(
@@ -1792,7 +1793,7 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
+      child: ClearableTextField(
         controller: ctrl,
         keyboardType: keyboardType,
         style: const TextStyle(fontSize: 17),

@@ -10,6 +10,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'feature_access_service.dart';
 
 const _prefGeminiApiKey = 'gemini_api_key';
 
@@ -94,6 +95,7 @@ class GeminiService {
   /// เรียก Gemini แบบข้อความล้วน — ใช้ต่อกับ Feature C (ช่วยเขียนเหตุผล)
   /// และ Feature B ส่วนอ่านไฟล์ .docx/.pdf
   Future<String> generateText(String prompt) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.aiFeatures, 'ตั้งค่า AI');
     final apiKey = await getApiKey();
     if (apiKey == null) {
       throw Exception('ยังไม่ได้ตั้งค่า Gemini API Key ในหน้าตั้งค่า');
@@ -118,6 +120,7 @@ class GeminiService {
     required List<int> fileBytes,
     required String mimeType,
   }) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.aiFeatures, 'ตั้งค่า AI');
     final apiKey = await getApiKey();
     if (apiKey == null) {
       throw Exception('ยังไม่ได้ตั้งค่า Gemini API Key ในหน้าตั้งค่า');

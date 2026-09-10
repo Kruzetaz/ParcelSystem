@@ -9,6 +9,7 @@ import 'package:excel/excel.dart' as xls;
 import 'package:path_provider/path_provider.dart';
 import '../models/fixed_asset.dart';
 import '../utils/app_folder_name.dart';
+import 'feature_access_service.dart';
 
 class AssetControlLedgerExportService {
   static Future<File> export(List<FixedAsset> assets, {required DateTime? Function(String?) parseDate}) async {
@@ -75,6 +76,7 @@ class AssetControlLedgerExportService {
   }
 
   static Future<void> exportAndOpen(List<FixedAsset> assets, {required DateTime? Function(String?) parseDate}) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
     final file = await export(assets, parseDate: parseDate);
     await _openFile(file.path);
   }

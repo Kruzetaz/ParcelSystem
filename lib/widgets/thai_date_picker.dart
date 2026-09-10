@@ -5,6 +5,7 @@
 // และเลือกจากปฏิทินก็อัปเดตช่องพิมพ์ให้กลับเช่นกัน (sync 2 ทาง)
 
 import 'package:flutter/material.dart';
+import 'design_system/clearable_text_field.dart';
 
 const _thaiMonthsFull = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -224,7 +225,7 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                 ),
               ),
               const SizedBox(height: 10),
-              TextField(
+              ClearableTextField(
                 controller: _manualCtrl,
                 decoration: InputDecoration(
                   labelText: 'วว/ดด/ปปปป (พ.ศ.)',

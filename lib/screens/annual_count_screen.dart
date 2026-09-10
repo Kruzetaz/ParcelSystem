@@ -12,6 +12,7 @@ import '../widgets/thai_date_picker.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
 import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
@@ -416,7 +417,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _fiscalYearCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'ปีงบประมาณ *', hint: 'เช่น 2569'),
@@ -436,7 +437,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _responsibleCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'ผู้รับผิดชอบ (ชื่อกรรมการ)', hint: 'คั่นด้วยจุลภาคถ้ามีหลายคน'),
@@ -447,7 +448,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
-                        child: TextFormField(
+                        child: ClearableTextField(
                           controller: _totalCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
@@ -459,7 +460,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 18),
-                        child: TextFormField(
+                        child: ClearableTextField(
                           controller: _foundCtrl,
                           style: _dialogFieldStyle,
                           keyboardType: TextInputType.number,
@@ -471,7 +472,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _damagedCtrl,
                     style: _dialogFieldStyle,
                     keyboardType: TextInputType.number,
@@ -491,7 +492,7 @@ class _AnnualCountFormDialogState extends State<_AnnualCountFormDialog> {
                     onChanged: (v) => setState(() => _status = v ?? 'กำลังดำเนินการ'),
                   ),
                 ),
-                TextFormField(
+                ClearableTextField(
                   controller: _notesCtrl,
                   style: _dialogFieldStyle,
                   maxLines: 3,

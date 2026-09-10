@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/material_item.dart';
 import '../models/material_transaction.dart';
 import '../utils/app_folder_name.dart';
+import 'feature_access_service.dart';
 
 class MaterialLedgerExportService {
   static Future<File> export({
@@ -106,6 +107,7 @@ class MaterialLedgerExportService {
     required Map<int, List<MaterialTransaction>> transactionsByMaterialId,
     String? schoolName,
   }) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
     final file = await export(
       materials: materials,
       transactionsByMaterialId: transactionsByMaterialId,

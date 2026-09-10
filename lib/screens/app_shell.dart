@@ -52,6 +52,11 @@ import '../services/global_search_service.dart';
 import '../services/toast_service.dart';
 import '../utils/app_folder_name.dart';
 import '../widgets/design_system/design_system.dart';
+import '../widgets/design_system/clearable_text_field.dart';
+import '../services/feature_access_service.dart';
+import '../services/license_service.dart';
+import '../widgets/license_grace_banner.dart';
+import '../widgets/upsell_dialog.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -178,6 +183,21 @@ class _AppShellState extends State<AppShell> {
   String? _pendingDashboardFilter;
 
   Future<void> _requestModeChange(AppMode newMode, {ProcurementOrder? editingOrder, String? dashboardFilter}) async {
+    // Security level: กันซ้ำตอน routing จริง — ไม่ใช่แค่ล็อกไอคอนที่ sidebar
+    // เผื่อมีทางเข้าอื่นที่ไม่ผ่านการกดเมนู (shortcut/ปุ่มลัดจากหน้าอื่น ฯลฯ)
+    //
+    // AppMode.newOrder ใช้ร่วมกันทั้งตอน "สร้างโครงการใหม่" (editingOrder ว่าง)
+    // กับ "แก้ไขโครงการเดิม" (editingOrder มีค่า) สองกรณีนี้ต้องการสิทธิ์คนละ
+    // ระดับกัน (procurementCreate vs procurement เฉยๆ) เลยเช็คแยกจาก
+    // requiredModuleFor ปกติตรงนี้ ไม่งั้น Free tier จะแก้ไขโครงการเดิมไม่ได้
+    // เลยทั้งที่ตั้งใจให้ทำได้ (แค่สร้างใหม่ไม่ได้)
+    final requiredModule = newMode == AppMode.newOrder
+        ? (editingOrder == null ? FeatureModules.procurementCreate : FeatureModules.procurement)
+        : requiredModuleFor[newMode];
+    if (requiredModule != null && !FeatureAccessService.instance.hasModule(requiredModule)) {
+      await showUpsellDialog(context, featureLabel: modeMeta[newMode]!.$2, requiredModule: requiredModule);
+      return;
+    }
     // ถ้า AI กำลังทำงานอยู่ (เขียนเหตุผล/อ่านใบเสร็จ/นำเข้าไฟล์แผนงบ) → เตือน
     // ก่อน (สลับหน้า = ทำลาย state ทั้งหมด ผลลัพธ์ที่ AI กำลังจะได้จะหายไป
     // เงียบๆ โดยไม่มีข้อความแจ้งอะไรเลย)
@@ -580,7 +600,7 @@ class _AppShellState extends State<AppShell> {
         title: const Text('เพิ่ม/สลับไปปีงบใหม่'),
         content: SizedBox(
           width: 320,
-          child: TextField(
+          child: ClearableTextField(
             controller: ctrl,
             keyboardType: TextInputType.number,
             autofocus: true,
@@ -632,7 +652,7 @@ class _AppShellState extends State<AppShell> {
                 style: const TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 16),
-              TextField(
+              ClearableTextField(
                 controller: ctrl,
                 keyboardType: TextInputType.number,
                 autofocus: true,
@@ -1303,16 +1323,24 @@ class _AppShellState extends State<AppShell> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Row(
+      body: Column(
         children: [
-          AppSidebar(
-            currentMode: _mode,
-            expanded: _sidebarExpanded,
-            onToggle: () => setState(() => _sidebarExpanded = !_sidebarExpanded),
-            onSelect: (mode) => _requestModeChange(mode),
-          ),
+          if (LicenseService.instance.lastResult?.isGracePeriod == true)
+            LicenseGraceBanner(daysLeft: LicenseService.instance.lastResult!.graceDaysLeft ?? 0),
           Expanded(
-            child: _buildContent(),
+            child: Row(
+              children: [
+                AppSidebar(
+                  currentMode: _mode,
+                  expanded: _sidebarExpanded,
+                  onToggle: () => setState(() => _sidebarExpanded = !_sidebarExpanded),
+                  onSelect: (mode) => _requestModeChange(mode),
+                ),
+                Expanded(
+                  child: _buildContent(),
+                ),
+              ],
+            ),
           ),
         ],
       ),

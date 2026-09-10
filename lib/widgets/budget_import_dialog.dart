@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/budget.dart';
 import '../theme/design_tokens.dart';
 import 'design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import 'design_system/clearable_text_field.dart';
 
 class _EditableBudget {
   final TextEditingController fiscalYear;
@@ -191,7 +192,7 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                 width: 92,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: row.fiscalYear,
                     style: fieldStyle,
                     decoration: const InputDecoration(isDense: true, hintText: 'ปีงบ'),
@@ -202,7 +203,7 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                 flex: 3,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: row.projectName,
                     style: fieldStyle,
                     decoration: const InputDecoration(isDense: true, hintText: 'ชื่อโครงการ'),
@@ -213,7 +214,7 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                 flex: 2,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: row.activityName,
                     style: fieldStyle,
                     decoration: const InputDecoration(isDense: true, hintText: 'กิจกรรม'),
@@ -224,7 +225,7 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                 width: 110,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: row.allocatedAmount,
                     style: fieldStyle,
                     textAlign: TextAlign.right,
@@ -266,7 +267,7 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: TextField(
+                  child: ClearableTextField(
                     controller: row.responsiblePerson,
                     style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
                     decoration: const InputDecoration(

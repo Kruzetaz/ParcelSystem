@@ -20,6 +20,7 @@ import '../services/toast_service.dart';
 import '../services/document_generator.dart';
 import '../services/fiscal_year_controller.dart';
 import '../utils/money_format.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 /// ปุ่มลัดเสริมที่ผู้ใช้เลือกเพิ่ม/ลดเองได้ในเมนูด่วน — แยกจาก 5 ปุ่มพื้นฐาน
 /// (สร้างใหม่/แผนงบ/ตั้งค่า/ตั้งค่า AI/รีเฟรช) ที่บังคับแสดงตลอด
@@ -1327,7 +1328,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      child: TextField(
+      child: ClearableTextField(
         controller: _searchCtrl,
         decoration: InputDecoration(
           hintText: 'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อกิจกรรม / ชื่อร้านค้า',

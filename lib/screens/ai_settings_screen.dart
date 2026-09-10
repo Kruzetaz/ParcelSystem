@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../services/gemini_service.dart';
 import '../services/toast_service.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _geminiApiKeyUrl = 'https://aistudio.google.com/apikey';
 
@@ -397,7 +398,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                TextFormField(
+                ClearableTextField(
                   controller: _geminiApiKeyCtrl,
                   obscureText: !_geminiKeyVisible,
                   style: const TextStyle(fontSize: 17),

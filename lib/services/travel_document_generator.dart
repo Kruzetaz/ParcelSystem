@@ -23,6 +23,7 @@ import '../utils/app_folder_name.dart';
 import '../utils/calc_engine.dart';
 import '../utils/thai_date.dart';
 import 'docx_template_service.dart';
+import 'feature_access_service.dart';
 
 class TravelDocumentGeneratorException implements Exception {
   final String message;
@@ -205,6 +206,13 @@ class TravelDocumentGenerator {
     Personnel? payee,
     Personnel? checker,
   }) async {
+    // Security level: กันซ้ำตรงนี้ด้วย ไม่ใช่เชื่อแค่ว่า UI ล็อกเมนูไว้แล้ว —
+    // เผื่อมีการเรียก service นี้ตรงๆ ข้ามการเช็คที่ sidebar/routing มา
+    if (!FeatureAccessService.instance.hasModule(FeatureModules.travelExpense)) {
+      throw TravelDocumentGeneratorException(
+        'โมดูลเบิกจ่ายเดินทางไปราชการยังไม่ได้ปลดล็อกในแพ็กเกจนี้',
+      );
+    }
     final files = <File>[];
     for (final type in TravelDocumentType.values) {
       final bytes = await _generateBytes(

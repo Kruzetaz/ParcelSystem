@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/procurement_item.dart';
+import 'design_system/clearable_text_field.dart';
 
 class OcrParsedItem {
   final TextEditingController itemName;
@@ -216,7 +217,7 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
             flex: 4,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: ClearableTextField(
                 controller: item.itemName,
                 decoration: const InputDecoration(isDense: true, hintText: 'ชื่อรายการ'),
               ),
@@ -226,7 +227,7 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
             width: 80,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: ClearableTextField(
                 controller: item.quantity,
                 textAlign: TextAlign.right,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -238,7 +239,7 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
             width: 70,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: ClearableTextField(
                 controller: item.unit,
                 decoration: const InputDecoration(isDense: true, hintText: 'หน่วย'),
               ),
@@ -248,7 +249,7 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
             width: 100,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextField(
+              child: ClearableTextField(
                 controller: item.unitPrice,
                 textAlign: TextAlign.right,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),

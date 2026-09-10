@@ -15,6 +15,7 @@ import '../utils/thai_date.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 enum _ChecklistFilter { all, incomplete, complete }
 
@@ -153,7 +154,7 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                ClearableTextField(
                   controller: noteCtrl,
                   maxLines: 3,
                   decoration: InputDecoration(
@@ -229,7 +230,7 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: TextField(
+                        child: ClearableTextField(
                           controller: _searchCtrl,
                           onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(

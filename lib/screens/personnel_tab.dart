@@ -20,6 +20,7 @@ import '../widgets/design_system/data_table_shell.dart'
 import '../widgets/design_system/app_card.dart';
 import '../widgets/design_system/status_badge.dart'
     show StatusBadge, BadgeVariant;
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogLabelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w600);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
@@ -324,7 +325,7 @@ class _PersonnelTabState extends State<PersonnelTab> {
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
+                    child: ClearableTextField(
                       controller: _searchCtrl,
                       style: TextStyle(
                           fontSize: AppTypography.bodyMedium,
@@ -546,7 +547,7 @@ class _PersonnelFormDialogState extends State<_PersonnelFormDialog> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _nameCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'ชื่อ-นามสกุล *', hint: 'เช่น นายสมชาย ใจดี'),
@@ -566,7 +567,7 @@ class _PersonnelFormDialogState extends State<_PersonnelFormDialog> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _phoneCtrl,
                     style: _dialogFieldStyle,
                     keyboardType: TextInputType.phone,
@@ -575,7 +576,7 @@ class _PersonnelFormDialogState extends State<_PersonnelFormDialog> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _emailCtrl,
                     style: _dialogFieldStyle,
                     keyboardType: TextInputType.emailAddress,

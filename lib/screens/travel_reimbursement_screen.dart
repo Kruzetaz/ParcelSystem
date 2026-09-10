@@ -6,10 +6,16 @@
 
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
+import '../models/personnel.dart';
+import '../models/school_settings.dart';
+import '../models/travel_participant.dart';
 import '../models/travel_reimbursement.dart';
+import '../services/travel_document_generator.dart';
+import '../services/toast_service.dart';
 import '../theme/design_tokens.dart';
 import '../utils/money_format.dart';
-import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction, DsColumn, DsTableHeader, DsTableRow, DsCell, DsTwoLineCell, DsAmountCell;
 import '../widgets/design_system/kpi_card.dart';
 import '../widgets/guide_panel.dart';
 import 'travel_reimbursement_wizard_screen.dart';
@@ -20,12 +26,20 @@ class TravelReimbursementScreen extends StatefulWidget {
   State<TravelReimbursementScreen> createState() => _TravelReimbursementScreenState();
 }
 
+const _columns = [
+  DsColumn('เรื่อง / สถานที่', flex: 3),
+  DsColumn('ช่วงวันเดินทาง', width: 180),
+  DsColumn('ยอดรวม', width: 130, align: TextAlign.right),
+  DsColumn('ดำเนินการ', width: 130, align: TextAlign.right),
+];
+
 class _TravelReimbursementScreenState extends State<TravelReimbursementScreen> {
   final _repo = ProcurementRepository();
   bool _loading = true;
   List<TravelReimbursement> _items = [];
   TravelReimbursement? _editing;
   bool _showWizard = false;
+  int? _generatingId;
 
   @override
   void initState() {
@@ -89,6 +103,152 @@ class _TravelReimbursementScreenState extends State<TravelReimbursementScreen> {
     if (confirmed != true || r.id == null) return;
     await _repo.deleteTravelReimbursement(r.id!);
     _load();
+  }
+
+  /// สร้างเอกสารทั้ง 3 ใบตรงจากรายการเลย ไม่ต้องเปิดวิซาร์ดก่อน — ใช้ผู้รับเงิน/
+  /// ผู้ตรวจสอบตามที่บันทึกไว้แล้ว (logic เดียวกับปุ่ม "สร้างเอกสาร Word" ในวิซาร์ด)
+  Future<void> _generateDocumentsFor(TravelReimbursement item) async {
+    if (item.id == null) return;
+    setState(() => _generatingId = item.id);
+    try {
+      final participants = await _repo.getTravelParticipants(item.id!);
+      if (participants.isEmpty) {
+        if (!mounted) return;
+        ToastController.instance.show('ยังไม่มีรายชื่อผู้เดินทาง — เปิดเข้าไปเพิ่มก่อน', isError: true);
+        return;
+      }
+      final school = await _repo.getSchoolSettings() ?? const SchoolSettings();
+      final personnel = await _repo.getAllPersonnel(activeOnly: true);
+      Personnel? findPersonnel(int? id) {
+        if (id == null) return null;
+        for (final p in personnel) {
+          if (p.id == id) return p;
+        }
+        return null;
+      }
+
+      final payee = item.isAdvancePayer ? findPersonnel(item.advancePayerPersonnelId) : findPersonnel(item.requesterPersonnelId);
+      final checker = findPersonnel(item.checkerPersonnelId);
+      final files = await TravelDocumentGenerator.generateAll(
+        reimbursement: item,
+        participants: participants,
+        school: school,
+        payee: payee,
+        checker: checker,
+      );
+      if (!mounted) return;
+      ToastController.instance.show('สร้างเอกสารสำเร็จ ${files.length} ไฟล์');
+      if (files.isNotEmpty) {
+        await TravelDocumentGenerator.openFile(files.first.path);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ToastController.instance.show('สร้างเอกสารไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _generatingId = null);
+    }
+  }
+
+  /// คัดลอกใบเบิกเป็นรายการใหม่พร้อมรายชื่อผู้เดินทางทั้งหมด — ไม่ผูกกับ id เดิม
+  /// เลย (ทั้งใบเบิกและผู้เดินทางแต่ละคน) กันไปทับ/แย่งกับรายการต้นฉบับ
+  Future<void> _duplicate(TravelReimbursement item) async {
+    if (item.id == null) return;
+    try {
+      final participants = await _repo.getTravelParticipants(item.id!);
+      final map = item.toMap();
+      map.remove('id');
+      map['document_number'] =
+          '${(item.documentNumber?.trim().isNotEmpty ?? false) ? item.documentNumber! : "(ไม่มีเลขที่)"} (สำเนา)';
+      map['created_at'] = null;
+      final copy = TravelReimbursement.fromMap(map);
+      final newParticipants = participants
+          .map((p) => TravelParticipant(
+                personnelId: p.personnelId,
+                participantName: p.participantName,
+                position: p.position,
+                allowanceAmount: p.allowanceAmount,
+                accommodationAmount: p.accommodationAmount,
+                transportAmount: p.transportAmount,
+                registrationFee: p.registrationFee,
+              ))
+          .toList();
+      await _repo.saveTravelReimbursementWithParticipants(copy, newParticipants);
+      if (!mounted) return;
+      ToastController.instance.show('คัดลอกใบเบิกแล้ว');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ToastController.instance.show('คัดลอกไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
+  List<Widget> _cellsFor(TravelReimbursement item) {
+    final colors = Theme.of(context).colorScheme;
+    final hasSubject = item.subject?.trim().isNotEmpty ?? false;
+    final dateRange = [item.startDate, item.endDate].where((d) => d != null && d.isNotEmpty).join(' - ');
+    return [
+      DsCell(
+        column: _columns[0],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: BrandAccent.teal(context).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(RadiusSize.sm),
+                ),
+                child: Icon(Icons.card_travel_outlined, size: 16, color: BrandAccent.tealOn(context)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DsTwoLineCell(
+                  primary: hasSubject ? item.subject! : 'ยังไม่ระบุเรื่อง',
+                  secondary: item.destination,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      DsCell(
+        column: _columns[1],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_today_outlined, size: 12, color: colors.onSurfaceVariant),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(dateRange.isEmpty ? '-' : dateRange,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+            ),
+          ],
+        ),
+      ),
+      DsCell(
+        column: _columns[2],
+        child: DsAmountCell(amount: item.totalAmount != null ? '${formatBaht(item.totalAmount)} บาท' : '-'),
+      ),
+      DsCell(
+        column: _columns[3],
+        child: _generatingId == item.id
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            : DsActionIconButtons(
+                actions: [
+                  DsRowAction(icon: Icons.visibility_outlined, tooltip: 'เปิด/แก้ไข', onTap: () => _openExisting(item)),
+                  DsRowAction(icon: Icons.description_outlined, tooltip: 'สร้างเอกสาร Word', onTap: () => _generateDocumentsFor(item)),
+                  DsRowAction(icon: Icons.copy_all_outlined, tooltip: 'คัดลอกใบเบิก', onTap: () => _duplicate(item)),
+                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _delete(item), danger: true),
+          ],
+        ),
+      ),
+    ];
   }
 
   @override
@@ -185,13 +345,29 @@ class _TravelReimbursementScreenState extends State<TravelReimbursementScreen> {
                                   ],
                                 ),
                               )
-                            : ListView.separated(
-                                itemCount: _items.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                itemBuilder: (context, i) => _ReimbursementRow(
-                                  item: _items[i],
-                                  onTap: () => _openExisting(_items[i]),
-                                  onDelete: () => _delete(_items[i]),
+                            : Container(
+                                decoration: BoxDecoration(
+                                  color: colors.surface,
+                                  borderRadius: BorderRadius.circular(RadiusSize.card),
+                                  border: Border.all(color: colors.outline),
+                                  boxShadow: AppShadows.light1,
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    DsTableHeader(columns: _columns),
+                                    Expanded(
+                                      child: ListView.builder(
+                                        itemCount: _items.length,
+                                        itemBuilder: (context, i) => DsTableRow(
+                                          index: i,
+                                          onTap: () => _openExisting(_items[i]),
+                                          cells: _cellsFor(_items[i]),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                       ),
@@ -240,108 +416,3 @@ class _TravelReimbursementScreenState extends State<TravelReimbursementScreen> {
   }
 }
 
-class _ReimbursementRow extends StatelessWidget {
-  final TravelReimbursement item;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
-
-  const _ReimbursementRow({required this.item, required this.onTap, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final hasSubject = item.subject?.trim().isNotEmpty ?? false;
-    final dateRange = [item.startDate, item.endDate].where((d) => d != null && d.isNotEmpty).join(' - ');
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(RadiusSize.card),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(RadiusSize.card),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(RadiusSize.card),
-            border: Border.all(color: colors.outline),
-            boxShadow: AppShadows.light1,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: BrandAccent.teal(context).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(RadiusSize.md),
-                ),
-                child: Icon(Icons.card_travel_outlined, size: 20, color: BrandAccent.tealOn(context)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(hasSubject ? item.subject! : 'ยังไม่ระบุเรื่อง',
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: AppTypography.weightSemiBold,
-                          fontSize: AppTypography.body,
-                          color: hasSubject ? colors.onSurface : colors.onSurfaceVariant,
-                          fontStyle: hasSubject ? FontStyle.normal : FontStyle.italic,
-                        )),
-                    if (item.destination?.isNotEmpty ?? false) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(Icons.place_outlined, size: 13, color: colors.onSurfaceVariant),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(item.destination!,
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (dateRange.isNotEmpty)
-                Expanded(
-                  flex: 2,
-                  child: Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 13, color: colors.onSurfaceVariant),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(dateRange,
-                            maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 120,
-                child: Text(
-                  item.totalAmount != null ? '${formatBaht(item.totalAmount)} บาท' : '-',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(fontWeight: AppTypography.weightBold, color: colors.primary),
-                ),
-              ),
-              const SizedBox(width: 4),
-              DsActionIconButtons(
-                actions: [
-                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: onDelete, danger: true),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

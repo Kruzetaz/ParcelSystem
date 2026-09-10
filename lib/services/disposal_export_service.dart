@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/disposal.dart';
 import '../models/fixed_asset.dart';
 import '../utils/app_folder_name.dart';
+import 'feature_access_service.dart';
 
 class DisposalExportService {
   /// [assetsById] ใช้แปลง assetId ที่ผูกไว้ (ถ้ามี) เป็นเลขครุภัณฑ์/ชื่อรายการ
@@ -58,6 +59,7 @@ class DisposalExportService {
   }
 
   static Future<void> exportAndOpen(List<Disposal> disposals, Map<int, FixedAsset> assetsById) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'จำหน่ายพัสดุ');
     final file = await export(disposals, assetsById);
     await _openFile(file.path);
   }

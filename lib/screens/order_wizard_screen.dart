@@ -34,6 +34,7 @@ import '../widgets/receipt_ocr_dialog.dart';
 import '../widgets/thai_date_picker.dart';
 import 'personnel_tab.dart';
 import 'settings_screen.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 // สไตล์ dialog มาตรฐานของทั้งแอป (เหมือนกับ guarantees_screen.dart /
 // disposals_screen.dart ฯลฯ) — ใช้กับ dialog "เพิ่มแผนงบประมาณแบบด่วน" ใน Tab 1
@@ -399,7 +400,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
         // เส้นใต้บางๆ (มองว่าเป็นแท็บได้ยาก) เป็นปุ่มแคปซูลเห็นชัดว่ากดได้ทีละ
         // ขั้นตอน มีเลขกำกับลำดับ 1-5 ให้รู้ว่าต้องกรอกตามลำดับไหน
         Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
           decoration: BoxDecoration(
             color: colors.surface,
             border: Border(bottom: BorderSide(color: colors.outline)),
@@ -418,8 +419,9 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
             ),
             labelColor: Colors.white,
             unselectedLabelColor: colors.onSurfaceVariant,
-            labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+            labelPadding: EdgeInsets.zero,
+            labelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+            unselectedLabelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
             tabs: [
               _wizardStepTab(1, 'โรงเรียน/งบประมาณ'),
               _wizardStepTab(2, 'ผู้ปฏิบัติงาน'),
@@ -509,21 +511,22 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
   /// ตามสถานะเลือกอัตโนมัติโดยไม่ต้องเช็ค _tabController.index เอง
   Widget _wizardStepTab(int step, String label) {
     return Tab(
+      height: 34,
       child: Builder(builder: (context) {
         final fg = DefaultTextStyle.of(context).style.color ?? Colors.white;
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 18,
-                height: 18,
+                width: 15,
+                height: 15,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: fg, width: 1.3)),
-                child: Text('$step', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: fg, height: 1)),
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: fg, width: 1.2)),
+                child: Text('$step', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: fg, height: 1)),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(label),
             ],
           ),
@@ -647,25 +650,25 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              ClearableTextField(
                 controller: yearCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dialogFieldDecoration(context, label: 'ปีงบประมาณ (พ.ศ.)'),
               ),
               const SizedBox(height: 14),
-              TextField(
+              ClearableTextField(
                 controller: projCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dialogFieldDecoration(context, label: 'ชื่อโครงการ'),
               ),
               const SizedBox(height: 14),
-              TextField(
+              ClearableTextField(
                 controller: actCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dialogFieldDecoration(context, label: 'ชื่อกิจกรรม'),
               ),
               const SizedBox(height: 14),
-              TextField(
+              ClearableTextField(
                 controller: amountCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dialogFieldDecoration(context, label: 'งบประมาณจัดสรร (บาท)'),
@@ -986,7 +989,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _procurementNumberCtrl,
                     decoration: _inputDecoration('เลขที่จัดซื้อ', hint: 'เช่น ซ.1/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementNumber: v)),
@@ -994,7 +997,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _orderNumberCtrl,
                     decoration: _inputDecoration('เลขที่คำสั่ง', hint: 'เช่น คำสั่งที่ 15/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(orderNumber: v)),
@@ -1003,7 +1006,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               ],
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            ClearableTextField(
               controller: _egpProjectIdCtrl,
               decoration: _inputDecoration('เลขที่โครงการ e-GP', hint: 'auto-fill จากแผนงบ แก้ไขเองได้'),
               onChanged: (v) => widget.onChanged((d) => d.copyWith(egpProjectId: v)),
@@ -1031,7 +1034,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _projectNumberCtrl,
                     decoration: _inputDecoration('เลขที่โครงการ (ทะเบียนคุมภายใน)', hint: 'เช่น 001/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(projectNumber: v)),
@@ -1041,7 +1044,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             ),
             if (_fundType == 'อื่นๆ') ...[
               const SizedBox(height: 16),
-              TextFormField(
+              ClearableTextField(
                 controller: _fundTypeOtherCtrl,
                 decoration: _inputDecoration('ระบุประเภทของเงิน', hint: 'เช่น เงินอุดหนุนรายหัว'),
                 onChanged: (v) => widget.onChanged((d) => d.copyWith(fundType: v)),
@@ -1089,7 +1092,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 ),
               ],
             ),
-            TextFormField(
+            ClearableTextField(
               controller: _purposeReasonCtrl,
               decoration: _inputDecoration('เหตุผลความจำเป็น', hint: 'เช่น เพื่อใช้ในการจัดการเรียนการสอนให้มีประสิทธิภาพ'),
               maxLines: 4,
@@ -1150,7 +1153,7 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   }
 
   Widget _readonlyMoneyField(String label, double? value) {
-    return TextFormField(
+    return ClearableTextField(
       key: ValueKey('$label-$value'),
       readOnly: true,
       initialValue: value == null ? '-' : '${formatBaht(value)} บาท',
@@ -2035,7 +2038,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _deliveryDocNumberCtrl,
                     decoration: _inputDecoration('เลขที่เอกสารหลักฐาน', hint: 'เช่น เลขที่ 001'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocNumber: v)),
@@ -2049,7 +2052,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _vatRateCtrl,
                     decoration: _inputDecoration('VAT (%)').copyWith(
                       suffixText: '%',
@@ -2068,7 +2071,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 const SizedBox(width: 8),
                 SizedBox(
                   width: 110,
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _vatAmountCtrl,
                     decoration: _inputDecoration('จำนวนเงิน').copyWith(isDense: true, hintText: 'บาท'),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -2077,7 +2080,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _withholdingRateCtrl,
                     decoration: _inputDecoration('หัก ณ ที่จ่าย (%)').copyWith(
                       suffixText: '%',
@@ -2096,7 +2099,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 const SizedBox(width: 8),
                 SizedBox(
                   width: 110,
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _withholdingAmountCtrl,
                     decoration: _inputDecoration('จำนวนเงิน').copyWith(isDense: true, hintText: 'บาท'),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -2118,7 +2121,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _shippingDaysCtrl,
                     decoration: _inputDecoration('ระยะเวลาส่งมอบ (วัน)').copyWith(
                       helperText: 'ระบบจะคำนวณ "วันครบกำหนดส่งมอบ" ในแท็บ 5 ให้อัตโนมัติ',
@@ -2132,7 +2135,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _warrantyPeriodCtrl,
                     decoration: _inputDecoration('ระยะเวลาประกัน', hint: 'เช่น 1 ปี'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(warrantyPeriod: v)),
@@ -2141,7 +2144,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               ],
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            ClearableTextField(
               controller: _penaltyRateCtrl,
               decoration: _inputDecoration('อัตราค่าปรับต่อวัน').copyWith(
                 hintText: 'เช่น 0.10 หรือ 0.20',
@@ -2160,7 +2163,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _contractControlNumberCtrl,
                     decoration: _inputDecoration('เลขที่ควบคุมสัญญา', hint: 'เช่น สัญญาที่ 5/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(contractControlNumber: v)),
@@ -2168,7 +2171,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _inspectionControlNumberCtrl,
                     decoration: _inputDecoration('เลขที่ควบคุมการตรวจรับ', hint: 'เช่น ตรวจรับที่ 5/2569'),
                     onChanged: (v) => widget.onChanged((d) => d.copyWith(inspectionControlNumber: v)),
@@ -2565,7 +2568,7 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
                   for (int i = 0; i < _fields.length; i++)
                     SizedBox(
                       width: itemWidth,
-                      child: TextFormField(
+                      child: ClearableTextField(
                         controller: _controllers[i],
                         readOnly: true,
                         decoration: _inputDecoration(_fields[i].label).copyWith(

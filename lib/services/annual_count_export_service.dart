@@ -6,6 +6,7 @@ import 'package:excel/excel.dart' as xls;
 import 'package:path_provider/path_provider.dart';
 import '../models/annual_count.dart';
 import '../utils/app_folder_name.dart';
+import 'feature_access_service.dart';
 
 class AnnualCountExportService {
   static Future<File> export(List<AnnualCount> counts) async {
@@ -56,6 +57,7 @@ class AnnualCountExportService {
   }
 
   static Future<void> exportAndOpen(List<AnnualCount> counts) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'ตรวจนับพัสดุประจำปี');
     final file = await export(counts);
     await _openFile(file.path);
   }

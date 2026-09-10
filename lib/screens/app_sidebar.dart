@@ -27,7 +27,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/feature_access_service.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/upsell_dialog.dart';
 
 // เดิม 212 กว้างเกินไปสำหรับป้ายสั้นๆ (เหลือพื้นที่ว่างขวามือเยอะ) แต่ 196
 // แคบไปสำหรับป้ายยาวสุด ("ทะเบียนคุมเลขบันทึก/TOR", "สัญญาต่อเนื่องหลายงวด")
@@ -73,6 +75,40 @@ const Map<AppMode, (IconData, String)> modeMeta = {
   AppMode.reports: (Icons.bar_chart_outlined, 'รายงาน/สตง.'),
   AppMode.aiSettings: (Icons.auto_awesome_outlined, 'ตั้งค่า AI'),
   AppMode.settings: (Icons.settings_outlined, 'ตั้งค่าโรงเรียน'),
+};
+
+/// เมนูไหนต้องมีโมดูลอะไรถึงจะเข้าได้ — ไม่อยู่ในนี้ = ใช้ได้เสมอ (ตอนนี้เหลือ
+/// แค่ "ตั้งค่าโรงเรียน" ที่ตั้งใจไม่ล็อก ต้องเข้าได้เสมอไม่ว่าแพ็กเกจไหน เพราะ
+/// เป็นข้อมูลพื้นฐานของระบบ ไม่ใช่ฟีเจอร์ที่ขายแยก) ใช้ทั้งที่นี่ (ล็อกไอคอนเมนู)
+/// และที่ app_shell.dart (กันซ้ำตอน routing จริง)
+const Map<AppMode, String> requiredModuleFor = {
+  AppMode.dashboard: FeatureModules.procurement,
+  AppMode.procurementCalendar: FeatureModules.procurement,
+  // เมนู "สร้างใหม่"/"Easy Wizard" ในแถบเมนูกดแล้วสร้างโครงการใหม่เสมอ (ไม่ใช่
+  // ทางเข้าแก้ไขโครงการเดิม) เลยล็อกด้วย procurementCreate ตรงนี้ — ส่วนการ
+  // แก้ไขโครงการเดิม (คลิกจากแถวในตาราง) ไปเช็คแยกที่ app_shell.dart แทน เพราะ
+  // ใช้ AppMode.newOrder ร่วมกันแต่สิทธิ์ต่างกันตามว่าสร้างใหม่หรือแก้ของเดิม
+  AppMode.newOrder: FeatureModules.procurementCreate,
+  AppMode.easyWizard: FeatureModules.procurementCreate,
+  AppMode.budgets: FeatureModules.procurement,
+  AppMode.tor: FeatureModules.procurement,
+  AppMode.documentHub: FeatureModules.procurement,
+  AppMode.orderRegister: FeatureModules.procurement,
+  AppMode.controlLog: FeatureModules.procurement,
+  AppMode.documentChecklist: FeatureModules.procurement,
+  AppMode.contracts: FeatureModules.contractManagement,
+  AppMode.guarantees: FeatureModules.contractManagement,
+  AppMode.inspections: FeatureModules.contractManagement,
+  AppMode.installmentContracts: FeatureModules.contractManagement,
+  AppMode.fixedAssets: FeatureModules.assetManagement,
+  AppMode.repairHistory: FeatureModules.assetManagement,
+  AppMode.materials: FeatureModules.assetManagement,
+  AppMode.learningMaterials: FeatureModules.assetManagement,
+  AppMode.annualCount: FeatureModules.assetManagement,
+  AppMode.disposals: FeatureModules.assetManagement,
+  AppMode.reports: FeatureModules.reports,
+  AppMode.travelReimbursement: FeatureModules.travelExpense,
+  AppMode.aiSettings: FeatureModules.aiFeatures,
 };
 
 class _SidebarSection {
@@ -368,13 +404,18 @@ class _AppSidebarState extends State<AppSidebar> {
   /// จะไม่ส่งพารามิเตอร์นี้มา จึงไม่มีด้ามจับ/ลากไม่ได้ตามที่ตั้งใจ
   Widget _buildItem(AppMode mode, {Key? key, int? dragIndex}) {
     final meta = modeMeta[mode]!;
+    final requiredModule = requiredModuleFor[mode];
+    final locked = requiredModule != null && !FeatureAccessService.instance.hasModule(requiredModule);
     final row = _SidebarItemTile(
       icon: meta.$1,
       label: meta.$2,
       isSelected: widget.currentMode == mode,
       expanded: widget.expanded,
       dragIndex: dragIndex,
-      onTap: () => widget.onSelect(mode),
+      locked: locked,
+      onTap: () => locked
+          ? showUpsellDialog(context, featureLabel: meta.$2, requiredModule: requiredModule)
+          : widget.onSelect(mode),
     );
     return key != null ? KeyedSubtree(key: key, child: row) : row;
   }
@@ -490,6 +531,7 @@ class _SidebarItemTile extends StatefulWidget {
   final bool isSelected;
   final bool expanded;
   final int? dragIndex;
+  final bool locked;
   final VoidCallback onTap;
 
   const _SidebarItemTile({
@@ -498,6 +540,7 @@ class _SidebarItemTile extends StatefulWidget {
     required this.isSelected,
     required this.expanded,
     required this.dragIndex,
+    this.locked = false,
     required this.onTap,
   });
 
@@ -510,12 +553,14 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isSelected ? _RailColors.selectedText : _RailColors.text;
+    final fg = widget.locked
+        ? _RailColors.textDim
+        : (widget.isSelected ? _RailColors.selectedText : _RailColors.text);
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: Tooltip(
-        message: widget.expanded ? '' : widget.label,
+        message: widget.expanded ? '' : (widget.locked ? '${widget.label} (ต้องอัปเกรดแพ็กเกจ)' : widget.label),
         preferBelow: false,
         child: InkWell(
           onTap: widget.onTap,
@@ -580,7 +625,23 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(widget.icon, color: fg, size: 18),
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: widget.locked
+                          ? Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Icon(widget.icon, color: fg, size: 18),
+                                Positioned(
+                                  right: -2,
+                                  bottom: -2,
+                                  child: Icon(Icons.lock, color: BrandColors.amber, size: 11),
+                                ),
+                              ],
+                            )
+                          : Icon(widget.icon, color: fg, size: 18),
+                    ),
                     ClipRect(
                       child: AnimatedContainer(
                         duration: _sidebarAnimDuration,

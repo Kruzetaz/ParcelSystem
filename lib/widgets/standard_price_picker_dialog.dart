@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import '../services/standard_price_service.dart';
 import '../utils/money_format.dart';
+import 'design_system/clearable_text_field.dart';
 
 Future<StandardPriceItem?> showStandardPricePickerDialog(BuildContext context) {
   return showDialog<StandardPriceItem>(
@@ -72,7 +73,7 @@ class _StandardPricePickerDialogState extends State<_StandardPricePickerDialog> 
                 style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
-              TextField(
+              ClearableTextField(
                 controller: _searchCtrl,
                 autofocus: true,
                 decoration: const InputDecoration(

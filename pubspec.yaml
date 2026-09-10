@@ -23,6 +23,7 @@ dependencies:
   http: ^1.2.0
   shared_preferences: ^2.2.0 # state management
   excel: ^4.0.3 # อ่านไฟล์ .xlsx สำหรับ Import แผนงบประมาณ
+  pointycastle: ^3.9.1 # ตรวจ digital signature (RSA-SHA256) ของ license token แบบออฟไลน์
 
 flutter:
   uses-material-design: true

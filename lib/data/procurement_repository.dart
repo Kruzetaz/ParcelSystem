@@ -27,10 +27,27 @@ import '../models/learning_material_grade.dart';
 import '../models/travel_reimbursement.dart';
 import '../models/travel_participant.dart';
 import '../services/audit_service.dart';
+import '../services/feature_access_service.dart';
 import 'database.dart';
+
+class LicenseFeatureLockedException implements Exception {
+  final String message;
+  LicenseFeatureLockedException(this.message);
+  @override
+  String toString() => message;
+}
 
 class ProcurementRepository {
   final _db = AppDatabase.instance;
+
+  /// เช็คสิทธิ์โมดูลก่อนบันทึกข้อมูลจริง — กันซ้ำที่ชั้นนี้ด้วย ไม่ใช่เชื่อแค่
+  /// ว่า UI ล็อกเมนู/routing กันไว้แล้วเท่านั้น (เผื่อมีการเรียก repository นี้
+  /// ตรงๆ ข้ามการเช็คที่ sidebar/app_shell มา)
+  void _requireModule(String moduleKey, String moduleLabel) {
+    if (!FeatureAccessService.instance.hasModule(moduleKey)) {
+      throw LicenseFeatureLockedException('โมดูล$moduleLabelยังไม่ได้ปลดล็อกในแพ็กเกจนี้');
+    }
+  }
 
   // ─────────────────────────────────────────
   // VENDORS (ร้านค้า/คู่ค้าที่เคยกรอกไว้ — เลือกใช้ซ้ำได้)
@@ -292,6 +309,7 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   Future<int> insertContract(Contract contract) async {
+    _requireModule(FeatureModules.contractManagement, 'บริหารสัญญา');
     final db = await _db.database;
     final id = await db.insert('contracts', contract.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'บริหารสัญญา', description: contract.contractNumber ?? 'สัญญา #$id');
@@ -299,6 +317,7 @@ class ProcurementRepository {
   }
 
   Future<void> updateContract(Contract contract) async {
+    _requireModule(FeatureModules.contractManagement, 'บริหารสัญญา');
     final db = await _db.database;
     await db.update(
       'contracts',
@@ -338,6 +357,7 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   Future<int> insertGuarantee(Guarantee g) async {
+    _requireModule(FeatureModules.contractManagement, 'หลักประกัน');
     final db = await _db.database;
     final id = await db.insert('guarantees', g.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'หลักประกัน', description: g.counterpartyName ?? 'หลักประกัน #$id');
@@ -345,6 +365,7 @@ class ProcurementRepository {
   }
 
   Future<void> updateGuarantee(Guarantee g) async {
+    _requireModule(FeatureModules.contractManagement, 'หลักประกัน');
     final db = await _db.database;
     await db.update('guarantees', g.toMap(), where: 'id = ?', whereArgs: [g.id]);
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'หลักประกัน', description: g.counterpartyName ?? 'หลักประกัน #${g.id}');
@@ -380,6 +401,7 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   Future<int> insertInspection(Inspection i) async {
+    _requireModule(FeatureModules.contractManagement, 'ตรวจรับพัสดุ');
     final db = await _db.database;
     final id = await db.insert('inspections', i.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'ตรวจรับพัสดุ', description: i.inspectionNumber ?? 'ตรวจรับ #$id');
@@ -387,6 +409,7 @@ class ProcurementRepository {
   }
 
   Future<void> updateInspection(Inspection i) async {
+    _requireModule(FeatureModules.contractManagement, 'ตรวจรับพัสดุ');
     final db = await _db.database;
     await db.update('inspections', i.toMap(), where: 'id = ?', whereArgs: [i.id]);
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ตรวจรับพัสดุ', description: i.inspectionNumber ?? 'ตรวจรับ #${i.id}');
@@ -420,6 +443,7 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   Future<int> insertFixedAsset(FixedAsset a) async {
+    _requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
     final db = await _db.database;
     final id = await db.insert('fixed_assets', a.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'ทะเบียนครุภัณฑ์', description: a.name);
@@ -427,6 +451,7 @@ class ProcurementRepository {
   }
 
   Future<void> updateFixedAsset(FixedAsset a) async {
+    _requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
     final db = await _db.database;
     await db.update('fixed_assets', a.toMap(), where: 'id = ?', whereArgs: [a.id]);
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ทะเบียนครุภัณฑ์', description: a.name);
@@ -445,6 +470,7 @@ class ProcurementRepository {
   }
 
   Future<int> insertAssetEvent(AssetEvent e) async {
+    _requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
     final db = await _db.database;
     return db.insert('asset_events', e.toMap());
   }
@@ -481,6 +507,7 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   Future<int> insertMaterial(MaterialItem m) async {
+    _requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
     final db = await _db.database;
     final id = await db.insert('materials', m.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'วัสดุ/คลังพัสดุ', description: m.name);
@@ -488,6 +515,7 @@ class ProcurementRepository {
   }
 
   Future<void> updateMaterial(MaterialItem m) async {
+    _requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
     final db = await _db.database;
     await db.update('materials', m.toMap(), where: 'id = ?', whereArgs: [m.id]);
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'วัสดุ/คลังพัสดุ', description: m.name);
@@ -508,6 +536,7 @@ class ProcurementRepository {
   /// บันทึกประวัติรับเข้า/เบิกจ่ายทีละรายการ (บัตรคุมสต๊อก) — เรียกคู่กับการ
   /// อัปเดต stock_in/stock_out สะสมใน MaterialItem เสมอ ไม่ใช้แทนกัน
   Future<int> insertMaterialTransaction(MaterialTransaction t) async {
+    _requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
     final db = await _db.database;
     final id = await db.insert('material_transactions', t.toMap());
     await AuditService.instance.log(
@@ -548,6 +577,7 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   Future<int> insertAnnualCount(AnnualCount a) async {
+    _requireModule(FeatureModules.assetManagement, 'ตรวจนับพัสดุประจำปี');
     final db = await _db.database;
     final id = await db.insert('annual_counts', a.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'ตรวจนับพัสดุประจำปี', description: 'ปี ${a.fiscalYear}');
@@ -555,6 +585,7 @@ class ProcurementRepository {
   }
 
   Future<void> updateAnnualCount(AnnualCount a) async {
+    _requireModule(FeatureModules.assetManagement, 'ตรวจนับพัสดุประจำปี');
     final db = await _db.database;
     await db.update('annual_counts', a.toMap(), where: 'id = ?', whereArgs: [a.id]);
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'ตรวจนับพัสดุประจำปี', description: 'ปี ${a.fiscalYear}');
@@ -577,6 +608,7 @@ class ProcurementRepository {
   // ─────────────────────────────────────────
 
   Future<int> insertDisposal(Disposal d) async {
+    _requireModule(FeatureModules.assetManagement, 'จำหน่ายพัสดุ');
     final db = await _db.database;
     final id = await db.insert('disposals', d.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'จำหน่ายพัสดุ', description: d.itemName ?? 'จำหน่าย #$id');
@@ -584,6 +616,7 @@ class ProcurementRepository {
   }
 
   Future<void> updateDisposal(Disposal d) async {
+    _requireModule(FeatureModules.assetManagement, 'จำหน่ายพัสดุ');
     final db = await _db.database;
     await db.update('disposals', d.toMap(), where: 'id = ?', whereArgs: [d.id]);
     await AuditService.instance.log(db, action: 'แก้ไข', tableLabel: 'จำหน่ายพัสดุ', description: d.itemName ?? 'จำหน่าย #${d.id}');
@@ -626,6 +659,7 @@ class ProcurementRepository {
 
   /// บันทึกออร์เดอร์ใหม่ คืนค่า id ที่ SQLite generate ให้ (ใช้ผูก items ต่อ)
   Future<int> insertOrder(ProcurementOrder order) async {
+    _requireModule(FeatureModules.procurementCreate, 'สร้างโครงการจัดซื้อจัดจ้างใหม่');
     final db = await _db.database;
     final id = await db.insert('procurement_orders', order.toMap());
     await AuditService.instance.log(db, action: 'สร้าง', tableLabel: 'จัดซื้อจัดจ้าง', description: order.projectName ?? 'เอกสาร #$id');
@@ -852,6 +886,13 @@ class ProcurementRepository {
     ProcurementOrder order,
     List<ProcurementItem> items,
   ) async {
+    // Security level: กันซ้ำที่ชั้นนี้ด้วย — สิทธิ์ "ดู/แก้ไข/ส่งออกโครงการเดิม"
+    // (PROCUREMENT) กับ "สร้างโครงการใหม่" (PROCUREMENT_CREATE) เป็นคนละสิทธิ์กัน
+    // เจตนา เช็คเฉพาะตอน insert ใหม่จริงๆ เท่านั้น (order.id == null) ไม่กระทบ
+    // การแก้ไขโครงการเดิมที่มี id อยู่แล้ว
+    if (order.id == null) {
+      _requireModule(FeatureModules.procurementCreate, 'สร้างโครงการจัดซื้อจัดจ้างใหม่');
+    }
     final db = await _db.database;
     return db.transaction((txn) async {
       late final int orderId;
@@ -1148,6 +1189,7 @@ class ProcurementRepository {
   }
 
   Future<int> saveInstallment(ProcurementInstallment installment) async {
+    _requireModule(FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
     final db = await _db.database;
     if (installment.id == null) {
       final id = await db.insert('procurement_installments', installment.toMap());
@@ -1248,6 +1290,7 @@ class ProcurementRepository {
   /// บันทึกยอดของ (สาขา, หมวดหมู่, ชั้น) เดียว — insert ถ้ายังไม่เคยมี หรือ
   /// update ทับถ้ามีอยู่แล้ว (unique key คือ branch_id+category+grade_level)
   Future<void> upsertLearningMaterialRecord(LearningMaterialRecord r) async {
+    _requireModule(FeatureModules.assetManagement, 'หนังสือเรียน/อุปกรณ์การเรียน');
     final db = await _db.database;
     final existing = await db.query(
       'learning_material_records',
@@ -1325,6 +1368,11 @@ class ProcurementRepository {
     TravelReimbursement reimbursement,
     List<TravelParticipant> participants,
   ) async {
+    // Security level: กันซ้ำที่ชั้นบันทึกข้อมูลจริงด้วย ไม่ใช่เชื่อแค่ว่า UI
+    // ล็อกเมนู/routing กันไว้แล้วเท่านั้น
+    if (!FeatureAccessService.instance.hasModule(FeatureModules.travelExpense)) {
+      throw LicenseFeatureLockedException('โมดูลเบิกจ่ายเดินทางไปราชการยังไม่ได้ปลดล็อกในแพ็กเกจนี้');
+    }
     final db = await _db.database;
     return db.transaction((txn) async {
       late final int reimbursementId;

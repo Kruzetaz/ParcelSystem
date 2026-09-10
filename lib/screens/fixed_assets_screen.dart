@@ -23,6 +23,7 @@ import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
 import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant, DSFilterChip;
 import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
@@ -782,7 +783,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('บันทึกประวัติซ่อมแซม', style: _dialogTitleStyle),
-        content: TextField(
+        content: ClearableTextField(
           controller: descCtrl,
           autofocus: true,
           maxLines: 3,
@@ -816,7 +817,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('โอนย้ายสถานที่', style: _dialogTitleStyle),
-        content: TextField(
+        content: ClearableTextField(
           controller: locCtrl,
           autofocus: true,
           style: _dialogFieldStyle,
@@ -1221,7 +1222,7 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
   Widget _field(TextEditingController ctrl, String label, {bool required = false, TextInputType? keyboardType, String? hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
-      child: TextFormField(
+      child: ClearableTextField(
         controller: ctrl,
         style: _dialogFieldStyle,
         keyboardType: keyboardType,

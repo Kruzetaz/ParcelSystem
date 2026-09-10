@@ -20,6 +20,7 @@ import '../widgets/design_system/data_table_shell.dart'
 import '../widgets/design_system/app_card.dart';
 import '../widgets/design_system/status_badge.dart'
     show StatusBadge, BadgeVariant;
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogLabelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w600);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
@@ -263,7 +264,7 @@ class _VendorManagementTabState extends State<VendorManagementTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
+              ClearableTextField(
                 controller: _searchCtrl,
                 style: TextStyle(
                     fontSize: AppTypography.bodyMedium,
@@ -511,7 +512,7 @@ class _VendorFormDialogState extends State<_VendorFormDialog> {
               controller: ctrl,
               decoration: decoration,
             )
-          : TextFormField(
+          : ClearableTextField(
               controller: ctrl,
               style: _dialogFieldStyle,
               decoration: decoration,

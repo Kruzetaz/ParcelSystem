@@ -21,6 +21,7 @@ import '../widgets/design_system/data_table_shell.dart'
 import '../widgets/design_system/app_card.dart';
 import '../widgets/design_system/status_badge.dart'
     show StatusBadge, BadgeVariant;
+import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogLabelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w600);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
@@ -384,7 +385,7 @@ class _WorkGroupFormDialogState extends State<_WorkGroupFormDialog> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: TextFormField(
+                  child: ClearableTextField(
                     controller: _nameCtrl,
                     style: _dialogFieldStyle,
                     decoration: _dialogFieldDecoration(context, label: 'ชื่อกลุ่มงาน/ฝ่าย *', hint: 'เช่น ฝ่ายบริหารงานทั่วไป'),

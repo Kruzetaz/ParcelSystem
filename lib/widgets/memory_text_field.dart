@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/field_memory_service.dart';
+import 'design_system/hover_clear_button.dart';
 
 class MemoryTextField extends StatefulWidget {
   final String fieldKey;
@@ -89,15 +90,24 @@ class _MemoryTextFieldState extends State<MemoryTextField> {
         widget.onChanged?.call(v);
       },
       fieldViewBuilder: (context, textCtrl, focusNode, onFieldSubmitted) {
-        return TextFormField(
-          controller: textCtrl,
-          focusNode: focusNode,
-          decoration: widget.decoration,
-          keyboardType: widget.keyboardType,
-          maxLines: widget.maxLines,
-          enabled: widget.enabled,
-          onChanged: widget.onChanged,
-          onFieldSubmitted: (_) => onFieldSubmitted(),
+        return HoverBuilder(
+          builder: (context, hovering) => TextFormField(
+            controller: textCtrl,
+            focusNode: focusNode,
+            decoration: (widget.decoration ?? const InputDecoration()).copyWith(
+              suffixIcon: hovering && textCtrl.text.isNotEmpty
+                  ? clearIconButton(context, () {
+                      textCtrl.clear();
+                      widget.onChanged?.call('');
+                    })
+                  : widget.decoration?.suffixIcon,
+            ),
+            keyboardType: widget.keyboardType,
+            maxLines: widget.maxLines,
+            enabled: widget.enabled,
+            onChanged: widget.onChanged,
+            onFieldSubmitted: (_) => onFieldSubmitted(),
+          ),
         );
       },
       optionsViewBuilder: (context, onSelected, options) {

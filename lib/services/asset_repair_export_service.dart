@@ -6,6 +6,7 @@ import 'package:excel/excel.dart' as xls;
 import 'package:path_provider/path_provider.dart';
 import '../models/asset_repair_entry.dart';
 import '../utils/app_folder_name.dart';
+import 'feature_access_service.dart';
 
 class AssetRepairExportService {
   static Future<File> export(List<AssetRepairEntry> entries) async {
@@ -50,6 +51,7 @@ class AssetRepairExportService {
   }
 
   static Future<void> exportAndOpen(List<AssetRepairEntry> entries) async {
+    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'ประวัติซ่อมครุภัณฑ์');
     final file = await export(entries);
     await _openFile(file.path);
   }

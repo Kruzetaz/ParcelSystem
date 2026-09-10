@@ -13,6 +13,7 @@ import '../widgets/design_system/app_card.dart';
 import 'personnel_tab.dart';
 import 'work_groups_tab.dart';
 import 'vendor_management_tab.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -219,7 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: ClearableTextField(
                             controller: _currentUserCtrl,
                             style: const TextStyle(fontSize: 17),
                             decoration: _inputDecoration('ชื่อผู้ใช้งาน', hint: 'เช่น นายสมชาย ใจดี'),
@@ -252,13 +253,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium, height: 1.4),
                     ),
                     const SizedBox(height: 20),
-                    TextFormField(
+                    ClearableTextField(
                       controller: _schoolNameCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('ชื่อโรงเรียน', hint: 'เช่น โรงเรียนบ้านป่าเลา'),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    ClearableTextField(
                       controller: _schoolAddressNoCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่', hint: 'เช่น 123 หมู่ 4'),
@@ -267,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: ClearableTextField(
                             controller: _schoolSubdistrictCtrl,
                             style: const TextStyle(fontSize: 17),
                             decoration: _inputDecoration('ตำบล/แขวง', hint: 'เช่น ในเมือง'),
@@ -275,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: TextFormField(
+                          child: ClearableTextField(
                             controller: _schoolAmphoeCtrl,
                             style: const TextStyle(fontSize: 17),
                             decoration: _inputDecoration('อำเภอ/เขต', hint: 'เช่น เมืองลำพูน'),
@@ -284,13 +285,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ],
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    ClearableTextField(
                       controller: _schoolChangwatCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    ClearableTextField(
                       controller: _schoolPhoneCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('เบอร์โทรโรงเรียน', hint: 'เช่น 053-511111'),
@@ -313,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    ClearableTextField(
                       controller: _directorNameCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('ผู้อำนวยการโรงเรียน', hint: 'เช่น นายสมชาย ใจดี'),
@@ -322,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: ClearableTextField(
                             controller: _procurementOfficerCtrl,
                             style: const TextStyle(fontSize: 17),
                             decoration: _inputDecoration('เจ้าหน้าที่พัสดุ', hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
@@ -330,7 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: TextFormField(
+                          child: ClearableTextField(
                             controller: _procurementHeadCtrl,
                             style: const TextStyle(fontSize: 17),
                             decoration: _inputDecoration('หัวหน้าเจ้าหน้าที่พัสดุ', hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
@@ -339,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ],
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
+                    ClearableTextField(
                       controller: _financeOfficerCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('เจ้าหน้าที่การเงิน', hint: 'เช่น นางสมศรี มีทรัพย์'),

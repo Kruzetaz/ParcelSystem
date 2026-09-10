@@ -13,6 +13,7 @@ import '../services/tor_document_generator.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/blank_template_service.dart';
 import '../services/toast_service.dart';
+import '../widgets/design_system/hover_clear_button.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 
@@ -289,7 +290,8 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
   }
 
   Widget _buildOrderPicker(BuildContext context, ColorScheme colors) {
-    return DropdownButtonFormField<ProcurementOrder?>(
+    return HoverBuilder(
+      builder: (context, hovering) => DropdownButtonFormField<ProcurementOrder?>(
       initialValue: _selectedOrder,
       isExpanded: true,
       style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
@@ -299,12 +301,8 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
         labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700, color: colors.onSurfaceVariant),
         isDense: true,
         prefixIcon: const Icon(Icons.link),
-        suffixIcon: _selectedOrder != null
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 18),
-                tooltip: 'ล้างค่าที่เลือก',
-                onPressed: () => setState(() => _selectedOrder = null),
-              )
+        suffixIcon: hovering && _selectedOrder != null
+            ? clearIconButton(context, () => setState(() => _selectedOrder = null))
             : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
@@ -332,6 +330,7 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
             )),
       ],
       onChanged: (v) => setState(() => _selectedOrder = v),
+      ),
     );
   }
 

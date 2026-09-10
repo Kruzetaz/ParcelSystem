@@ -19,6 +19,7 @@ import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/design_system/clearable_text_field.dart';
 
 class EasyWizardScreen extends StatefulWidget {
   final void Function(ProcurementOrder order) onCreated;
@@ -283,7 +284,7 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        TextField(
+        ClearableTextField(
           controller: _itemNameCtrl,
           style: TextStyle(fontSize: AppTypography.body),
           decoration: _fieldDecoration(context,
@@ -296,7 +297,7 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: ClearableTextField(
                 controller: _quantityCtrl,
                 style: TextStyle(fontSize: AppTypography.body),
                 keyboardType: TextInputType.number,
@@ -306,7 +307,7 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: TextField(
+              child: ClearableTextField(
                 controller: _unitCtrl,
                 style: TextStyle(fontSize: AppTypography.body),
                 decoration: _fieldDecoration(context, label: 'หน่วยนับ', hint: 'เช่น ชิ้น, เครื่อง'),
@@ -314,7 +315,7 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: TextField(
+              child: ClearableTextField(
                 controller: _unitPriceCtrl,
                 style: TextStyle(fontSize: AppTypography.body),
                 keyboardType: TextInputType.number,
@@ -390,14 +391,14 @@ class _EasyWizardScreenState extends State<EasyWizardScreen> {
       children: [
         Text('ขั้นที่ 3: ผู้ขาย/ผู้รับจ้างคือใคร?', style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
         const SizedBox(height: 16),
-        TextField(
+        ClearableTextField(
           controller: _vendorNameCtrl,
           style: TextStyle(fontSize: AppTypography.body),
           decoration: _fieldDecoration(context, label: 'ชื่อร้านค้า/บริษัท *', hint: 'เช่น ร้านเจริญพาณิชย์'),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 14),
-        TextField(
+        ClearableTextField(
           controller: _vendorOwnerCtrl,
           style: TextStyle(fontSize: AppTypography.body),
           decoration: _fieldDecoration(context, label: 'ชื่อเจ้าของ/ผู้ติดต่อ (ถ้ามี)', hint: 'เช่น นายสมชาย ใจดี'),
