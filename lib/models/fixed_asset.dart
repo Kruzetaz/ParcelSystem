@@ -6,7 +6,15 @@
 // (ผู้ขาย/ผู้รับจ้าง, ประเภทเงิน, วิธีการได้มา, อายุการใช้งาน) และเพิ่มการคำนวณ
 // ค่าเสื่อมราคาแบบเส้นตรง (straight-line) เป็นค่าประมาณการเท่านั้น
 
-const fixedAssetFundTypes = ['เงินงบประมาณ', 'เงินนอกงบประมาณ', 'เงินบริจาค', 'อื่นๆ'];
+const fixedAssetFundTypes = [
+  'เงินงบประมาณ',
+  'เงินนอกงบประมาณ',
+  'เงินบริจาค',
+  'อื่นๆ'
+];
+// ใช้แยกว่ารายการนี้เป็น "ครุภัณฑ์" ทั่วไป หรือ "ที่ดินและสิ่งก่อสร้าง" —
+// สำหรับแยกหน้ารายงานตรวจนับครุภัณฑ์ประจำปี (คนละตารางกัน)
+const fixedAssetCategories = ['ครุภัณฑ์', 'ที่ดินและสิ่งก่อสร้าง'];
 const fixedAssetProcurementMethods = [
   'เฉพาะเจาะจง',
   'e-bidding (ประกวดราคาอิเล็กทรอนิกส์)',
@@ -30,6 +38,7 @@ class FixedAsset {
   final String? fundType;
   final String? procurementMethod;
   final int? usefulLifeYears;
+  final String assetCategory; // 'ครุภัณฑ์' | 'ที่ดินและสิ่งก่อสร้าง'
 
   const FixedAsset({
     this.id,
@@ -45,6 +54,7 @@ class FixedAsset {
     this.fundType,
     this.procurementMethod,
     this.usefulLifeYears,
+    this.assetCategory = 'ครุภัณฑ์',
   });
 
   double get totalValue => quantity * (unitPrice ?? 0);
@@ -63,6 +73,7 @@ class FixedAsset {
         'fund_type': fundType,
         'procurement_method': procurementMethod,
         'useful_life_years': usefulLifeYears,
+        'asset_category': assetCategory,
       };
 
   factory FixedAsset.fromMap(Map<String, dynamic> m) => FixedAsset(
@@ -79,6 +90,7 @@ class FixedAsset {
         fundType: m['fund_type'] as String?,
         procurementMethod: m['procurement_method'] as String?,
         usefulLifeYears: m['useful_life_years'] as int?,
+        assetCategory: m['asset_category'] as String? ?? 'ครุภัณฑ์',
       );
 
   FixedAsset copyWith({
@@ -94,6 +106,7 @@ class FixedAsset {
     String? fundType,
     String? procurementMethod,
     int? usefulLifeYears,
+    String? assetCategory,
   }) {
     return FixedAsset(
       id: id,
@@ -109,6 +122,7 @@ class FixedAsset {
       fundType: fundType ?? this.fundType,
       procurementMethod: procurementMethod ?? this.procurementMethod,
       usefulLifeYears: usefulLifeYears ?? this.usefulLifeYears,
+      assetCategory: assetCategory ?? this.assetCategory,
     );
   }
 }
@@ -131,7 +145,8 @@ class DepreciationInfo {
 
 /// คำนวณค่าเสื่อมราคา ณ วันนี้ — คืน null ถ้าข้อมูลไม่ครบ (ไม่มีอายุการใช้งาน
 /// หรือแปลงวันที่ได้มาไม่ได้)
-DepreciationInfo? calcDepreciation(FixedAsset asset, DateTime? acquiredDateParsed) {
+DepreciationInfo? calcDepreciation(
+    FixedAsset asset, DateTime? acquiredDateParsed) {
   final years = asset.usefulLifeYears;
   if (years == null || years <= 0 || acquiredDateParsed == null) return null;
   final cost = asset.totalValue;

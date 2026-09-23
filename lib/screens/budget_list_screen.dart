@@ -21,7 +21,8 @@ import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/column_visibility_menu.dart';
 import '../theme/design_tokens.dart';
-import '../widgets/design_system/data_table_shell.dart' show DsCheckbox, DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsCheckbox, DsActionIconButtons, DsRowAction;
 import '../widgets/design_system/kpi_card.dart';
 import '../widgets/design_system/clearable_text_field.dart';
 
@@ -58,10 +59,13 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   // ออกแบบมาให้ตารางข้อมูลหนาแน่นในหน้าหลักอ่านง่าย ไม่ได้ตั้งใจให้กล่องโต้ตอบ/
   // ปุ่มยืนยันที่คนต้องอ่านตัดสินใจจริงจังใช้ขนาดเดียวกัน จึงกำหนดสไตล์เอง
   // ตรงนี้แทนพึ่งพา default ของธีม
-  static const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
+  static const _dialogTitleStyle =
+      TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
   static const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
-  static const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
-  static const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+  static const _dialogButtonTextStyle =
+      TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+  static const _dialogButtonPadding =
+      EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 
   final _repo = ProcurementRepository();
   List<Budget> _budgets = [];
@@ -149,7 +153,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
@@ -207,7 +213,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
@@ -236,7 +244,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
   void _toggleBulkAssignMode(_BulkAssignField field) {
     setState(() {
-      _bulkAssignField = _bulkAssignField == field ? _BulkAssignField.none : field;
+      _bulkAssignField =
+          _bulkAssignField == field ? _BulkAssignField.none : field;
       _selectedProjectKeys.clear();
       _selectedBudgetIds.clear();
       _bulkPersonCtrl.clear();
@@ -321,7 +330,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     try {
       var updatedCount = 0;
       for (final b in _budgets) {
-        if (b.id == null || !_selectedBudgetIds.contains(b.id) || b.responsiblePerson == person) continue;
+        if (b.id == null ||
+            !_selectedBudgetIds.contains(b.id) ||
+            b.responsiblePerson == person) continue;
         await _repo.updateBudget(b.copyWith(responsiblePerson: person));
         updatedCount++;
       }
@@ -348,14 +359,16 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       decoration: BoxDecoration(
         color: BrandAccent.teal(context).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(RadiusSize.card),
-        border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.checklist_outlined, color: BrandAccent.tealOn(context), size: 20),
+              Icon(Icons.checklist_outlined,
+                  color: BrandAccent.tealOn(context), size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -375,7 +388,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               if (isDepartment) ...[
                 const SizedBox(width: 12),
                 PopupMenuButton<String>(
-                  enabled: _selectedProjectKeys.isNotEmpty && !_applyingBulkAssign,
+                  enabled:
+                      _selectedProjectKeys.isNotEmpty && !_applyingBulkAssign,
                   onSelected: _applyBulkAssignDepartment,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(RadiusSize.card),
@@ -385,18 +399,26 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   itemBuilder: (_) => _departmentNames
                       .map((g) => PopupMenuItem(
                             value: g,
-                            child: Text(g, style: const TextStyle(fontSize: AppTypography.bodyMedium)),
+                            child: Text(g,
+                                style: const TextStyle(
+                                    fontSize: AppTypography.bodyMedium)),
                           ))
                       .toList(),
                   child: Container(
                     height: 38,
                     padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    decoration: BoxDecoration(
+                        color: colors.primary,
+                        borderRadius: BorderRadius.circular(RadiusSize.md)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_applyingBulkAssign)
-                          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                          SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: colors.onPrimary))
                         else
                           Icon(Icons.arrow_drop_down, color: colors.onPrimary),
                         const SizedBox(width: 6),
@@ -422,12 +444,18 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _bulkPersonCtrl,
-                    style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodyMedium,
+                        color: colors.onSurface),
                     decoration: InputDecoration(
                       isDense: true,
-                      hintText: 'พิมพ์ชื่อผู้รับผิดชอบ เช่น นางสาวจริยา ยะคำป้อ',
-                      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      hintText:
+                          'พิมพ์ชื่อผู้รับผิดชอบ เช่น นางสาวจริยา ยะคำป้อ',
+                      hintStyle: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          color: colors.onSurfaceVariant),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       filled: true,
                       fillColor: colors.surface,
                       border: OutlineInputBorder(
@@ -440,7 +468,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                        borderSide: BorderSide(
+                            color: BrandAccent.teal(context), width: 1.5),
                       ),
                     ),
                   ),
@@ -448,7 +477,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 const SizedBox(width: 12),
                 _actionButton(
                   colors: colors,
-                  onPressed: _applyingBulkAssign ? null : _applyBulkAssignResponsiblePerson,
+                  onPressed: _applyingBulkAssign
+                      ? null
+                      : _applyBulkAssignResponsiblePerson,
                   icon: Icons.check,
                   loading: _applyingBulkAssign,
                   active: true,
@@ -494,7 +525,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     setState(() => _importing = true);
     widget.onAiBusyChanged?.call(true);
     try {
-      final parsed = await BudgetImportService.instance.importFromFile(result.files.single.path!);
+      final parsed = await BudgetImportService.instance
+          .importFromFile(result.files.single.path!);
       if (!mounted) return;
       setState(() => _importing = false);
 
@@ -503,7 +535,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         return;
       }
 
-      final confirmed = await showBudgetImportPreviewDialog(context, parsed, _departmentNames);
+      final confirmed = await showBudgetImportPreviewDialog(
+          context, parsed, _departmentNames);
       if (confirmed != null && confirmed.isNotEmpty) {
         await _saveImportedBudgets(confirmed);
       }
@@ -521,7 +554,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     for (final existing in _budgets) {
       if (existing.fiscalYear.trim() == b.fiscalYear.trim() &&
           (existing.projectName ?? '').trim() == (b.projectName ?? '').trim() &&
-          (existing.activityName ?? '').trim() == (b.activityName ?? '').trim()) {
+          (existing.activityName ?? '').trim() ==
+              (b.activityName ?? '').trim()) {
         return existing;
       }
     }
@@ -586,22 +620,30 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, null),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิกทั้งหมด'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, _DuplicateResolution.skip),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ข้ามรายการซ้ำ'),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.pop(ctx, _DuplicateResolution.keepBoth),
-            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('เก็บไว้ทั้งคู่'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, _DuplicateResolution.replace),
-            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('แทนที่ของเดิม'),
           ),
         ],
@@ -654,12 +696,16 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
   List<Budget> get _filteredBudgets => _budgets.where((b) {
         if (!_matchesDepartmentFilter(b)) return false;
-        if (_selectedProject != null && b.projectName != _selectedProject) return false;
-        if (_selectedSource != null && b.budgetSource != _selectedSource) return false;
+        if (_selectedProject != null && b.projectName != _selectedProject)
+          return false;
+        if (_selectedSource != null && b.budgetSource != _selectedSource)
+          return false;
         if (_searchQuery.isNotEmpty) {
           final q = _searchQuery.toLowerCase();
-          final matchesProject = (b.projectName ?? '').toLowerCase().contains(q);
-          final matchesActivity = (b.activityName ?? '').toLowerCase().contains(q);
+          final matchesProject =
+              (b.projectName ?? '').toLowerCase().contains(q);
+          final matchesActivity =
+              (b.activityName ?? '').toLowerCase().contains(q);
           if (!matchesProject && !matchesActivity) return false;
         }
         return true;
@@ -683,7 +729,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   }
 
   bool get _hasActiveFilter =>
-      _searchQuery.isNotEmpty || _selectedDepartment != null || _selectedProject != null;
+      _searchQuery.isNotEmpty ||
+      _selectedDepartment != null ||
+      _selectedProject != null;
 
   // ─────────────────────────────────────────
   // สรุปยอดรวม — ใช้กับแถบ KPI ด้านบน (คิดจากรายการที่ผ่านตัวกรองปัจจุบัน
@@ -698,8 +746,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
   int get _filteredProjectCount => _groupedByProject.length;
 
-  int get _filteredUnassignedDepartmentCount =>
-      _filteredBudgets.where((b) => !(b.groupName?.trim().isNotEmpty ?? false)).length;
+  int get _filteredUnassignedDepartmentCount => _filteredBudgets
+      .where((b) => !(b.groupName?.trim().isNotEmpty ?? false))
+      .length;
 
   // ─────────────────────────────────────────
   // ผูกงบกับออร์เดอร์จริง — หักลด "คงเหลือ" อัตโนมัติจากยอดใช้จ่ายจริง (สดทุก
@@ -721,12 +770,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     return totals;
   }
 
-  double _actualUsed(Budget b) => b.id != null ? (_usedByBudgetId[b.id] ?? 0) : 0;
+  double _actualUsed(Budget b) =>
+      b.id != null ? (_usedByBudgetId[b.id] ?? 0) : 0;
 
   /// คงเหลือจริง = วงเงินที่ได้รับจัดสรร − ยอดที่ออร์เดอร์เสร็จสมบูรณ์ใช้ไปแล้ว
   /// ติดลบได้ (แปลว่าใช้เกินงบที่ตั้งไว้จริง) — ไม่ clamp ทิ้ง เพราะเป็นสัญญาณ
   /// สำคัญที่อยากให้เห็นชัดว่าโครงการนี้ใช้เกินงบ ไม่ใช่ซ่อนไว้ให้ดูเหมือนพอดี
-  double _actualRemaining(Budget b) => (b.allocatedAmount ?? 0) - _actualUsed(b);
+  double _actualRemaining(Budget b) =>
+      (b.allocatedAmount ?? 0) - _actualUsed(b);
 
   /// สีเตือนของยอด "คงเหลือ" ตามสัดส่วนที่เหลือเทียบกับวงเงินที่ได้รับจัดสรร —
   /// เดิมคำนวณซ้ำกันเป๊ะๆ ทั้งในมุมมองการ์ดและมุมมองตาราง (คนละจุดในไฟล์)
@@ -746,7 +797,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     // โหมดมืดจะกลายเป็นกล่องสีขาวสว่างแปลกแยกจากพื้นหลังมืดทั้งหน้า (บั๊กแบบ
     // เดียวกับที่เจอใน kpi_card.dart/topbar amber pill) — ใช้ alphaBlend เคลือบ
     // ทับ surface ของธีมปัจจุบันแทน
-    final amberBg = Color.alphaBlend(BrandColors.amber.withValues(alpha: 0.12), colors.surface);
+    final amberBg = Color.alphaBlend(
+        BrandColors.amber.withValues(alpha: 0.12), colors.surface);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -757,7 +809,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       child: Row(
         children: [
           Icon(
-            fy.isViewingFutureYear ? Icons.event_note_outlined : Icons.history_outlined,
+            fy.isViewingFutureYear
+                ? Icons.event_note_outlined
+                : Icons.history_outlined,
             size: 18,
             color: BrandAccent.tertiary(context),
           ),
@@ -767,7 +821,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               fy.isViewingFutureYear
                   ? 'กำลังวางแผนงบปีงบ ${fy.viewingYear} ล่วงหน้า (ยังไม่ถึงปีนี้จริง) — สลับกลับปีปัจจุบันได้ที่ป้ายปีงบมุมขวาบน'
                   : 'กำลังดูแผนงบปีงบ ${fy.viewingYear} (ปีเก่า) — สลับกลับปีปัจจุบันได้ที่ป้ายปีงบมุมขวาบน',
-              style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface),
+              style: TextStyle(
+                  fontSize: AppTypography.caption,
+                  fontWeight: AppTypography.weightSemiBold,
+                  color: colors.onSurface),
             ),
           ),
         ],
@@ -796,130 +853,153 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       child: Stack(
         children: [
           Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (!FiscalYearController.instance.isViewingCurrentYear) ...[
-                    _buildOldYearNotice(colors),
-                    const SizedBox(height: 12),
-                  ],
-                  if (!_loading && _budgets.isNotEmpty) ...[
-                    _buildKpiSummary(colors),
-                    const SizedBox(height: 16),
-                  ],
-                  _buildFilterBar(colors),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            _buildViewToggle(colors),
-                            _actionButton(
-                              colors: colors,
-                              onPressed: _importing ? null : _importFromFile,
-                              icon: Icons.folder_open_outlined,
-                              loading: _importing,
-                              label: _importing ? 'กำลังนำเข้า...' : 'Import จากไฟล์',
-                            ),
-                            _actionButton(
-                              colors: colors,
-                              onPressed: _filteredBudgets.isEmpty || _exporting ? null : _exportToExcel,
-                              icon: Icons.file_download_outlined,
-                              loading: _exporting,
-                              label: _exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel',
-                            ),
-                          ],
-                        ),
-                      ),
-                      // ปุ่ม "จัดการเพิ่มเติม" (กำหนดฝ่าย/กำหนดผู้รับผิดชอบ/ลบทั้งหมด) แยก
-                      // ไปอยู่ขวาสุดต่างหาก ไม่ปนกับกลุ่มปุ่มการกระทำหลักฝั่งซ้าย — ตอนอยู่
-                      // ในโหมดเลือกอยู่แล้ว โชว์ปุ่ม "ยกเลิกเลือก" แทนที่ตำแหน่งเดียวกัน
-                      const SizedBox(width: 12),
-                      if (_bulkAssignField != _BulkAssignField.none)
-                        _actionButton(
-                          colors: colors,
-                          onPressed: () => _toggleBulkAssignMode(_bulkAssignField),
-                          icon: Icons.close,
-                          active: true,
-                          label: 'ยกเลิกเลือก',
-                        )
-                      else
-                        _buildMoreActionsMenu(colors),
-                      // ปุ่มเลือกคอลัมน์ — ย้ายมาติดขวาสุดของแถบเครื่องมือ (เดิมลอย
-                      // แทรกอยู่กลางแถวปนกับปุ่มอื่น ไม่มีกรอบ ดูหลุดจากกลุ่ม) มีเส้น
-                      // บางๆ กั้นแยกไว้ให้เห็นชัดว่าเป็นคนละหมวด (ควบคุมการแสดงผล
-                      // ตาราง ไม่ใช่การกระทำกับข้อมูลเหมือนปุ่มฝั่งซ้าย) และแสดงเฉพาะ
-                      // ตอนอยู่มุมมองตารางเท่านั้น (โหมดการ์ดไม่มีคอลัมน์ให้เลือก)
-                      if (_viewMode == _BudgetViewMode.table) ...[
-                        const SizedBox(width: 12),
-                        Container(width: 1, height: 28, color: colors.outlineVariant),
-                        const SizedBox(width: 12),
-                        ColumnVisibilityMenu(
-                          allColumns: _budgetTableOptionalColumns,
-                          visibleColumns: _visibleColumns,
-                          onChanged: (v) => setState(() => _visibleColumns = v),
-                        ),
-                      ],
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!FiscalYearController
+                        .instance.isViewingCurrentYear) ...[
+                      _buildOldYearNotice(colors),
+                      const SizedBox(height: 12),
                     ],
-                  ),
-                  if (_bulkAssignField != _BulkAssignField.none) ...[
+                    if (!_loading && _budgets.isNotEmpty) ...[
+                      _buildKpiSummary(colors),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildFilterBar(colors),
                     const SizedBox(height: 12),
-                    _buildBulkAssignBar(context, colors),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _buildViewToggle(colors),
+                              _actionButton(
+                                colors: colors,
+                                onPressed: _importing ? null : _importFromFile,
+                                icon: Icons.folder_open_outlined,
+                                loading: _importing,
+                                label: _importing
+                                    ? 'กำลังนำเข้า...'
+                                    : 'Import จากไฟล์',
+                              ),
+                              _actionButton(
+                                colors: colors,
+                                onPressed:
+                                    _filteredBudgets.isEmpty || _exporting
+                                        ? null
+                                        : _exportToExcel,
+                                icon: Icons.file_download_outlined,
+                                loading: _exporting,
+                                label: _exporting
+                                    ? 'กำลังส่งออก...'
+                                    : 'ส่งออก Excel',
+                              ),
+                            ],
+                          ),
+                        ),
+                        // ปุ่ม "จัดการเพิ่มเติม" (กำหนดฝ่าย/กำหนดผู้รับผิดชอบ/ลบทั้งหมด) แยก
+                        // ไปอยู่ขวาสุดต่างหาก ไม่ปนกับกลุ่มปุ่มการกระทำหลักฝั่งซ้าย — ตอนอยู่
+                        // ในโหมดเลือกอยู่แล้ว โชว์ปุ่ม "ยกเลิกเลือก" แทนที่ตำแหน่งเดียวกัน
+                        const SizedBox(width: 12),
+                        if (_bulkAssignField != _BulkAssignField.none)
+                          _actionButton(
+                            colors: colors,
+                            onPressed: () =>
+                                _toggleBulkAssignMode(_bulkAssignField),
+                            icon: Icons.close,
+                            active: true,
+                            label: 'ยกเลิกเลือก',
+                          )
+                        else
+                          _buildMoreActionsMenu(colors),
+                        // ปุ่มเลือกคอลัมน์ — ย้ายมาติดขวาสุดของแถบเครื่องมือ (เดิมลอย
+                        // แทรกอยู่กลางแถวปนกับปุ่มอื่น ไม่มีกรอบ ดูหลุดจากกลุ่ม) มีเส้น
+                        // บางๆ กั้นแยกไว้ให้เห็นชัดว่าเป็นคนละหมวด (ควบคุมการแสดงผล
+                        // ตาราง ไม่ใช่การกระทำกับข้อมูลเหมือนปุ่มฝั่งซ้าย) และแสดงเฉพาะ
+                        // ตอนอยู่มุมมองตารางเท่านั้น (โหมดการ์ดไม่มีคอลัมน์ให้เลือก)
+                        if (_viewMode == _BudgetViewMode.table) ...[
+                          const SizedBox(width: 12),
+                          Container(
+                              width: 1,
+                              height: 28,
+                              color: colors.outlineVariant),
+                          const SizedBox(width: 12),
+                          ColumnVisibilityMenu(
+                            allColumns: _budgetTableOptionalColumns,
+                            visibleColumns: _visibleColumns,
+                            onChanged: (v) =>
+                                setState(() => _visibleColumns = v),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (_bulkAssignField != _BulkAssignField.none) ...[
+                      const SizedBox(height: 12),
+                      _buildBulkAssignBar(context, colors),
+                    ],
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _loading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _budgets.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                          Icons.account_balance_wallet_outlined,
+                                          size: 64,
+                                          color: colors.onSurfaceVariant),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                          'ยังไม่มีแผนงบประมาณ\nกด "เพิ่มแผนงบ" เพื่อเริ่มต้น',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                              color: colors.onSurfaceVariant,
+                                              fontSize: 16)),
+                                    ],
+                                  ),
+                                )
+                              : _filteredBudgets.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        _hasActiveFilter
+                                            ? 'ไม่พบรายการที่ตรงกับตัวกรอง'
+                                            : 'ยังไม่มีแผนงบประมาณ',
+                                        style: TextStyle(
+                                            color: colors.onSurfaceVariant,
+                                            fontSize: 16),
+                                      ),
+                                    )
+                                  : _viewMode == _BudgetViewMode.card
+                                      ? _buildCardView(colors)
+                                      : _buildTableView(colors),
+                    ),
                   ],
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _budgets.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.account_balance_wallet_outlined, size: 64, color: colors.onSurfaceVariant),
-                                    const SizedBox(height: 12),
-                                    Text('ยังไม่มีแผนงบประมาณ\nกด "เพิ่มแผนงบ" เพื่อเริ่มต้น',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16)),
-                                  ],
-                                ),
-                              )
-                            : _filteredBudgets.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      _hasActiveFilter ? 'ไม่พบรายการที่ตรงกับตัวกรอง' : 'ยังไม่มีแผนงบประมาณ',
-                                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
-                                    ),
-                                  )
-                                : _viewMode == _BudgetViewMode.card
-                                    ? _buildCardView(colors)
-                                    : _buildTableView(colors),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: FloatingActionButton.extended(
-            heroTag: 'budget_add_fab',
-            onPressed: () => _openForm(),
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            icon: const Icon(Icons.add),
-            label: const Text('เพิ่มแผนงบ'),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton.extended(
+              heroTag: 'budget_add_fab',
+              onPressed: () => _openForm(),
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่มแผนงบ'),
+            ),
           ),
-        ),
         ],
       ),
     );
@@ -988,13 +1068,17 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           flex: 2,
           child: ClearableTextField(
             controller: _searchCtrl,
-            style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+            style: TextStyle(
+                fontSize: AppTypography.bodyMedium, color: colors.onSurface),
             decoration: InputDecoration(
               isDense: true,
               prefixIcon: const Icon(Icons.search, size: 20),
               hintText: 'ค้นหาชื่อโครงการ/กิจกรรม',
-              hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              hintStyle: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  color: colors.onSurfaceVariant),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(RadiusSize.md),
                 borderSide: BorderSide(color: colors.outline),
@@ -1005,7 +1089,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(RadiusSize.md),
-                borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                borderSide:
+                    BorderSide(color: BrandAccent.teal(context), width: 1.5),
               ),
             ),
           ),
@@ -1021,7 +1106,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             onChanged: (v) => setState(() {
               _selectedDepartment = v;
               // ถ้าโครงการที่เลือกไว้ไม่อยู่ในฝ่ายใหม่ ให้เคลียร์ตัวกรองโครงการทิ้ง
-              if (_selectedProject != null && !_projectOptions.contains(_selectedProject)) {
+              if (_selectedProject != null &&
+                  !_projectOptions.contains(_selectedProject)) {
                 _selectedProject = null;
               }
             }),
@@ -1065,12 +1151,15 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       initialValue: value,
       borderRadius: BorderRadius.circular(RadiusSize.card),
       elevation: 6,
-      style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+      style: TextStyle(
+          fontSize: AppTypography.bodyMedium, color: colors.onSurface),
       decoration: InputDecoration(
         isDense: true,
         hintText: hint,
-        hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        hintStyle: TextStyle(
+            fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(RadiusSize.md),
           borderSide: BorderSide(color: colors.outline),
@@ -1085,8 +1174,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         ),
       ),
       items: [
-        DropdownMenuItem<String?>(value: null, child: Text(hint, overflow: TextOverflow.ellipsis)),
-        ...options.map((o) => DropdownMenuItem<String?>(value: o, child: Text(o, overflow: TextOverflow.ellipsis))),
+        DropdownMenuItem<String?>(
+            value: null, child: Text(hint, overflow: TextOverflow.ellipsis)),
+        ...options.map((o) => DropdownMenuItem<String?>(
+            value: o, child: Text(o, overflow: TextOverflow.ellipsis))),
       ],
       onChanged: onChanged,
     );
@@ -1103,15 +1194,18 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _viewToggleSegment(colors, _BudgetViewMode.card, Icons.view_agenda_outlined, 'การ์ด'),
+          _viewToggleSegment(colors, _BudgetViewMode.card,
+              Icons.view_agenda_outlined, 'การ์ด'),
           const SizedBox(width: 2),
-          _viewToggleSegment(colors, _BudgetViewMode.table, Icons.table_chart_outlined, 'ตาราง'),
+          _viewToggleSegment(colors, _BudgetViewMode.table,
+              Icons.table_chart_outlined, 'ตาราง'),
         ],
       ),
     );
   }
 
-  Widget _viewToggleSegment(ColorScheme colors, _BudgetViewMode mode, IconData icon, String label) {
+  Widget _viewToggleSegment(
+      ColorScheme colors, _BudgetViewMode mode, IconData icon, String label) {
     final active = _viewMode == mode;
     return InkWell(
       onTap: () => setState(() => _viewMode = mode),
@@ -1126,14 +1220,20 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 15, color: active ? BrandAccent.tealOn(context) : colors.onSurfaceVariant),
+            Icon(icon,
+                size: 15,
+                color: active
+                    ? BrandAccent.tealOn(context)
+                    : colors.onSurfaceVariant),
             const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
                 fontSize: AppTypography.bodySmall,
                 fontWeight: AppTypography.weightBold,
-                color: active ? BrandAccent.tealOn(context) : colors.onSurfaceVariant,
+                color: active
+                    ? BrandAccent.tealOn(context)
+                    : colors.onSurfaceVariant,
               ),
             ),
           ],
@@ -1182,21 +1282,31 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           height: 34,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: disabled ? bg.withValues(alpha: active || danger ? 0.4 : 1) : bg,
+            color: disabled
+                ? bg.withValues(alpha: active || danger ? 0.4 : 1)
+                : bg,
             borderRadius: BorderRadius.circular(RadiusSize.md),
-            border: Border.all(color: disabled ? border.withValues(alpha: 0.4) : border),
+            border: Border.all(
+                color: disabled ? border.withValues(alpha: 0.4) : border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (loading)
-                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: effectiveFg))
+                SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: effectiveFg))
               else
                 Icon(icon, size: 15, color: effectiveFg),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold, color: effectiveFg),
+                style: TextStyle(
+                    fontSize: AppTypography.bodySmall,
+                    fontWeight: AppTypography.weightBold,
+                    color: effectiveFg),
               ),
             ],
           ),
@@ -1211,11 +1321,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   /// splash/hit-test เองแทน กัน ripple ซ้อนกันสองชั้น)
   Widget _buildMoreActionsMenu(ColorScheme colors) {
     final disabled = _budgets.isEmpty;
-    final fg = disabled ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface;
+    final fg =
+        disabled ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface;
     return PopupMenuButton<String>(
       enabled: !disabled,
       tooltip: 'จัดการเพิ่มเติม',
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md), side: BorderSide(color: colors.outline)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          side: BorderSide(color: colors.outline)),
       onSelected: (v) {
         switch (v) {
           case 'department':
@@ -1230,10 +1343,15 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         }
       },
       itemBuilder: (_) => [
-        const PopupMenuItem(value: 'department', child: Text('กำหนดฝ่ายหลายโครงการ')),
-        const PopupMenuItem(value: 'responsible', child: Text('กำหนดผู้รับผิดชอบหลายโครงการ')),
+        const PopupMenuItem(
+            value: 'department', child: Text('กำหนดฝ่ายหลายโครงการ')),
+        const PopupMenuItem(
+            value: 'responsible', child: Text('กำหนดผู้รับผิดชอบหลายโครงการ')),
         const PopupMenuDivider(),
-        PopupMenuItem(value: 'deleteAll', child: Text('ลบแผนงบทั้งหมด', style: TextStyle(color: BrandAccent.red(context)))),
+        PopupMenuItem(
+            value: 'deleteAll',
+            child: Text('ลบแผนงบทั้งหมด',
+                style: TextStyle(color: BrandAccent.red(context)))),
       ],
       child: Container(
         height: 34,
@@ -1241,14 +1359,21 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(RadiusSize.md),
-          border: Border.all(color: disabled ? colors.outline.withValues(alpha: 0.4) : colors.outline),
+          border: Border.all(
+              color: disabled
+                  ? colors.outline.withValues(alpha: 0.4)
+                  : colors.outline),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.more_horiz, size: 15, color: fg),
             const SizedBox(width: 6),
-            Text('จัดการเพิ่มเติม', style: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold, color: fg)),
+            Text('จัดการเพิ่มเติม',
+                style: TextStyle(
+                    fontSize: AppTypography.bodySmall,
+                    fontWeight: AppTypography.weightBold,
+                    color: fg)),
           ],
         ),
       ),
@@ -1264,14 +1389,18 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 80),
       itemCount: groups.length,
-      itemBuilder: (context, i) => _buildProjectGroup(context, colors, groups[i]),
+      itemBuilder: (context, i) =>
+          _buildProjectGroup(context, colors, groups[i]),
     );
   }
 
-  Widget _buildProjectGroup(BuildContext context, ColorScheme colors, MapEntry<String, List<Budget>> group) {
+  Widget _buildProjectGroup(BuildContext context, ColorScheme colors,
+      MapEntry<String, List<Budget>> group) {
     final rows = group.value;
-    final totalAllocated = rows.fold<double>(0, (s, b) => s + (b.allocatedAmount ?? 0));
-    final totalRemaining = rows.fold<double>(0, (s, b) => s + _actualRemaining(b));
+    final totalAllocated =
+        rows.fold<double>(0, (s, b) => s + (b.allocatedAmount ?? 0));
+    final totalRemaining =
+        rows.fold<double>(0, (s, b) => s + _actualRemaining(b));
     final department = rows.first.groupName;
     final fiscalYear = rows.first.fiscalYear;
 
@@ -1310,7 +1439,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       child: Tooltip(
                         message: 'เลือกทั้งโครงการ (ทุกกิจกรรมย่อย)',
                         child: DsCheckbox(
-                          value: rows.map((b) => b.id).whereType<int>().every(_selectedBudgetIds.contains),
+                          value: rows
+                              .map((b) => b.id)
+                              .whereType<int>()
+                              .every(_selectedBudgetIds.contains),
                           onChanged: (_) => _toggleProjectAllBudgets(rows),
                         ),
                       ),
@@ -1321,52 +1453,78 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       children: [
                         Row(children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
                               color: colors.primary,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text('ปี $fiscalYear',
-                              style: TextStyle(fontSize: AppTypography.caption, color: colors.onPrimary, fontWeight: AppTypography.weightSemiBold)),
+                                style: TextStyle(
+                                    fontSize: AppTypography.caption,
+                                    color: colors.onPrimary,
+                                    fontWeight: AppTypography.weightSemiBold)),
                           ),
                           if (department != null) ...[
                             const SizedBox(width: 6),
                             Text(department,
-                              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+                                style: TextStyle(
+                                    fontSize: AppTypography.bodySmall,
+                                    color: colors.onSurfaceVariant)),
                           ],
-                          if (rows.first.budgetSource == budgetSourceDistrict) ...[
+                          if (rows.first.budgetSource ==
+                              budgetSourceDistrict) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
                                 color: BrandColors.orange,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text('งบเขต (นอกแผน)',
-                                style: TextStyle(fontSize: AppTypography.overline, color: Colors.white, fontWeight: AppTypography.weightSemiBold)),
+                                  style: TextStyle(
+                                      fontSize: AppTypography.overline,
+                                      color: Colors.white,
+                                      fontWeight:
+                                          AppTypography.weightSemiBold)),
                             ),
                           ],
                           if (rows.length > 1) ...[
                             const SizedBox(width: 6),
                             Text('· ${rows.length} รายการย่อย',
-                              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+                                style: TextStyle(
+                                    fontSize: AppTypography.bodySmall,
+                                    color: colors.onSurfaceVariant)),
                           ],
                         ]),
                         const SizedBox(height: 2),
                         Text(group.key,
-                          style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: 15, color: colors.onSurface),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                            style: TextStyle(
+                                fontWeight: AppTypography.weightBold,
+                                fontSize: 15,
+                                color: colors.onSurface),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('คงเหลือรวม', style: TextStyle(fontSize: AppTypography.overline, color: colors.onSurfaceVariant)),
+                      Text('คงเหลือรวม',
+                          style: TextStyle(
+                              fontSize: AppTypography.overline,
+                              color: colors.onSurfaceVariant)),
                       Text('${formatBaht(totalRemaining)} บาท',
-                        style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: 14, color: colors.onSurface)),
+                          style: TextStyle(
+                              fontWeight: AppTypography.weightBold,
+                              fontSize: 14,
+                              color: colors.onSurface)),
                       Text('จาก ${formatBaht(totalAllocated)} บาท',
-                        style: TextStyle(fontSize: AppTypography.overline, color: colors.onSurfaceVariant)),
+                          style: TextStyle(
+                              fontSize: AppTypography.overline,
+                              color: colors.onSurfaceVariant)),
                     ],
                   ),
                 ],
@@ -1388,10 +1546,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       onTap: () => _openForm(existing: b),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(border: Border(top: BorderSide(color: colors.outlineVariant))),
+        decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: colors.outlineVariant))),
         child: Row(
           children: [
-            if (_bulkAssignField == _BulkAssignField.responsiblePerson && b.id != null)
+            if (_bulkAssignField == _BulkAssignField.responsiblePerson &&
+                b.id != null)
               Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: DsCheckbox(
@@ -1399,30 +1559,50 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   onChanged: (_) => _toggleBudgetSelection(b.id!),
                 ),
               ),
-            Icon(Icons.subdirectory_arrow_right, size: 16, color: colors.onSurfaceVariant),
+            Icon(Icons.subdirectory_arrow_right,
+                size: 16, color: colors.onSurfaceVariant),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(b.activityName ?? '(ทั้งโครงการ)',
-                    style: const TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                      style: const TextStyle(
+                          fontSize: AppTypography.body,
+                          fontWeight: AppTypography.weightSemiBold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                   if (b.egpNumber != null)
-                    Text('e-GP: ${b.egpNumber}', style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
-                  if (b.responsiblePerson != null && b.responsiblePerson!.isNotEmpty)
+                    Text('e-GP: ${b.egpNumber}',
+                        style: TextStyle(
+                            fontSize: AppTypography.bodySmall,
+                            color: colors.onSurfaceVariant)),
+                  if (b.responsiblePerson != null &&
+                      b.responsiblePerson!.isNotEmpty)
                     Text('ผู้รับผิดชอบ: ${b.responsiblePerson}',
-                      style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+                        style: TextStyle(
+                            fontSize: AppTypography.bodySmall,
+                            color: colors.onSurfaceVariant)),
                 ],
               ),
             ),
             Text('${formatBaht(remaining)} บาท',
-              style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, color: remainColor)),
+                style: TextStyle(
+                    fontWeight: AppTypography.weightBold,
+                    fontSize: AppTypography.body,
+                    color: remainColor)),
             const SizedBox(width: 8),
             DsActionIconButtons(
               actions: [
-                DsRowAction(icon: Icons.copy_all_outlined, tooltip: 'คัดลอกแผนงบ', onTap: () => _duplicateBudget(b)),
-                DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(b), danger: true),
+                DsRowAction(
+                    icon: Icons.copy_all_outlined,
+                    tooltip: 'คัดลอกแผนงบ',
+                    onTap: () => _duplicateBudget(b)),
+                DsRowAction(
+                    icon: Icons.delete_outline,
+                    tooltip: 'ลบ',
+                    onTap: () => _confirmDelete(b),
+                    danger: true),
               ],
             ),
           ],
@@ -1436,7 +1616,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   // ─────────────────────────────────────────
 
   Widget _buildTableView(ColorScheme colors) {
-    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant);
+    final headerStyle = TextStyle(
+        fontWeight: AppTypography.weightBold,
+        fontSize: AppTypography.bodyMedium,
+        color: colors.onSurfaceVariant);
     return SingleChildScrollView(
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 1010),
@@ -1445,28 +1628,50 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
+              decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(
+                          color: colors.outlineVariant, width: 1.5))),
               child: Row(
                 children: [
-                  SizedBox(width: 170, child: Text('ฝ่าย/แผนงาน', style: headerStyle, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  SizedBox(
+                      width: 170,
+                      child: Text('ฝ่าย/แผนงาน',
+                          style: headerStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis)),
                   SizedBox(width: 60, child: Text('ปีงบ', style: headerStyle)),
-                  Expanded(flex: 3, child: Text('โครงการ / รายการย่อย', style: headerStyle)),
+                  Expanded(
+                      flex: 3,
+                      child: Text('โครงการ / รายการย่อย', style: headerStyle)),
                   if (_visibleColumns.contains('เลข e-GP'))
-                    SizedBox(width: 100, child: Text('เลข e-GP', style: headerStyle)),
+                    SizedBox(
+                        width: 100,
+                        child: Text('เลข e-GP', style: headerStyle)),
                   if (_visibleColumns.contains('ผู้รับผิดชอบ'))
-                    SizedBox(width: 110, child: Text('ผู้รับผิดชอบ', style: headerStyle)),
+                    SizedBox(
+                        width: 110,
+                        child: Text('ผู้รับผิดชอบ', style: headerStyle)),
                   if (_visibleColumns.contains('วงเงิน')) ...[
-                    SizedBox(width: 110, child: Text('วงเงิน', style: headerStyle, textAlign: TextAlign.right)),
+                    SizedBox(
+                        width: 110,
+                        child: Text('วงเงิน',
+                            style: headerStyle, textAlign: TextAlign.right)),
                     const SizedBox(width: 10),
-                    Container(width: 1, height: 16, color: colors.outlineVariant),
+                    Container(
+                        width: 1, height: 16, color: colors.outlineVariant),
                     const SizedBox(width: 10),
                   ],
-                  SizedBox(width: 110, child: Text('คงเหลือ', style: headerStyle, textAlign: TextAlign.right)),
+                  SizedBox(
+                      width: 110,
+                      child: Text('คงเหลือ',
+                          style: headerStyle, textAlign: TextAlign.right)),
                   const SizedBox(width: 68),
                 ],
               ),
             ),
-            for (final group in _groupedByProject) ..._buildTableGroupRows(colors, group),
+            for (final group in _groupedByProject)
+              ..._buildTableGroupRows(colors, group),
             const SizedBox(height: 80),
           ],
         ),
@@ -1474,7 +1679,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     );
   }
 
-  List<Widget> _buildTableGroupRows(ColorScheme colors, MapEntry<String, List<Budget>> group) {
+  List<Widget> _buildTableGroupRows(
+      ColorScheme colors, MapEntry<String, List<Budget>> group) {
     final rows = group.value;
     final department = rows.first.groupName ?? '-';
     final fiscalYear = rows.first.fiscalYear;
@@ -1488,34 +1694,52 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               width: 170,
               child: Text(
                 department,
-                style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                style: TextStyle(
+                    fontSize: AppTypography.bodyMedium,
+                    color: colors.onSurfaceVariant),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            SizedBox(width: 60, child: Text(fiscalYear, style: const TextStyle(fontSize: AppTypography.bodyMedium))),
+            SizedBox(
+                width: 60,
+                child: Text(fiscalYear,
+                    style:
+                        const TextStyle(fontSize: AppTypography.bodyMedium))),
             Expanded(
               flex: 3,
               child: Row(
                 children: [
                   Flexible(
                     child: Text(group.key,
-                      style: const TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: const TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.body),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
                   if (rows.first.budgetSource == budgetSourceDistrict) ...[
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(color: BrandColors.orange, borderRadius: BorderRadius.circular(4)),
-                      child: const Text('งบเขต', style: TextStyle(fontSize: AppTypography.micro, color: Colors.white, fontWeight: AppTypography.weightSemiBold)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                          color: BrandColors.orange,
+                          borderRadius: BorderRadius.circular(4)),
+                      child: const Text('งบเขต',
+                          style: TextStyle(
+                              fontSize: AppTypography.micro,
+                              color: Colors.white,
+                              fontWeight: AppTypography.weightSemiBold)),
                     ),
                   ],
                 ],
               ),
             ),
-            if (_visibleColumns.contains('เลข e-GP')) const SizedBox(width: 100),
-            if (_visibleColumns.contains('ผู้รับผิดชอบ')) const SizedBox(width: 110),
+            if (_visibleColumns.contains('เลข e-GP'))
+              const SizedBox(width: 100),
+            if (_visibleColumns.contains('ผู้รับผิดชอบ'))
+              const SizedBox(width: 110),
             if (_visibleColumns.contains('วงเงิน')) const SizedBox(width: 131),
             const SizedBox(width: 110),
             const SizedBox(width: 68),
@@ -1532,7 +1756,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           onTap: () => _openForm(existing: b),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
+            decoration: BoxDecoration(
+                border:
+                    Border(bottom: BorderSide(color: colors.outlineVariant))),
             child: Row(
               children: [
                 const SizedBox(width: 170),
@@ -1542,16 +1768,32 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 20),
                     child: Text(b.activityName ?? '(ทั้งโครงการ)',
-                      style: const TextStyle(fontSize: AppTypography.body), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: const TextStyle(fontSize: AppTypography.body),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
                 ),
                 if (_visibleColumns.contains('เลข e-GP'))
-                  SizedBox(width: 100, child: Text(b.egpNumber ?? '-', style: const TextStyle(fontSize: AppTypography.bodyMedium))),
+                  SizedBox(
+                      width: 100,
+                      child: Text(b.egpNumber ?? '-',
+                          style: const TextStyle(
+                              fontSize: AppTypography.bodyMedium))),
                 if (_visibleColumns.contains('ผู้รับผิดชอบ'))
-                  SizedBox(width: 110, child: Text(b.responsiblePerson ?? '-',
-                    style: const TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  SizedBox(
+                      width: 110,
+                      child: Text(b.responsiblePerson ?? '-',
+                          style: const TextStyle(
+                              fontSize: AppTypography.bodyMedium),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis)),
                 if (_visibleColumns.contains('วงเงิน')) ...[
-                  SizedBox(width: 110, child: Text(formatBaht(allocated), textAlign: TextAlign.right, style: const TextStyle(fontSize: AppTypography.body))),
+                  SizedBox(
+                      width: 110,
+                      child: Text(formatBaht(allocated),
+                          textAlign: TextAlign.right,
+                          style:
+                              const TextStyle(fontSize: AppTypography.body))),
                   const SizedBox(width: 10),
                   Container(width: 1, height: 16, color: colors.outlineVariant),
                   const SizedBox(width: 10),
@@ -1559,15 +1801,25 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 SizedBox(
                   width: 110,
                   child: Text(formatBaht(remaining),
-                    textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold, color: remainColor)),
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                          fontSize: AppTypography.body,
+                          fontWeight: AppTypography.weightSemiBold,
+                          color: remainColor)),
                 ),
                 SizedBox(
                   width: 68,
                   child: DsActionIconButtons(
                     actions: [
-                      DsRowAction(icon: Icons.copy_all_outlined, tooltip: 'คัดลอกแผนงบ', onTap: () => _duplicateBudget(b)),
-                      DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(b), danger: true),
+                      DsRowAction(
+                          icon: Icons.copy_all_outlined,
+                          tooltip: 'คัดลอกแผนงบ',
+                          onTap: () => _duplicateBudget(b)),
+                      DsRowAction(
+                          icon: Icons.delete_outline,
+                          tooltip: 'ลบ',
+                          onTap: () => _confirmDelete(b),
+                          danger: true),
                     ],
                   ),
                 ),
@@ -1608,13 +1860,17 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     final b = widget.existing;
     // เพิ่มใหม่ (ไม่มี existing) — เติมปีงบที่กำลังดูอยู่ให้เลย กันพิมพ์ผิด/ลืม
     // กรอก (เช่น ตอนสลับไปวางแผนปีงบถัดไปล่วงหน้าไว้แล้ว ก็ควรลงเป็นปีนั้นเลย)
-    _fiscalYear = TextEditingController(text: b?.fiscalYear ?? FiscalYearController.instance.viewingYear);
-    _groupName = (b?.groupName != null && b!.groupName!.isNotEmpty) ? b.groupName : null;
+    _fiscalYear = TextEditingController(
+        text: b?.fiscalYear ?? FiscalYearController.instance.viewingYear);
+    _groupName =
+        (b?.groupName != null && b!.groupName!.isNotEmpty) ? b.groupName : null;
     _projectName = TextEditingController(text: b?.projectName ?? '');
     _activityName = TextEditingController(text: b?.activityName ?? '');
     _egpNumber = TextEditingController(text: b?.egpNumber ?? '');
-    _allocatedAmount = TextEditingController(text: b?.allocatedAmount?.toStringAsFixed(2) ?? '');
-    _responsiblePerson = TextEditingController(text: b?.responsiblePerson ?? '');
+    _allocatedAmount = TextEditingController(
+        text: b?.allocatedAmount?.toStringAsFixed(2) ?? '');
+    _responsiblePerson =
+        TextEditingController(text: b?.responsiblePerson ?? '');
     _budgetSource = b?.budgetSource ?? budgetSourceSchool;
     _loadWorkGroups();
   }
@@ -1627,7 +1883,14 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
 
   @override
   void dispose() {
-    for (final c in [_fiscalYear, _projectName, _activityName, _egpNumber, _allocatedAmount, _responsiblePerson]) {
+    for (final c in [
+      _fiscalYear,
+      _projectName,
+      _activityName,
+      _egpNumber,
+      _allocatedAmount,
+      _responsiblePerson
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -1641,8 +1904,10 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
       id: widget.existing?.id,
       fiscalYear: _fiscalYear.text.trim(),
       groupName: _groupName,
-      projectName: _projectName.text.trim().isEmpty ? null : _projectName.text.trim(),
-      activityName: _activityName.text.trim().isEmpty ? null : _activityName.text.trim(),
+      projectName:
+          _projectName.text.trim().isEmpty ? null : _projectName.text.trim(),
+      activityName:
+          _activityName.text.trim().isEmpty ? null : _activityName.text.trim(),
       egpNumber: _egpNumber.text.trim().isEmpty ? null : _egpNumber.text.trim(),
       allocatedAmount: allocated,
       // เดิมตอนแก้ไขจะคงค่า remainingAmount เก่าไว้เสมอ ไม่ว่าจะแก้วงเงินที่ได้รับ
@@ -1651,7 +1916,9 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
       // ผูกงบกับออร์เดอร์แล้วหักอัตโนมัติ) จึงให้ remainingAmount = allocatedAmount
       // เสมอทุกครั้งที่บันทึก กันไม่ให้สองค่านี้เพี้ยนไปจากกัน
       remainingAmount: allocated,
-      responsiblePerson: _responsiblePerson.text.trim().isEmpty ? null : _responsiblePerson.text.trim(),
+      responsiblePerson: _responsiblePerson.text.trim().isEmpty
+          ? null
+          : _responsiblePerson.text.trim(),
       budgetSource: _budgetSource,
     );
     if (widget.existing == null) {
@@ -1668,24 +1935,27 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     // ตัวหนังสือ/ป๊อปอัพเดิมเล็กไป (ใช้ isDense + ฟอนต์ default ของ Material ที่
-    // ค่อนข้างเล็กเมื่อเทียบกับกล่องโต้ตอบขนาด 500px) — ขยายทั้งกล่อง (500→600)
+    // ค่อนข้างเล็กเมื่อเทียบกับกล่องโต้ตอบขนาด 500px) — ขยายทั้งกล่อง (500→760)
     // และฟอนต์ทุกช่อง/ปุ่ม/หัวข้อ ให้อ่านง่ายขึ้นชัดเจน รองรับผู้ใช้ช่วงวัยกว้าง
     const labelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w700);
     const inputStyle = TextStyle(fontSize: 17);
     return AlertDialog(
       title: Text(
         isEdit ? 'แก้ไขแผนงบประมาณ' : 'เพิ่มแผนงบประมาณ',
-        style: const TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold),
+        style: const TextStyle(
+            fontSize: AppTypography.heading2,
+            fontWeight: AppTypography.weightExtraBold),
       ),
       content: SizedBox(
-        width: 600,
+        width: 760,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _field(_fiscalYear, 'ปีงบประมาณ *', required: true, hint: 'เช่น 2568'),
+                _field(_fiscalYear, 'ปีงบประมาณ *',
+                    required: true, hint: 'เช่น 2568'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: DropdownButtonFormField<String?>(
@@ -1694,29 +1964,41 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
                     style: inputStyle.copyWith(color: colors.onSurface),
                     borderRadius: BorderRadius.circular(RadiusSize.card),
                     decoration: InputDecoration(
-                      labelText: 'ฝ่าย/แผนงาน', labelStyle: labelStyle, floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                      labelText: 'ฝ่าย/แผนงาน',
+                      labelStyle: labelStyle,
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                        borderSide: BorderSide(color: colors.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                        borderSide: BorderSide(color: colors.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+                        borderSide: BorderSide(
+                            color: BrandAccent.teal(context), width: 1.5),
                       ),
                     ),
                     items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
-                      ..._workGroups.map((g) => g.name).followedBy(
-                        (_groupName != null && !_workGroups.any((g) => g.name == _groupName)) ? [_groupName!] : const [],
-                      ).map((g) => DropdownMenuItem(
-                            value: g,
-                            child: Text(g, overflow: TextOverflow.ellipsis),
-                          )),
+                      const DropdownMenuItem<String?>(
+                          value: null, child: Text('(ไม่ระบุ)')),
+                      ..._workGroups
+                          .map((g) => g.name)
+                          .followedBy(
+                            (_groupName != null &&
+                                    !_workGroups
+                                        .any((g) => g.name == _groupName))
+                                ? [_groupName!]
+                                : const [],
+                          )
+                          .map((g) => DropdownMenuItem(
+                                value: g,
+                                child: Text(g, overflow: TextOverflow.ellipsis),
+                              )),
                     ],
                     onChanged: (v) => setState(() => _groupName = v),
                   ),
@@ -1729,33 +2011,45 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
                     style: inputStyle.copyWith(color: colors.onSurface),
                     borderRadius: BorderRadius.circular(RadiusSize.card),
                     decoration: InputDecoration(
-                      labelText: 'แหล่งงบประมาณ', labelStyle: labelStyle, floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                      labelText: 'แหล่งงบประมาณ',
+                      labelStyle: labelStyle,
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                        borderSide: BorderSide(color: colors.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                        borderSide: BorderSide(color: colors.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+                        borderSide: BorderSide(
+                            color: BrandAccent.teal(context), width: 1.5),
                       ),
                     ),
                     items: budgetSources
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
+                        .map((s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(s, overflow: TextOverflow.ellipsis)))
                         .toList(),
-                    onChanged: (v) => setState(() => _budgetSource = v ?? budgetSourceSchool),
+                    onChanged: (v) =>
+                        setState(() => _budgetSource = v ?? budgetSourceSchool),
                   ),
                 ),
-                _field(_projectName, 'ชื่อโครงการ (โครงการหลัก)', hint: 'เช่น โครงการพัฒนาห้องสมุดโรงเรียน'),
-                _field(_activityName, 'กิจกรรม/โครงการย่อย', hint: 'เช่น จัดซื้อหนังสือเข้าห้องสมุด'),
+                _field(_projectName, 'ชื่อโครงการ (โครงการหลัก)',
+                    hint: 'เช่น โครงการพัฒนาห้องสมุดโรงเรียน'),
+                _field(_activityName, 'กิจกรรม/โครงการย่อย',
+                    hint: 'เช่น จัดซื้อหนังสือเข้าห้องสมุด'),
                 _field(_egpNumber, 'เลขที่ e-GP', hint: 'เช่น 69000000000'),
                 _field(_allocatedAmount, 'วงเงินที่ได้รับจัดสรร (บาท) *',
-                  required: true, keyboardType: TextInputType.number, hint: 'เช่น 50000.00'),
-                _field(_responsiblePerson, 'ผู้รับผิดชอบ', hint: 'เช่น นายสมชาย ใจดี'),
+                    required: true,
+                    keyboardType: TextInputType.number,
+                    hint: 'เช่น 50000.00'),
+                _field(_responsiblePerson, 'ผู้รับผิดชอบ',
+                    hint: 'เช่น นายสมชาย ใจดี'),
               ],
             ),
           ),
@@ -1767,7 +2061,8 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
           onPressed: _saving ? null : () => Navigator.pop(context, false),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           child: const Text('ยกเลิก'),
         ),
@@ -1775,12 +2070,16 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
           style: FilledButton.styleFrom(
             backgroundColor: colors.primary,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           onPressed: _saving ? null : _save,
           child: _saving
-              ? SizedBox(width: 18, height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: colors.onPrimary))
               : Text(isEdit ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],
@@ -1790,7 +2089,6 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
   Widget _field(TextEditingController ctrl, String label,
       {bool required = false, TextInputType? keyboardType, String? hint}) {
     final colors = Theme.of(context).colorScheme;
-    final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: ClearableTextField(
@@ -1798,14 +2096,24 @@ class _BudgetFormDialogState extends State<_BudgetFormDialog> {
         keyboardType: keyboardType,
         style: const TextStyle(fontSize: 17),
         decoration: InputDecoration(
-          labelText: label, hintText: hint,
+          labelText: label,
+          hintText: hint,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          labelStyle:
+              const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           hintStyle: const TextStyle(fontSize: 15),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-          border: OutlineInputBorder(borderSide: BorderSide(color: borderColor, width: 1.3)),
-          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor, width: 1.3)),
-          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(RadiusSize.md),
+              borderSide: BorderSide(color: colors.outline)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(RadiusSize.md),
+              borderSide: BorderSide(color: colors.outline)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(RadiusSize.md),
+              borderSide:
+                  BorderSide(color: BrandAccent.teal(context), width: 1.5)),
         ),
         validator: required
             ? (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null

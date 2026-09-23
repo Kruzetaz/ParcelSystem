@@ -11,24 +11,39 @@ import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
 import '../theme/design_tokens.dart';
-import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
-import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction;
 import '../widgets/design_system/hover_clear_button.dart';
 import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
-const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonTextStyle =
+    TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
 const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
 const _dialogLabelStyle = TextStyle(fontSize: 15);
 
 const _disposalMethods = ['ขายทอดตลาด', 'โอนให้หน่วยงานอื่น', 'ทำลาย'];
 const _thaiMonths = [
-  '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  '',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ];
-String _formatThai(DateTime d) => '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
+String _formatThai(DateTime d) =>
+    '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
 
 class DisposalsScreen extends StatefulWidget {
   const DisposalsScreen({super.key});
@@ -56,7 +71,10 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
     if (!mounted) return;
     setState(() {
       _disposals = disposals;
-      _assetsById = {for (final a in assets) if (a.id != null) a.id!: a};
+      _assetsById = {
+        for (final a in assets)
+          if (a.id != null) a.id!: a
+      };
       _loading = false;
     });
   }
@@ -77,15 +95,21 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
-        content: const Text('ต้องการลบบันทึกการจำหน่ายนี้ใช่หรือไม่?', style: _dialogContentStyle),
+        content: const Text('ต้องการลบบันทึกการจำหน่ายนี้ใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -155,27 +179,44 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.delete_sweep_outlined, color: BrandAccent.tealOn(context), size: 22),
+                        Icon(Icons.delete_sweep_outlined,
+                            color: BrandAccent.tealOn(context), size: 22),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text('จำหน่ายพัสดุ',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: AppTypography.heading2,
+                                  fontWeight: AppTypography.weightExtraBold,
+                                  color: colors.onSurface)),
                         ),
                         const SizedBox(width: 8),
                         OutlinedButton.icon(
-                          onPressed: _disposals.isEmpty || _exporting ? null : _exportToExcel,
+                          onPressed: _disposals.isEmpty || _exporting
+                              ? null
+                              : _exportToExcel,
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
                             side: BorderSide(color: colors.outline),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                            textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md)),
+                            textStyle: const TextStyle(
+                                fontSize: 14.5, fontWeight: FontWeight.w700),
                           ),
                           icon: _exporting
-                              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
-                              : const Icon(Icons.file_download_outlined, size: 18),
-                          label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: colors.onSurfaceVariant))
+                              : const Icon(Icons.file_download_outlined,
+                                  size: 18),
+                          label: Text(
+                              _exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
                         ),
                       ],
                     ),
@@ -188,19 +229,27 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.delete_sweep_outlined, size: 64, color: colors.onSurfaceVariant),
+                                      Icon(Icons.delete_sweep_outlined,
+                                          size: 64,
+                                          color: colors.onSurfaceVariant),
                                       const SizedBox(height: 12),
-                                      Text('ยังไม่มีรายการจำหน่ายพัสดุ\nกด "เพิ่มรายการจำหน่าย" เพื่อเริ่มต้น',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
+                                      Text(
+                                          'ยังไม่มีรายการจำหน่ายพัสดุ\nกด "เพิ่มรายการจำหน่าย" เพื่อเริ่มต้น',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                              color: colors.onSurfaceVariant,
+                                              fontSize:
+                                                  AppTypography.heading4)),
                                     ],
                                   ),
                                 )
                               : ListView.separated(
                                   itemCount: _disposals.length,
                                   padding: const EdgeInsets.only(bottom: 80),
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (_, i) => _buildCard(context, colors, _disposals[i]),
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 8),
+                                  itemBuilder: (_, i) => _buildCard(
+                                      context, colors, _disposals[i]),
                                 ),
                     ),
                   ],
@@ -252,45 +301,72 @@ class _DisposalsScreenState extends State<DisposalsScreen> {
                     Row(children: [
                       if (asset?.assetNumber != null) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: BrandAccent.teal(context).withValues(alpha: 0.1),
+                            color: BrandAccent.teal(context)
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(RadiusSize.sm),
                           ),
                           child: Text(asset!.assetNumber!,
-                            style: TextStyle(fontSize: AppTypography.caption, color: BrandAccent.tealOn(context), fontWeight: AppTypography.weightSemiBold)),
+                              style: TextStyle(
+                                  fontSize: AppTypography.caption,
+                                  color: BrandAccent.tealOn(context),
+                                  fontWeight: AppTypography.weightSemiBold)),
                         ),
                         const SizedBox(width: 8),
                       ],
                       if (d.disposalMethod != null) ...[
-                        Text(d.disposalMethod!, style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                        Text(d.disposalMethod!,
+                            style: TextStyle(
+                                fontSize: AppTypography.caption,
+                                color: colors.onSurfaceVariant)),
                         const SizedBox(width: 8),
                       ],
                       StatusBadge(
                         label: d.status,
-                        variant: isCommitted ? BadgeVariant.success : BadgeVariant.warning,
+                        variant: isCommitted
+                            ? BadgeVariant.success
+                            : BadgeVariant.warning,
                         compact: true,
                       ),
                     ]),
                     const SizedBox(height: 6),
-                    Text(itemLabel, style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(itemLabel,
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.heading4,
+                            color: colors.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
-                    Text('อนุมัติเมื่อ: ${d.approvedDate ?? "-"}  ·  ผู้ลงนาม: ${d.approverName ?? "-"}',
-                      style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                        'อนุมัติเมื่อ: ${d.approvedDate ?? "-"}  ·  ผู้ลงนาม: ${d.approverName ?? "-"}',
+                        style: TextStyle(
+                            fontSize: AppTypography.bodySmall,
+                            color: colors.onSurfaceVariant),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
               if (!isCommitted)
                 TextButton(
                   onPressed: () => _markCommitted(d),
-                  style: TextButton.styleFrom(textStyle: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold)),
+                  style: TextButton.styleFrom(
+                      textStyle: TextStyle(
+                          fontSize: AppTypography.bodySmall,
+                          fontWeight: AppTypography.weightBold)),
                   child: const Text('ตัดยอดออกจากบัญชี'),
                 ),
               const SizedBox(width: 4),
               DsActionIconButtons(
                 actions: [
-                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(d), danger: true),
+                  DsRowAction(
+                      icon: Icons.delete_outline,
+                      tooltip: 'ลบ',
+                      onTap: () => _confirmDelete(d),
+                      danger: true),
                 ],
               ),
             ],
@@ -359,10 +435,12 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
     final d = Disposal(
       id: widget.existing?.id,
       assetId: _assetId,
-      itemName: _itemNameCtrl.text.trim().isEmpty ? null : _itemNameCtrl.text.trim(),
+      itemName:
+          _itemNameCtrl.text.trim().isEmpty ? null : _itemNameCtrl.text.trim(),
       disposalMethod: _method,
       approvedDate: _approvedDate,
-      approverName: _approverCtrl.text.trim().isEmpty ? null : _approverCtrl.text.trim(),
+      approverName:
+          _approverCtrl.text.trim().isEmpty ? null : _approverCtrl.text.trim(),
       status: _status,
     );
     if (widget.existing == null) {
@@ -374,7 +452,8 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
     Navigator.pop(context, true);
   }
 
-  InputDecoration _fieldDecoration(BuildContext context, String label, {String? hint}) {
+  InputDecoration _fieldDecoration(BuildContext context, String label,
+      {String? hint}) {
     final colors = Theme.of(context).colorScheme;
     // colors.outline (0xFFE1E7EB โหมดสว่าง) จางเกินไปสำหรับช่องกรอกลอยเดี่ยวๆ
     // ในป๊อปอัพ (ไม่มีเงา/สีพื้นต่างจากไดอะล็อกช่วยตัดขอบให้เหมือนตารางอื่น) —
@@ -384,7 +463,8 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
       labelText: label,
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
-      labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
+      labelStyle: _dialogLabelStyle.copyWith(
+          color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(
@@ -407,7 +487,8 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขรายการจำหน่าย' : 'เพิ่มรายการจำหน่าย', style: _dialogTitleStyle),
+      title: Text(isEdit ? 'แก้ไขรายการจำหน่าย' : 'เพิ่มรายการจำหน่าย',
+          style: _dialogTitleStyle),
       content: SizedBox(
         width: 580,
         child: SingleChildScrollView(
@@ -421,18 +502,26 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                     initialValue: _assetId,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _fieldDecoration(context, 'ครุภัณฑ์ที่จะจำหน่าย').copyWith(
+                    decoration:
+                        _fieldDecoration(context, 'ครุภัณฑ์ที่จะจำหน่าย')
+                            .copyWith(
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       suffixIcon: hovering && _assetId != null
-                          ? clearIconButton(context, () => setState(() => _assetId = null))
+                          ? clearIconButton(
+                              context, () => setState(() => _assetId = null))
                           : null,
                     ),
                     items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('(พิมพ์ชื่อรายการเอง)')),
-                      ...widget.assets.where((a) => a.id != null).map((a) => DropdownMenuItem<int?>(
-                            value: a.id,
-                            child: Text('${a.assetNumber ?? ""} ${a.name}'.trim(), overflow: TextOverflow.ellipsis),
-                          )),
+                      const DropdownMenuItem<int?>(
+                          value: null, child: Text('(พิมพ์ชื่อรายการเอง)')),
+                      ...widget.assets
+                          .where((a) => a.id != null)
+                          .map((a) => DropdownMenuItem<int?>(
+                                value: a.id,
+                                child: Text(
+                                    '${a.assetNumber ?? ""} ${a.name}'.trim(),
+                                    overflow: TextOverflow.ellipsis),
+                              )),
                     ],
                     onChanged: (v) => setState(() => _assetId = v),
                   ),
@@ -444,7 +533,8 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                   child: ClearableTextField(
                     controller: _itemNameCtrl,
                     style: _dialogFieldStyle,
-                    decoration: _fieldDecoration(context, 'ชื่อรายการ', hint: 'เช่น โต๊ะทำงานชำรุด'),
+                    decoration: _fieldDecoration(context, 'ชื่อรายการ',
+                        hint: 'เช่น โต๊ะทำงานชำรุด'),
                   ),
                 ),
               Padding(
@@ -452,22 +542,30 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                 child: DropdownButtonFormField<String?>(
                   initialValue: _method,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _fieldDecoration(context, 'วิธีการจำหน่าย').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                  decoration: _fieldDecoration(context, 'วิธีการจำหน่าย')
+                      .copyWith(
+                          floatingLabelBehavior: FloatingLabelBehavior.auto),
                   items: [
-                    const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
-                    ..._disposalMethods.map((m) => DropdownMenuItem(value: m, child: Text(m))),
+                    const DropdownMenuItem<String?>(
+                        value: null, child: Text('(ไม่ระบุ)')),
+                    ..._disposalMethods
+                        .map((m) => DropdownMenuItem(value: m, child: Text(m))),
                   ],
                   onChanged: (v) => setState(() => _method = v),
                 ),
               ),
-              InkWell(
-                onTap: _pickDate,
-                borderRadius: BorderRadius.circular(RadiusSize.md),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 18),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: InkWell(
+                  onTap: _pickDate,
+                  borderRadius: BorderRadius.circular(RadiusSize.md),
                   child: InputDecorator(
-                    decoration: _fieldDecoration(context, 'วันที่อนุมัติจำหน่าย').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                    child: Text(_approvedDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                    decoration: _fieldDecoration(
+                            context, 'วันที่อนุมัติจำหน่าย')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    child: Text(_approvedDate ?? 'เลือกวันที่',
+                        style: _dialogFieldStyle),
                   ),
                 ),
               ),
@@ -476,16 +574,21 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
                 child: ClearableTextField(
                   controller: _approverCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _fieldDecoration(context, 'ผู้ลงนามอนุมัติ', hint: 'เช่น นายสมชาย ใจดี'),
+                  decoration: _fieldDecoration(context, 'ผู้ลงนามอนุมัติ',
+                      hint: 'เช่น นายสมชาย ใจดี'),
                 ),
               ),
               DropdownButtonFormField<String>(
                 initialValue: _status,
                 style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _fieldDecoration(context, 'สถานะการตัดยอด').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                decoration: _fieldDecoration(context, 'สถานะการตัดยอด')
+                    .copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: const [
-                  DropdownMenuItem(value: 'รอดำเนินการ', child: Text('รอดำเนินการ')),
-                  DropdownMenuItem(value: 'ตัดยอดแล้ว', child: Text('ตัดยอดแล้ว')),
+                  DropdownMenuItem(
+                      value: 'รอดำเนินการ', child: Text('รอดำเนินการ')),
+                  DropdownMenuItem(
+                      value: 'ตัดยอดแล้ว', child: Text('ตัดยอดแล้ว')),
                 ],
                 onChanged: (v) => setState(() => _status = v ?? 'รอดำเนินการ'),
               ),
@@ -496,14 +599,22 @@ class _DisposalFormDialogState extends State<_DisposalFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
-          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: TextButton.styleFrom(
+              padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              padding: _dialogButtonPadding,
+              textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
-              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: colors.onPrimary))
               : Text(isEdit ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],

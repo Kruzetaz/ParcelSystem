@@ -27,6 +27,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   late final TabController _tabController;
 
   late final TextEditingController _schoolNameCtrl;
+  late final TextEditingController _educationServiceAreaCtrl;
   late final TextEditingController _schoolAddressNoCtrl;
   late final TextEditingController _schoolSubdistrictCtrl;
   late final TextEditingController _schoolAmphoeCtrl;
@@ -47,6 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _tabController = TabController(length: 4, vsync: this);
     _currentUserCtrl = TextEditingController();
     _schoolNameCtrl = TextEditingController();
+    _educationServiceAreaCtrl = TextEditingController();
     _schoolAddressNoCtrl = TextEditingController();
     _schoolSubdistrictCtrl = TextEditingController();
     _schoolAmphoeCtrl = TextEditingController();
@@ -66,6 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     if (userName != 'ไม่ระบุชื่อ') _currentUserCtrl.text = userName;
     if (settings != null) {
       _schoolNameCtrl.text = settings.schoolName ?? '';
+      _educationServiceAreaCtrl.text = settings.educationServiceArea ?? '';
       _schoolAddressNoCtrl.text = settings.schoolAddressNo ?? '';
       _schoolSubdistrictCtrl.text = settings.schoolSubdistrict ?? '';
       _schoolAmphoeCtrl.text = settings.schoolAmphoe ?? '';
@@ -84,6 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _tabController.dispose();
     _currentUserCtrl.dispose();
     _schoolNameCtrl.dispose();
+    _educationServiceAreaCtrl.dispose();
     _schoolAddressNoCtrl.dispose();
     _schoolSubdistrictCtrl.dispose();
     _schoolAmphoeCtrl.dispose();
@@ -106,6 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     try {
       final settings = SchoolSettings(
         schoolName: _schoolNameCtrl.text.trim(),
+        educationServiceArea: _educationServiceAreaCtrl.text.trim(),
         schoolAddressNo: _schoolAddressNoCtrl.text.trim(),
         schoolSubdistrict: _schoolSubdistrictCtrl.text.trim(),
         schoolAmphoe: _schoolAmphoeCtrl.text.trim(),
@@ -257,6 +262,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       controller: _schoolNameCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('ชื่อโรงเรียน', hint: 'เช่น โรงเรียนบ้านป่าเลา'),
+                    ),
+                    const SizedBox(height: 16),
+                    ClearableTextField(
+                      controller: _educationServiceAreaCtrl,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _inputDecoration('ส่วนราชการ (ต้นสังกัด)', hint: 'เช่น สำนักงานเขตพื้นที่การศึกษาประถมศึกษาลำพูน เขต 1'),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(

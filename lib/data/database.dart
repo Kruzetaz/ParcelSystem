@@ -17,7 +17,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 37;
+  static const int _version = 49;
 
   Database? _db;
 
@@ -297,14 +297,16 @@ class AppDatabase {
           // ผูก TOR กับรายการจัดซื้อจัดจ้าง — ใช้ export เอกสาร .docx และ
           // auto-create TOR ตอนสร้างเอกสารจัดซื้อจัดจ้างใหม่
           try {
-            await db.execute('ALTER TABLE tor_documents ADD COLUMN order_id INTEGER');
+            await db.execute(
+                'ALTER TABLE tor_documents ADD COLUMN order_id INTEGER');
           } catch (_) {}
         }
         if (oldVersion < 20) {
           // เก็บ "วิธีจัดซื้อจัดจ้าง" จริงลงฐานข้อมูล (เดิมไม่มีฟิลด์นี้เลย) —
           // ใช้กับฟีเจอร์ Easy Wizard ที่แนะนำวิธีให้อัตโนมัติจากวงเงิน
           try {
-            await db.execute('ALTER TABLE procurement_orders ADD COLUMN procurement_method TEXT');
+            await db.execute(
+                'ALTER TABLE procurement_orders ADD COLUMN procurement_method TEXT');
           } catch (_) {}
         }
         if (oldVersion < 21) {
@@ -478,7 +480,8 @@ class AppDatabase {
           // รหัสไปรษณีย์ของผู้ขาย/ผู้รับจ้าง — ต้องใช้ในใบสำคัญรับเงินบางแบบ
           // (ที่อยู่แบบเต็มรวมรหัสไปรษณีย์) แต่เดิมไม่มีเก็บไว้ที่ order เลย
           try {
-            await db.execute('ALTER TABLE procurement_orders ADD COLUMN vendor_postal_code TEXT');
+            await db.execute(
+                'ALTER TABLE procurement_orders ADD COLUMN vendor_postal_code TEXT');
           } catch (_) {}
         }
         if (oldVersion < 31) {
@@ -496,10 +499,12 @@ class AppDatabase {
             );
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE procurement_orders ADD COLUMN doc_checklist_paid_date TEXT');
+            await db.execute(
+                'ALTER TABLE procurement_orders ADD COLUMN doc_checklist_paid_date TEXT');
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE procurement_orders ADD COLUMN doc_checklist_note TEXT');
+            await db.execute(
+                'ALTER TABLE procurement_orders ADD COLUMN doc_checklist_note TEXT');
           } catch (_) {}
         }
         if (oldVersion < 32) {
@@ -542,10 +547,23 @@ class AppDatabase {
               sort_order INTEGER DEFAULT 0
             )
           ''');
-          const defaultGrades = ['อ.2', 'อ.3', 'ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6', 'ม.1', 'ม.2', 'ม.3'];
+          const defaultGrades = [
+            'อ.2',
+            'อ.3',
+            'ป.1',
+            'ป.2',
+            'ป.3',
+            'ป.4',
+            'ป.5',
+            'ป.6',
+            'ม.1',
+            'ม.2',
+            'ม.3'
+          ];
           for (var i = 0; i < defaultGrades.length; i++) {
             try {
-              await db.insert('learning_material_grades', {'name': defaultGrades[i], 'sort_order': i});
+              await db.insert('learning_material_grades',
+                  {'name': defaultGrades[i], 'sort_order': i});
             } catch (_) {}
           }
         }
@@ -600,7 +618,8 @@ class AppDatabase {
             'transport_type',
             'other_expense_type',
           ]) {
-            await db.execute('ALTER TABLE travel_reimbursements ADD COLUMN $col TEXT');
+            await db.execute(
+                'ALTER TABLE travel_reimbursements ADD COLUMN $col TEXT');
           }
         }
         if (oldVersion < 36) {
@@ -618,6 +637,312 @@ class AppDatabase {
           await db.execute(
             'ALTER TABLE travel_reimbursements ADD COLUMN requester_personnel_id INTEGER',
           );
+        }
+        if (oldVersion < 38) {
+          // ตัวกรอง "แก้ไข/สร้างล่าสุดก่อน" ที่ Dashboard เดิมเรียงตาม id
+          // ซึ่งสะท้อนแค่ลำดับ "สร้าง" เท่านั้น ไม่ใช่ "แก้ไข" ตามชื่อตัวกรอง —
+          // เพิ่มคอลัมน์นี้ให้ repository stamp เวลาไว้ทุกครั้งที่ insert/update
+          await db.execute(
+            'ALTER TABLE procurement_orders ADD COLUMN updated_at TEXT',
+          );
+        }
+        if (oldVersion < 39) {
+          // "ส่วนราชการ" ต้นสังกัด (เช่น สำนักงานเขตพื้นที่การศึกษา) เป็น
+          // ประโยคฟิกที่ใช้ซ้ำในหลายเอกสารราชการ (เช่น บัญชีวัสดุ) แยกจาก
+          // ชื่อโรงเรียนเอง — เก็บไว้ในหน้าตั้งค่าโรงเรียนเหมือนฟิลด์อื่นๆ
+          await db.execute(
+            'ALTER TABLE school_settings ADD COLUMN education_service_area TEXT',
+          );
+        }
+        if (oldVersion < 40) {
+          // เปลี่ยน "ประเภทวัสดุ" (materials.category) จากชื่อย่อเดิมเป็นชื่อ
+          // เต็มตามหมวดวัสดุที่ราชการใช้จริง — ต้อง migrate ค่าเก่าที่เคยบันทึก
+          // ไว้แล้วด้วย ไม่งั้น dropdown ในฟอร์มแก้ไขวัสดุจะ assert พังตอนเจอ
+          // ค่าที่ไม่อยู่ใน list ตัวเลือกใหม่
+          const renames = {
+            'สำนักงาน': 'วัสดุสำนักงาน',
+            'ไฟฟ้า': 'วัสดุไฟฟ้าและวิทยุ',
+            'งานบ้าน': 'วัสดุงานบ้านงานครัว',
+          };
+          for (final entry in renames.entries) {
+            await db.execute(
+              'UPDATE materials SET category = ? WHERE category = ?',
+              [entry.value, entry.key],
+            );
+          }
+        }
+        if (oldVersion < 41) {
+          // รายการวัสดุเก่าที่ไม่เคยมีประเภทเลย (เช่น ที่สร้างผ่าน "ดึงจาก
+          // โครงการ" ก่อนที่ระบบจะเดาประเภทให้อัตโนมัติ) — ให้ใส่ "อื่นๆ" แทน
+          // การปล่อยว่างไว้ ตามที่ผู้ใช้ขอ
+          await db.execute(
+            "UPDATE materials SET category = 'อื่นๆ' WHERE category IS NULL OR TRIM(category) = ''",
+          );
+        }
+        if (oldVersion < 42) {
+          // รายการที่ตอน oldVersion < 41 ถูกเซ็ตเป็น "อื่นๆ" ไปแล้วเพราะตอนนั้น
+          // ยังไม่มีคำหลักเดาประเภทให้ตรง (เช่น หนังสือเรียนที่ชื่อเป็นชื่อวิชา
+          // ล้วนๆ ไม่มีคำว่า "หนังสือ") — ตอนนี้เพิ่มคำหลักตามชื่อวิชา/ประเภท
+          // วัสดุจริงแล้ว เลยลองจับคู่ใหม่อีกครั้งเฉพาะรายการที่ยังเป็น "อื่นๆ"
+          // อยู่ (เรียงตามลำดับความสำคัญเดียวกับ _materialCategoryKeywords ใน
+          // materials_screen.dart — ตัวไหนเจอคำหลักก่อนจะไม่ถูกทับด้วยคำหลัง
+          // เพราะเงื่อนไข WHERE category = 'อื่นๆ' จะไม่ตรงอีกแล้วหลังอัปเดต)
+          const categoryKeywords = <String, List<String>>{
+            'วัสดุไฟฟ้าและวิทยุ': [
+              'ไฟฟ้า',
+              'หลอดไฟ',
+              'สวิตช์',
+              'ปลั๊ก',
+              'สายไฟ',
+              'แบตเตอรี่',
+              'ถ่านไฟฉาย',
+              'ไฟฉาย',
+              'ฟิวส์',
+              'เต้ารับ',
+              'เต้าเสียบ',
+              'ปลั๊กพ่วง'
+            ],
+            'วัสดุสำนักงาน': [
+              'กระดาษ',
+              'ปากกา',
+              'ดินสอ',
+              'แฟ้ม',
+              'คลิป',
+              'เทป',
+              'กาว',
+              'สมุด',
+              'หมึก',
+              'ลวดเย็บ',
+              'กรรไกร',
+              'ไม้บรรทัด',
+              'ซองเอกสาร',
+              'มาร์กเกอร์',
+              'แล็กซีน',
+              'แม็ก',
+              'เคลือบบัตร',
+              'สันรูด',
+            ],
+            'วัสดุงานบ้านงานครัว': [
+              'ไม้กวาด',
+              'ผงซักฟอก',
+              'สบู่',
+              'น้ำยา',
+              'ถุงมือ',
+              'ถุงดำ',
+              'ผ้าเช็ด',
+              'แปรง',
+              'สเปรย์',
+              'ไม้ถูพื้น',
+              'ทิชชู่',
+              'กระดาษชำระ',
+              'หลอดดูดน้ำ',
+              'ถังขยะ',
+              'กะละมัง',
+              'แก้วน้ำ',
+              'แก้วพลาสติก',
+              'โหล',
+              'ตะเกียบ',
+              'ไม้เสียบอาหาร',
+              'น้ำมันพืช',
+              'เกลือ',
+              'เบกกิ้งโซดา',
+              'ยาสีฟัน',
+              'แปรงสีฟัน',
+              'ก๊อกน้ำ',
+            ],
+            'วัสดุการศึกษา': [
+              'เมล็ดพันธุ์',
+              'เมล็ด',
+              'พันธุ์พืช',
+              'ปุ๋ย',
+              'กระถาง',
+              'เพาะกล้า',
+              'ดินปลูก',
+              'สื่อการสอน',
+              'อุปกรณ์การเรียน',
+              'ชุดทดลอง',
+              'แบบฝึกหัด',
+              'แบบฝึกทักษะ',
+              'หนังสือเรียน',
+              'ของเล่นเสริมพัฒนาการ',
+              'บฝ.',
+              'คณิตศาสตร์',
+              'วิทยาศาสตร์',
+              'ภาษาพาที',
+              'วรรณคดี',
+              'วิวิธภาษา',
+              'ประวัติศาสตร์',
+              'สังคมศึกษา',
+              'สุขศึกษา',
+              'พลศึกษา',
+              'พระพุทธศาสนา',
+              'การงานอาชีพ',
+              'ดนตรี',
+              'นาฏศิลป์',
+              'ทักษะภาษา',
+              'ปฐมวัย',
+              'สมรรถนะ',
+              'เสริมประสบการณ์',
+              'เทคโนโลยี',
+              'STEM',
+              'Action',
+              'SMILE',
+              'Smile',
+              'EXTRA',
+              'Kids Corner',
+              'Around me',
+              'Say Hello',
+              'ลูกฟุตบอล',
+              'ลูกวอลเลย์บอล',
+              'ลูกเทนนิส',
+              'ลูกปิงปอง',
+              'ตาข่ายวอลเลย์บอล',
+              'ตะกร้าแชร์บอล',
+              'กลองสแนร์',
+              'กลองเบสดรัม',
+              'ฉาบมาร์ชชิ่ง',
+              'มาร์ชชิ่งเบลล์',
+              'เมโลเดียน',
+            ],
+          };
+          for (final entry in categoryKeywords.entries) {
+            for (final kw in entry.value) {
+              await db.execute(
+                "UPDATE materials SET category = ? WHERE category = 'อื่นๆ' AND name LIKE ?",
+                [entry.key, '%$kw%'],
+              );
+            }
+          }
+        }
+        if (oldVersion < 43) {
+          // ขยาย "ตรวจนับพัสดุประจำปี" ให้เก็บเลขที่/วันที่เอกสารทั้ง 3 ฉบับ
+          // (บันทึกขออนุมัติแต่งตั้งกรรมการ, คำสั่งแต่งตั้ง, บันทึกรายงานผล)
+          // และรายชื่อกรรมการ/รายการพัสดุชำรุด เพื่อพิมพ์เอกสารชุดตรวจสอบ
+          // พัสดุประจำปีให้ครบอัตโนมัติได้ (เดิมมีแค่ตัวเลขสรุปผลเฉยๆ)
+          for (final col in [
+            'memo_number',
+            'memo_date',
+            'order_number',
+            'order_date',
+            'report_number',
+            'report_date',
+            'members_json',
+            'damaged_items_json',
+          ]) {
+            await db.execute('ALTER TABLE annual_counts ADD COLUMN $col TEXT');
+          }
+        }
+        if (oldVersion < 44) {
+          // เพิ่มเลขที่/วันที่หนังสือนำส่งสำเนารายงานถึงเขตพื้นที่การศึกษา/สตง.
+          // และคำสั่งแต่งตั้งหัวหน้าเจ้าหน้าที่พัสดุ/เจ้าหน้าที่พัสดุ ประจำปี
+          // (ตามหน้าเอกสารที่ขยายเพิ่มในชุดตรวจสอบพัสดุประจำปี)
+          for (final col in [
+            'transmittal_district_number',
+            'transmittal_district_date',
+            'transmittal_audit_number',
+            'transmittal_audit_date',
+            'staff_order_number',
+            'staff_order_effective_date',
+            'staff_order_date',
+            'procurement_staff_json',
+          ]) {
+            await db.execute('ALTER TABLE annual_counts ADD COLUMN $col TEXT');
+          }
+        }
+        if (oldVersion < 45) {
+          // แยก "ครุภัณฑ์" ทั่วไป กับ "ที่ดินและสิ่งก่อสร้าง" เพื่อให้รายงาน
+          // ตรวจนับครุภัณฑ์ประจำปีแยกหน้า/ตารางกันได้ถูกต้อง
+          await db.execute(
+              "ALTER TABLE fixed_assets ADD COLUMN asset_category TEXT DEFAULT 'ครุภัณฑ์'");
+        }
+        if (oldVersion < 46) {
+          // ครุภัณฑ์เดิมทุกแถวเพิ่งได้ค่า default 'ครุภัณฑ์' จาก migration
+          // ก่อนหน้า (v45) ทั้งที่บางรายการจริงๆ เป็นอาคาร/สิ่งปลูกสร้าง/ที่ดิน —
+          // เดาจากชื่อรายการแบบเดียวกับที่เคยทำกับ materials.category (v42)
+          // เพื่อให้ตาราง "ที่ดินและสิ่งก่อสร้าง" ในรายงานตรวจนับพัสดุประจำปีมี
+          // ข้อมูลขึ้นทันทีโดยไม่ต้องให้ผู้ใช้ไปติ๊กเองทีละรายการ — จับคู่เฉพาะ
+          // แถวที่ยังเป็น 'ครุภัณฑ์' อยู่ (ไม่ทับค่าที่ผู้ใช้เคยเลือกเองแล้ว)
+          const landKeywords = [
+            'อาคาร',
+            'สิ่งปลูกสร้าง',
+            'ที่ดิน',
+            'บ้านพักครู',
+            'บ้านพัก',
+            'สนามเด็กเล่น',
+            'สนามบาสเก็ตบอล',
+            'สนามฟุตบอล',
+            'สนามกีฬา',
+            'สนามวอลเลย์บอล',
+            'ส้วม',
+            'ห้องน้ำ',
+            'บ่อเลี้ยงปลา',
+            'บ่อน้ำ',
+            'รั้ว',
+            'ถนน',
+            'ลานกีฬา',
+            'ลานอเนกประสงค์',
+            'หอพระ',
+            'หอประชุม',
+            'โรงอาหาร',
+            'โรงจอดรถ',
+            'โรงฝึกงาน',
+            'เรือนเพาะชำ',
+            'สะพาน',
+            'กำแพง',
+            'ป้อมยาม',
+            'ประปา',
+            'ถังเก็บน้ำ',
+            'เสาธง',
+          ];
+          for (final kw in landKeywords) {
+            await db.execute(
+              "UPDATE fixed_assets SET asset_category = 'ที่ดินและสิ่งก่อสร้าง' WHERE asset_category = 'ครุภัณฑ์' AND name LIKE ?",
+              ['%$kw%'],
+            );
+          }
+        }
+        if (oldVersion < 47) {
+          // แยกออกมาจากตรวจนับพัสดุประจำปี — คำสั่งแต่งตั้งหัวหน้าเจ้าหน้าที่
+          // พัสดุ/เจ้าหน้าที่พัสดุ เป็นคำสั่งแต่งตั้งบุคคล ไม่ใช่คำสั่งตรวจนับ
+          // จึงควรเป็นฟีเจอร์/ทะเบียนของตัวเอง แยกกันชัดเจน
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS staff_appointment_orders (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fiscal_year TEXT NOT NULL,
+              order_number TEXT,
+              order_date TEXT,
+              effective_date TEXT,
+              staff_json TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 48) {
+          // ทะเบียนคุมใบส่งของ — 1 โครงการอาจมีหลายใบส่งของ (ส่งมอบหลายรอบ) จึง
+          // แยกเป็นตารางของตัวเอง ไม่ใช้ delivery_doc_type/delivery_doc_number
+          // เดิมบน procurement_orders (เก็บได้แค่ค่าเดียวต่อโครงการ)
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS delivery_notes (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              order_id INTEGER,
+              doc_type TEXT,
+              doc_number TEXT,
+              delivery_date TEXT,
+              items_description TEXT,
+              received_by TEXT,
+              note TEXT,
+              FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+            )
+          ''');
+        }
+        if (oldVersion < 49) {
+          // วันที่คำสั่งแต่งตั้งผู้ตรวจรับพัสดุ — เดิมทะเบียนคุม (คอลัมน์
+          // "เลขคำสั่ง") ใช้วันที่บันทึกขอซื้อ/ขอจ้างแทนเสมอ เพราะไม่มีฟิลด์แยก
+          // ทั้งที่ในทางปฏิบัติคำสั่งแต่งตั้งอาจลงนามคนละวันได้
+          try {
+            await db.execute(
+              'ALTER TABLE procurement_orders ADD COLUMN inspector_order_date TEXT',
+            );
+          } catch (_) {}
         }
       },
     );
@@ -689,6 +1014,7 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE procurement_orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        updated_at TEXT,
         budget_id INTEGER,
         fiscal_year TEXT,
         order_type TEXT CHECK(order_type IN ('ซื้อ', 'จ้าง')),
@@ -724,6 +1050,7 @@ class AppDatabase {
         inspector_1 TEXT, inspector_1_pos TEXT,
         inspector_2 TEXT, inspector_2_pos TEXT,
         inspector_3 TEXT, inspector_3_pos TEXT,
+        inspector_order_date TEXT,
 
         vendor_name TEXT,
         vendor_owner TEXT,
@@ -828,6 +1155,7 @@ class AppDatabase {
       CREATE TABLE school_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         school_name TEXT,
+        education_service_area TEXT,
         school_address_no TEXT,
         school_subdistrict TEXT,
         school_amphoe TEXT,
@@ -937,7 +1265,8 @@ class AppDatabase {
         vendor_name TEXT,
         fund_type TEXT,
         procurement_method TEXT,
-        useful_life_years INTEGER
+        useful_life_years INTEGER,
+        asset_category TEXT CHECK(asset_category IN ('ครุภัณฑ์', 'ที่ดินและสิ่งก่อสร้าง')) DEFAULT 'ครุภัณฑ์'
       )
     ''');
     await db.execute('''
@@ -998,7 +1327,46 @@ class AppDatabase {
         found_items INTEGER,
         damaged_lost_items INTEGER,
         status TEXT CHECK(status IN ('กำลังดำเนินการ', 'เสร็จสิ้น')) DEFAULT 'กำลังดำเนินการ',
-        summary_notes TEXT
+        summary_notes TEXT,
+        memo_number TEXT,
+        memo_date TEXT,
+        order_number TEXT,
+        order_date TEXT,
+        report_number TEXT,
+        report_date TEXT,
+        transmittal_district_number TEXT,
+        transmittal_district_date TEXT,
+        transmittal_audit_number TEXT,
+        transmittal_audit_date TEXT,
+        members_json TEXT,
+        damaged_items_json TEXT
+      )
+    ''');
+
+    // ── คำสั่งแต่งตั้งหัวหน้าเจ้าหน้าที่พัสดุ/เจ้าหน้าที่พัสดุ ─────────
+    await db.execute('''
+      CREATE TABLE staff_appointment_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fiscal_year TEXT NOT NULL,
+        order_number TEXT,
+        order_date TEXT,
+        effective_date TEXT,
+        staff_json TEXT
+      )
+    ''');
+
+    // ── ทะเบียนคุมใบส่งของ ──────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE delivery_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER,
+        doc_type TEXT,
+        doc_number TEXT,
+        delivery_date TEXT,
+        items_description TEXT,
+        received_by TEXT,
+        note TEXT,
+        FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
       )
     ''');
 
@@ -1059,9 +1427,22 @@ class AppDatabase {
         sort_order INTEGER DEFAULT 0
       )
     ''');
-    const defaultGrades = ['อ.2', 'อ.3', 'ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6', 'ม.1', 'ม.2', 'ม.3'];
+    const defaultGrades = [
+      'อ.2',
+      'อ.3',
+      'ป.1',
+      'ป.2',
+      'ป.3',
+      'ป.4',
+      'ป.5',
+      'ป.6',
+      'ม.1',
+      'ม.2',
+      'ม.3'
+    ];
     for (var i = 0; i < defaultGrades.length; i++) {
-      await db.insert('learning_material_grades', {'name': defaultGrades[i], 'sort_order': i});
+      await db.insert('learning_material_grades',
+          {'name': defaultGrades[i], 'sort_order': i});
     }
 
     // ── โมดูลเบิกจ่ายค่าใช้จ่ายเดินทางไปราชการ (แบบ ๘๗๐๘) ──────────────

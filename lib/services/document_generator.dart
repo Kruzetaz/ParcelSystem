@@ -38,6 +38,20 @@ class DocumentGenerator {
   static const String _templateAssetPath =
       'assets/templates/master_template.docx';
 
+  // เทมเพลตทางเลือกสำหรับวิธี "ว.804" (จัดซื้อวงเงินไม่เกิน 50,000 บาท) — เนื้อหา
+  // ต่างจาก master_template.docx ตรงที่อ้างอิงหนังสือ กวจ. 0405.2/ว804 แทน
+  // ระเบียบเฉพาะเจาะจงทั่วไป และมีส่วน TOR/คณะกรรมการกำหนดสเปคแนบท้าย (ใช้ชื่อ
+  // ผู้ตรวจรับพัสดุชุดเดิมเป็นคณะกรรมการกำหนดสเปคด้วย ไม่มีฟอร์มกรอกชื่อแยก
+  // ตามที่ตกลงกันไว้)
+  static const String _templateAssetPathW804 =
+      'assets/templates/master_template_w804.docx';
+
+  static String _resolveTemplatePath(ProcurementOrder order) {
+    return order.procurementMethod == 'ว.804'
+        ? _templateAssetPathW804
+        : _templateAssetPath;
+  }
+
   static final NumberFormat _moneyFmt = NumberFormat('#,##0.00', 'en_US');
 
   /// ประมวลผล master_template.docx เป็น bytes ล้วนๆ (ไม่เขียนไฟล์) — แยกออก
@@ -48,14 +62,15 @@ class DocumentGenerator {
     required SchoolSettings school,
     required List<ProcurementItem> items,
   }) async {
-    // STEP 1: โหลด template จาก assets
+    // STEP 1: โหลด template จาก assets (สลับตาม procurementMethod)
+    final templatePath = _resolveTemplatePath(order);
     late final ByteData templateData;
     try {
-      templateData = await rootBundle.load(_templateAssetPath);
+      templateData = await rootBundle.load(templatePath);
     } catch (e) {
       throw DocumentGeneratorException(
-        'ไม่พบไฟล์เทมเพลตที่ $_templateAssetPath\n'
-        'ตรวจสอบว่าวางไฟล์ master_template.docx ไว้ที่ assets/templates/ '
+        'ไม่พบไฟล์เทมเพลตที่ $templatePath\n'
+        'ตรวจสอบว่าวางไฟล์เทมเพลตไว้ที่ assets/templates/ '
         'และมี assets/templates/ อยู่ใน pubspec.yaml แล้ว (มีอยู่แล้วในโปรเจกต์นี้)\n'
         'รายละเอียด: $e',
       );
@@ -87,7 +102,8 @@ class DocumentGenerator {
     required SchoolSettings school,
     required List<ProcurementItem> items,
   }) async {
-    final resultBytes = await generateBytes(order: order, school: school, items: items);
+    final resultBytes =
+        await generateBytes(order: order, school: school, items: items);
 
     // บันทึกไฟล์ลงโฟลเดอร์ Documents/<ชื่อโรงเรียน>_Documents
     final docsDir = await getApplicationDocumentsDirectory();
@@ -277,7 +293,9 @@ class DocumentGenerator {
       // ขาดในเอกสาร (ดู vendor_has_shop_name ใน buildConditionalFlags ที่ใช้คู่กัน
       // ตัดข้อความซ้ำในจุดที่เทมเพลตโชว์ทั้งชื่อร้านและชื่อเจ้าของติดกัน)
       'vendor_name': _str(
-        (o.vendorName?.trim().isNotEmpty ?? false) ? o.vendorName : o.vendorOwner,
+        (o.vendorName?.trim().isNotEmpty ?? false)
+            ? o.vendorName
+            : o.vendorOwner,
       ),
       'vendor_owner': _str(o.vendorOwner),
       'vendor_address_no': _str(o.vendorAddressNo),
@@ -298,6 +316,9 @@ class DocumentGenerator {
       // วันที่ (เก็บเป็น string dd/MM/yyyy พ.ศ. อยู่แล้วจาก date picker)
       'date_memo_used': _str(o.dateMemoUsed),
       'date_order_created': _str(o.dateOrderCreated),
+      // ถ้ายังไม่ได้กรอกวันที่คำสั่งแต่งตั้งผู้ตรวจรับพัสดุแยกไว้ ใช้วันที่
+      // บันทึกขอซื้อ/จ้างแทน (พฤติกรรมเดิมก่อนมีฟิลด์นี้)
+      'inspector_order_date': _str(o.inspectorOrderDate ?? o.dateOrderCreated),
       'date_announcement': _str(o.dateAnnouncement),
       'date_quotation': _str(o.dateQuotation),
       'date_contract_signed': _str(o.dateContractSigned),

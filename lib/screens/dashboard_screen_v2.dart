@@ -2,6 +2,7 @@
 // Dashboard หน้าใหม่ — ใช้ design system จาก mockup dashboard-finalv2
 // แทนที่ dashboard_screen.dart เดิม
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/procurement_repository.dart';
@@ -12,10 +13,13 @@ import '../models/inspection.dart';
 import '../models/school_settings.dart';
 import '../services/document_generator.dart';
 import '../services/fiscal_year_controller.dart';
+import '../services/pending_import_controller.dart';
+import '../services/procurement_import_service.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../utils/thai_date.dart';
 import '../widgets/design_system/design_system.dart';
+import '../widgets/procurement_import_dialog.dart';
 import '../theme/design_tokens.dart';
 
 /// ปุ่มลัดเสริมที่ผู้ใช้เลือกเพิ่ม/ลดเองได้ในเมนูด่วน — แยกจาก 5 ปุ่มพื้นฐาน
@@ -27,26 +31,104 @@ class _OptionalQuickAction {
   final IconData icon;
   final String label;
   final String mode;
-  const _OptionalQuickAction({required this.id, required this.icon, required this.label, required this.mode});
+  const _OptionalQuickAction(
+      {required this.id,
+      required this.icon,
+      required this.label,
+      required this.mode});
 }
 
 const _optionalQuickActionsCatalog = [
-  _OptionalQuickAction(id: 'easy_wizard', icon: Icons.auto_awesome_outlined, label: 'Easy Wizard', mode: 'easy_wizard'),
-  _OptionalQuickAction(id: 'procurement_calendar', icon: Icons.event_note_outlined, label: 'ปฏิทินงานพัสดุ', mode: 'procurement_calendar'),
-  _OptionalQuickAction(id: 'tor', icon: Icons.description_outlined, label: 'TOR/คุณลักษณะ', mode: 'tor'),
-  _OptionalQuickAction(id: 'contracts', icon: Icons.article_outlined, label: 'บริหารสัญญา', mode: 'contracts'),
-  _OptionalQuickAction(id: 'guarantees', icon: Icons.shield_outlined, label: 'หลักประกัน', mode: 'guarantees'),
-  _OptionalQuickAction(id: 'inspections', icon: Icons.fact_check_outlined, label: 'ตรวจรับพัสดุ', mode: 'inspections'),
-  _OptionalQuickAction(id: 'installment_contracts', icon: Icons.event_repeat_outlined, label: 'สัญญาต่อเนื่องหลายงวด', mode: 'installment_contracts'),
-  _OptionalQuickAction(id: 'document_hub', icon: Icons.file_copy_outlined, label: 'สร้างเอกสารราชการ', mode: 'document_hub'),
-  _OptionalQuickAction(id: 'order_register', icon: Icons.numbers_outlined, label: 'ทะเบียนคุมเลขที่', mode: 'order_register'),
-  _OptionalQuickAction(id: 'control_log', icon: Icons.receipt_long_outlined, label: 'ทะเบียนคุมเลขบันทึก/TOR', mode: 'control_log'),
-  _OptionalQuickAction(id: 'fixed_assets', icon: Icons.inventory_2_outlined, label: 'ทะเบียนครุภัณฑ์', mode: 'fixed_assets'),
-  _OptionalQuickAction(id: 'repair_history', icon: Icons.build_outlined, label: 'ประวัติซ่อมครุภัณฑ์', mode: 'repair_history'),
-  _OptionalQuickAction(id: 'materials', icon: Icons.inventory_outlined, label: 'วัสดุ/คลังพัสดุ', mode: 'materials'),
-  _OptionalQuickAction(id: 'annual_count', icon: Icons.checklist_outlined, label: 'ตรวจนับประจำปี', mode: 'annual_count'),
-  _OptionalQuickAction(id: 'disposals', icon: Icons.delete_sweep_outlined, label: 'จำหน่ายพัสดุ', mode: 'disposals'),
-  _OptionalQuickAction(id: 'reports', icon: Icons.bar_chart_outlined, label: 'รายงาน/สตง.', mode: 'reports'),
+  _OptionalQuickAction(
+      id: 'easy_wizard',
+      icon: Icons.auto_awesome_outlined,
+      label: 'Easy Wizard',
+      mode: 'easy_wizard'),
+  _OptionalQuickAction(
+      id: 'procurement_calendar',
+      icon: Icons.event_note_outlined,
+      label: 'ปฏิทินงานพัสดุ',
+      mode: 'procurement_calendar'),
+  _OptionalQuickAction(
+      id: 'tor',
+      icon: Icons.description_outlined,
+      label: 'TOR/คุณลักษณะ',
+      mode: 'tor'),
+  _OptionalQuickAction(
+      id: 'contracts',
+      icon: Icons.article_outlined,
+      label: 'บริหารสัญญา',
+      mode: 'contracts'),
+  _OptionalQuickAction(
+      id: 'guarantees',
+      icon: Icons.shield_outlined,
+      label: 'หลักประกัน',
+      mode: 'guarantees'),
+  _OptionalQuickAction(
+      id: 'inspections',
+      icon: Icons.fact_check_outlined,
+      label: 'ตรวจรับพัสดุ',
+      mode: 'inspections'),
+  _OptionalQuickAction(
+      id: 'installment_contracts',
+      icon: Icons.event_repeat_outlined,
+      label: 'สัญญาต่อเนื่องหลายงวด',
+      mode: 'installment_contracts'),
+  _OptionalQuickAction(
+      id: 'document_hub',
+      icon: Icons.file_copy_outlined,
+      label: 'สร้างเอกสารราชการ',
+      mode: 'document_hub'),
+  _OptionalQuickAction(
+      id: 'order_register',
+      icon: Icons.numbers_outlined,
+      label: 'ทะเบียนคุมเลขที่',
+      mode: 'order_register'),
+  _OptionalQuickAction(
+      id: 'control_log',
+      icon: Icons.receipt_long_outlined,
+      label: 'ทะเบียนคุมเลขบันทึก/TOR',
+      mode: 'control_log'),
+  _OptionalQuickAction(
+      id: 'delivery_note_register',
+      icon: Icons.local_shipping_outlined,
+      label: 'ทะเบียนคุมใบส่งของ',
+      mode: 'delivery_note_register'),
+  _OptionalQuickAction(
+      id: 'expenditure_register',
+      icon: Icons.payments_outlined,
+      label: 'ทะเบียนคุมรายจ่ายโครงการ',
+      mode: 'expenditure_register'),
+  _OptionalQuickAction(
+      id: 'fixed_assets',
+      icon: Icons.inventory_2_outlined,
+      label: 'ทะเบียนครุภัณฑ์',
+      mode: 'fixed_assets'),
+  _OptionalQuickAction(
+      id: 'repair_history',
+      icon: Icons.build_outlined,
+      label: 'ประวัติซ่อมครุภัณฑ์',
+      mode: 'repair_history'),
+  _OptionalQuickAction(
+      id: 'materials',
+      icon: Icons.inventory_outlined,
+      label: 'วัสดุ/คลังพัสดุ',
+      mode: 'materials'),
+  _OptionalQuickAction(
+      id: 'annual_count',
+      icon: Icons.checklist_outlined,
+      label: 'ตรวจนับประจำปี',
+      mode: 'annual_count'),
+  _OptionalQuickAction(
+      id: 'disposals',
+      icon: Icons.delete_sweep_outlined,
+      label: 'จำหน่ายพัสดุ',
+      mode: 'disposals'),
+  _OptionalQuickAction(
+      id: 'reports',
+      icon: Icons.bar_chart_outlined,
+      label: 'รายงาน/สตง.',
+      mode: 'reports'),
 ];
 
 const _quickActionsPrefsKey = 'dashboard_quick_actions_v1';
@@ -139,6 +221,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   // โรงเรียน/ผู้ใช้คนอื่น) โหลดตอนเปิดหน้าครั้งแรก
   Set<String> _enabledQuickActionIds = {};
 
+  bool _importingFullMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -147,10 +231,115 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     FiscalYearController.instance.addListener(_onFiscalYearChanged);
   }
 
+  /// นำเข้าโครงการเก่า/นอกระบบแบบ "เต็มรูปแบบ" — ต่างจากปุ่มในหน้าทะเบียนคุม
+  /// ตรงจุดวางเท่านั้น (อยู่ที่หน้าหลักแทนที่จะต้องเข้าทะเบียนคุมก่อน) การทำงาน
+  /// เหมือนกันทุกอย่าง: อ่านไฟล์ผ่าน AI -> ให้ผู้ใช้ตรวจสอบ/จับคู่แผนงบ/ยืนยัน
+  /// -> บันทึกเข้าระบบเฉยๆ ไม่เปิดหน้า wizard ให้อัตโนมัติ ผู้ใช้ไปแก้ไขต่อเองทีหลัง
+  /// จากทะเบียนคุม/รายการโครงการตามปกติ (ตามที่ผู้ใช้ระบุไว้)
+  Future<void> _importOldProjectsFullMode() async {
+    // กันกดปุ่มซ้ำระหว่างที่ตัวเลือกไฟล์ของระบบยังไม่เปิด/ยังไม่ปิด — ตั้ง flag
+    // ไว้ก่อน await ตัวเลือกไฟล์เลย ไม่ใช่รอจนเลือกไฟล์เสร็จค่อยตั้ง (ไม่งั้นกด
+    // รัวๆ ก่อนตัวเลือกไฟล์เปิดจะเปิดได้หลายรอบซ้อนกัน)
+    if (_importingFullMode) return;
+    setState(() => _importingFullMode = true);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['docx', 'pdf', 'xlsx'],
+      allowMultiple: true,
+      dialogTitle: 'เลือกไฟล์โครงการเก่าที่จะนำเข้า',
+    );
+    if (result == null || result.files.isEmpty) {
+      if (mounted) setState(() => _importingFullMode = false);
+      return;
+    }
+
+    final files = result.files.where((f) => f.path != null).toList();
+    final toastId = showAppLoadingToast('กำลังนำเข้าโครงการเก่า',
+        message: 'ให้ AI อ่านไฟล์ 0/${files.length} ไฟล์...');
+    final attempts = <ImportAttempt>[];
+    try {
+      const concurrency = 4;
+      var done = 0;
+      for (var start = 0; start < files.length; start += concurrency) {
+        final batch = files.skip(start).take(concurrency);
+        final results = await Future.wait(batch.map((f) async {
+          try {
+            final parsed =
+                await ProcurementImportService.instance.importFromFile(f.path!);
+            return (name: f.name, parsed: parsed, error: null as Object?);
+          } catch (e) {
+            return (
+              name: f.name,
+              parsed: const <ImportedProject>[],
+              error: e as Object?
+            );
+          }
+        }));
+        for (final r in results) {
+          done++;
+          if (r.error != null) {
+            attempts.add(ImportAttempt.failure(r.name, '${r.error}'));
+          } else {
+            for (final p in r.parsed) {
+              attempts.add(ImportAttempt.success(r.name, p.order, p.items));
+            }
+          }
+        }
+        updateAppLoadingToast(
+            toastId, 'ให้ AI อ่านไฟล์ $done/${files.length} ไฟล์...');
+      }
+
+      if (attempts.isEmpty) {
+        completeAppToast(toastId,
+            success: false, message: 'ไม่พบข้อมูลที่นำเข้าได้');
+        return;
+      }
+
+      if (!mounted) {
+        // สลับออกจากหน้าหลักไปแล้วระหว่างรอ AI อ่านไฟล์ — เก็บผลไว้ ให้หน้า
+        // ทะเบียนคุมเปิดหน้าตรวจสอบ/ยืนยันต่อทันทีที่เปิดขึ้นมา (จุดเดียวกับที่
+        // ปุ่มนำเข้าในหน้าทะเบียนคุมใช้อยู่แล้ว)
+        PendingImportController.instance.store(attempts);
+        completeAppToast(toastId,
+            title: 'อ่านไฟล์เสร็จแล้ว',
+            success: true,
+            message: 'ไปที่หน้าทะเบียนคุมเพื่อตรวจสอบและบันทึกได้เลย');
+        return;
+      }
+      completeAppToast(toastId,
+          success: true,
+          title: 'อ่านไฟล์เสร็จแล้ว',
+          message: 'กรุณาตรวจสอบข้อมูลก่อนบันทึก');
+
+      final existingOrderNumbers = _orders
+          .map((o) => o.orderNumber?.trim())
+          .whereType<String>()
+          .where((s) => s.isNotEmpty)
+          .toSet();
+      final confirmed = await showProcurementImportPreviewDialog(
+          context, attempts, existingOrderNumbers,
+          availableBudgets: _budgets, school: _school);
+      if (confirmed == null || confirmed.isEmpty || !mounted) return;
+      for (final c in confirmed) {
+        await _repo.saveOrderWithItems(c.order, c.items);
+      }
+      if (!mounted) return;
+      showAppToast(
+          'นำเข้าโครงการแล้ว ${confirmed.length} รายการ — ไปแก้ไข/เติมรายละเอียดต่อได้ที่ทะเบียนคุม');
+      _load();
+    } catch (e) {
+      completeAppToast(toastId,
+          success: false, message: 'นำเข้าไฟล์ไม่สำเร็จ: $e');
+    } finally {
+      if (mounted) setState(() => _importingFullMode = false);
+    }
+  }
+
   Future<void> _loadQuickActionPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => _enabledQuickActionIds = (prefs.getStringList(_quickActionsPrefsKey) ?? []).toSet());
+    setState(() => _enabledQuickActionIds =
+        (prefs.getStringList(_quickActionsPrefsKey) ?? []).toSet());
   }
 
   Future<void> _saveQuickActionPrefs(Set<String> ids) async {
@@ -176,24 +365,36 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('5 ปุ่มพื้นฐาน (บังคับแสดงเสมอ)',
-                      style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold)),
-                  for (final label in const ['สร้างใหม่', 'แผนงบ', 'ตั้งค่า', 'ตั้งค่า AI', 'รีเฟรช'])
+                      style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          fontWeight: AppTypography.weightSemiBold)),
+                  for (final label in const [
+                    'สร้างใหม่',
+                    'แผนงบ',
+                    'ตั้งค่า',
+                    'ตั้งค่า AI',
+                    'รีเฟรช'
+                  ])
                     CheckboxListTile(
                       value: true,
                       onChanged: null,
                       dense: true,
                       controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(label, style: const TextStyle(fontSize: AppTypography.body)),
+                      title: Text(label,
+                          style: const TextStyle(fontSize: AppTypography.body)),
                     ),
                   const Divider(height: 20),
                   const Text('ปุ่มเสริม (เลือกเพิ่ม/ลดได้ตามต้องการ)',
-                      style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold)),
+                      style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          fontWeight: AppTypography.weightSemiBold)),
                   for (final a in _optionalQuickActionsCatalog)
                     CheckboxListTile(
                       value: draft.contains(a.id),
                       dense: true,
                       controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(a.label, style: const TextStyle(fontSize: AppTypography.body)),
+                      title: Text(a.label,
+                          style: const TextStyle(fontSize: AppTypography.body)),
                       secondary: Icon(a.icon, size: 18),
                       onChanged: (v) => setDialogState(() {
                         if (v == true) {
@@ -208,8 +409,12 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('บันทึก')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ยกเลิก')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('บันทึก')),
           ],
         ),
       ),
@@ -246,8 +451,10 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   }
 
   // KPI calculations
-  int get _draftCount => _orders.where((o) => o.currentStatus != 'COMPLETED').length;
-  int get _completedCount => _orders.where((o) => o.currentStatus == 'COMPLETED').length;
+  int get _draftCount =>
+      _orders.where((o) => o.currentStatus != 'COMPLETED').length;
+  int get _completedCount =>
+      _orders.where((o) => o.currentStatus == 'COMPLETED').length;
   double get _totalSpent => _orders
       .where((o) => o.currentStatus == 'COMPLETED')
       .fold(0.0, (sum, o) => sum + (o.currentOrderPrice ?? 0));
@@ -266,10 +473,13 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   double get _totalSpentLinkedToBudget => _orders
       .where((o) => o.currentStatus == 'COMPLETED' && o.budgetId != null)
       .fold(0.0, (sum, o) => sum + (o.currentOrderPrice ?? 0));
-  double get _totalRemainingBudget => _totalAllocatedBudget - _totalSpentLinkedToBudget;
+  double get _totalRemainingBudget =>
+      _totalAllocatedBudget - _totalSpentLinkedToBudget;
   // "รอตรวจรับพัสดุ" — รายการตรวจรับที่ยังไม่บันทึกวันที่รับมอบจริง
-  int get _pendingInspectionCount =>
-      _inspections.where((i) => i.actualDeliveryDate == null || i.actualDeliveryDate!.trim().isEmpty).length;
+  int get _pendingInspectionCount => _inspections
+      .where((i) =>
+          i.actualDeliveryDate == null || i.actualDeliveryDate!.trim().isEmpty)
+      .length;
 
   /// "ครบกำหนดเร็วๆ นี้" — รวม 2 แหล่งที่มาจริง: วันครบกำหนดส่งมอบงานของ order
   /// (dateDeadline) ที่ยังไม่เสร็จ + วันครบกำหนดตรวจรับของ inspection ที่ยังไม่
@@ -283,7 +493,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
       entries.add(_DeadlineEntry(
         date: d,
         taskType: 'ส่งมอบงาน',
-        projectLabel: o.projectName ?? o.procurementSubject ?? '(ไม่มีชื่อโครงการ)',
+        projectLabel:
+            o.projectName ?? o.procurementSubject ?? '(ไม่มีชื่อโครงการ)',
         controlNumber: o.procurementNumber ?? '-',
         order: o,
       ));
@@ -302,7 +513,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
       entries.add(_DeadlineEntry(
         date: d,
         taskType: 'ตรวจรับพัสดุ',
-        projectLabel: order?.projectName ?? order?.procurementSubject ?? '(ไม่มีชื่อโครงการ)',
+        projectLabel: order?.projectName ??
+            order?.procurementSubject ??
+            '(ไม่มีชื่อโครงการ)',
         controlNumber: order?.procurementNumber ?? i.inspectionNumber ?? '-',
         order: order,
       ));
@@ -334,11 +547,16 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         list = _orders.where((o) => o.currentStatus == 'COMPLETED').toList();
         break;
       case 'under5k':
-        list = _orders.where((o) => (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000).toList();
+        list = _orders
+            .where((o) =>
+                (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000)
+            .toList();
         break;
       case 'w804':
         list = _orders
-            .where((o) => (o.currentOrderPrice ?? 0) > 5000 && o.currentOrderPrice! <= 50000)
+            .where((o) =>
+                (o.currentOrderPrice ?? 0) > 5000 &&
+                o.currentOrderPrice! <= 50000)
             .toList();
         break;
       case 'missing_egp':
@@ -348,7 +566,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         // ตรรกะเดียวกับ _notifDeadlineCount ฝั่ง AppShell (นับเฉพาะฝั่งเอกสาร
         // ที่นี่ — ฝั่งตรวจรับพัสดุมีปุ่มลัดของตัวเองแยกไปหน้าตรวจรับพัสดุแล้ว)
         list = _orders
-            .where((o) => o.currentStatus != 'COMPLETED' && parseThaiDate(o.dateDeadline) != null)
+            .where((o) =>
+                o.currentStatus != 'COMPLETED' &&
+                parseThaiDate(o.dateDeadline) != null)
             .toList();
         break;
       default:
@@ -373,16 +593,30 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           if (bn == null) return -1;
           // ผู้ใช้ต้องการให้เรียงตาม "ตัวเลข" ล้วนๆ ข้ามคำนำหน้า (ซ./จ./ช. ฯลฯ)
           // ไม่แยกกลุ่มตามคำนำหน้าก่อนแล้วค่อยเรียงเลขในกลุ่ม
-          return _sortMode == 'control_asc' ? an.compareTo(bn) : bn.compareTo(an);
+          return _sortMode == 'control_asc'
+              ? an.compareTo(bn)
+              : bn.compareTo(an);
         });
         break;
       case 'oldest':
-        sorted.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+        sorted.sort((a, b) => _updatedAtOrId(a).compareTo(_updatedAtOrId(b)));
         break;
       default: // 'latest'
-        sorted.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+        sorted.sort((a, b) => _updatedAtOrId(b).compareTo(_updatedAtOrId(a)));
     }
     return sorted;
+  }
+
+  /// เวลาที่ใช้เรียง "แก้ไข/สร้างล่าสุดก่อน" — ใช้ updatedAt จริงถ้ามี (stamp
+  /// อัตโนมัติทุกครั้งที่บันทึก/แก้ไขแล้ว) ตกกลับไปใช้ id (คูณเป็นมิลลิวินาที
+  /// เล็กๆ) สำหรับรายการเก่าก่อนอัปเดตฟีเจอร์นี้ที่ยังไม่เคย stamp ไว้ — ค่า
+  /// สังเคราะห์นี้ยังน้อยกว่าทุก timestamp จริงเสมอ (ปีปัจจุบัน = ms มหาศาล)
+  /// รายการเก่าจึงตกไปท้ายกลุ่ม "ล่าสุด" ตามธรรมชาติ แต่ยังรักษาลำดับ id เดิมไว้
+  /// ระหว่างกันเอง
+  DateTime _updatedAtOrId(ProcurementOrder o) {
+    final ts = o.updatedAt != null ? DateTime.tryParse(o.updatedAt!) : null;
+    if (ts != null) return ts;
+    return DateTime.fromMillisecondsSinceEpoch(o.id ?? 0);
   }
 
   /// ดึงเฉพาะตัวเลขจาก procurementNumber (เช่น "ซ00/2569" -> 0, "จ56/2569" ->
@@ -391,7 +625,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   int? _controlNumberValue(ProcurementOrder o) {
     final raw = o.procurementNumber?.trim();
     if (raw == null || raw.isEmpty) return null;
-    final match = RegExp(r'^([^\d]*)(\d+)/').firstMatch(raw) ?? RegExp(r'^([^\d]*)(\d+)').firstMatch(raw);
+    final match = RegExp(r'^([^\d]*)(\d+)/').firstMatch(raw) ??
+        RegExp(r'^([^\d]*)(\d+)').firstMatch(raw);
     if (match == null) return null;
     return int.tryParse(match.group(2) ?? '');
   }
@@ -407,7 +642,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   /// (ตัวโมเดลมี 60+ ฟิลด์ ไล่มือเสี่ยงตกหล่น) แล้วเคลียร์ id/เลขที่เอกสาร/สถานะ
   /// ให้เป็นของใหม่ล้วนๆ ไม่ชนกับต้นฉบับ — คัดลอกรายการสินค้า (items) ไปด้วย
   Future<void> _duplicateOrder(ProcurementOrder order) async {
-    final items = order.id != null ? await _repo.getItems(order.id!) : <ProcurementItem>[];
+    final items = order.id != null
+        ? await _repo.getItems(order.id!)
+        : <ProcurementItem>[];
     final map = order.toMap()
       ..remove('id')
       ..['procurement_number'] = null
@@ -420,11 +657,16 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     final newOrder = ProcurementOrder.fromMap(map);
     final newItems = [
       for (final i in items)
-        ProcurementItem(itemName: i.itemName, quantity: i.quantity, unit: i.unit, unitPrice: i.unitPrice),
+        ProcurementItem(
+            itemName: i.itemName,
+            quantity: i.quantity,
+            unit: i.unit,
+            unitPrice: i.unitPrice),
     ];
     await _repo.saveOrderWithItems(newOrder, newItems);
     if (!mounted) return;
-    showAppToast('คัดลอกโครงการแล้ว — แก้ไขเลขที่/รายละเอียดที่ยังว่างอยู่ได้ที่หน้าสร้างใหม่');
+    showAppToast(
+        'คัดลอกโครงการแล้ว — แก้ไขเลขที่/รายละเอียดที่ยังว่างอยู่ได้ที่หน้าสร้างใหม่');
     _load();
   }
 
@@ -438,7 +680,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           'พร้อมรายการสินค้าทั้งหมดในเอกสาร การลบนี้กู้คืนไม่ได้',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
@@ -461,10 +705,12 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   Future<void> _bulkGenerateSelected() async {
     final school = _school;
     if (school == null) {
-      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน',
+          isError: true);
       return;
     }
-    final selectedOrders = _orders.where((o) => _selectedIds.contains(o.id)).toList();
+    final selectedOrders =
+        _orders.where((o) => _selectedIds.contains(o.id)).toList();
     if (selectedOrders.isEmpty) return;
 
     setState(() => _bulkGenerating = true);
@@ -473,7 +719,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     for (final order in selectedOrders) {
       try {
         final items = await _repo.getItems(order.id!);
-        final file = await DocumentGenerator.generate(order: order, school: school, items: items);
+        final file = await DocumentGenerator.generate(
+            order: order, school: school, items: items);
         lastFolderPath = file.parent.path;
         successCount++;
       } catch (_) {
@@ -490,7 +737,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           : 'สร้างเอกสารสำเร็จ $successCount ฉบับ (ไม่สำเร็จ $failCount รายการ)',
       isError: failCount > 0 && successCount == 0,
     );
-    if (lastFolderPath != null) await DocumentGenerator.openFolder(lastFolderPath);
+    if (lastFolderPath != null)
+      await DocumentGenerator.openFolder(lastFolderPath);
     setState(() {
       _selectionMode = false;
       _selectedIds.clear();
@@ -506,36 +754,50 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
       TimelineStep(
         label: 'บันทึกขออนุมัติ',
         date: formatThaiDateShort(o.dateMemoUsed),
-        state: has(o.dateMemoUsed) ? TimelineStepState.done : TimelineStepState.pending,
+        state: has(o.dateMemoUsed)
+            ? TimelineStepState.done
+            : TimelineStepState.pending,
       ),
       TimelineStep(
         label: 'แต่งตั้งกรรมการ',
         date: formatThaiDateShort(o.dateAnnouncement),
-        state: has(o.dateAnnouncement) ? TimelineStepState.done : TimelineStepState.pending,
+        state: has(o.dateAnnouncement)
+            ? TimelineStepState.done
+            : TimelineStepState.pending,
       ),
       TimelineStep(
         label: 'ใบสั่งซื้อ/สัญญา',
         date: formatThaiDateShort(o.dateContractSigned),
-        state: has(o.dateContractSigned) ? TimelineStepState.done : TimelineStepState.pending,
+        state: has(o.dateContractSigned)
+            ? TimelineStepState.done
+            : TimelineStepState.pending,
       ),
       TimelineStep(
         label: 'ตรวจรับพัสดุ',
         date: formatThaiDateShort(o.dateInspection),
-        state: has(o.dateInspection) ? TimelineStepState.done : TimelineStepState.pending,
+        state: has(o.dateInspection)
+            ? TimelineStepState.done
+            : TimelineStepState.pending,
       ),
       TimelineStep(
         label: 'เบิกจ่าย',
         date: formatThaiDateShort(o.dateDisbursement),
-        state: has(o.dateDisbursement) ? TimelineStepState.done : TimelineStepState.pending,
+        state: has(o.dateDisbursement)
+            ? TimelineStepState.done
+            : TimelineStepState.pending,
       ),
       TimelineStep(
         label: 'ลงทะเบียนพัสดุ',
-        state: o.currentStatus == 'COMPLETED' ? TimelineStepState.done : TimelineStepState.pending,
+        state: o.currentStatus == 'COMPLETED'
+            ? TimelineStepState.done
+            : TimelineStepState.pending,
       ),
     ];
-    final lastDoneIndex = steps.lastIndexWhere((s) => s.state == TimelineStepState.done);
+    final lastDoneIndex =
+        steps.lastIndexWhere((s) => s.state == TimelineStepState.done);
     final nextIndex = lastDoneIndex + 1;
-    if (nextIndex < steps.length && steps[nextIndex].state == TimelineStepState.pending) {
+    if (nextIndex < steps.length &&
+        steps[nextIndex].state == TimelineStepState.pending) {
       steps[nextIndex] = TimelineStep(
         label: steps[nextIndex].label,
         date: steps[nextIndex].date,
@@ -565,15 +827,18 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   bool _egpRequiredButMissing(ProcurementOrder o) {
     final hasEgp = o.egpProjectId?.trim().isNotEmpty ?? false;
     if (hasEgp) return false;
-    final exempt = (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000;
+    final exempt =
+        (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000;
     return !exempt;
   }
 
-  _OrderStatusKind _statusKindFor(ProcurementOrder o, List<TimelineStep> steps) {
+  _OrderStatusKind _statusKindFor(
+      ProcurementOrder o, List<TimelineStep> steps) {
     if (_egpRequiredButMissing(o)) return _OrderStatusKind.missingEgp;
     if (o.currentStatus == 'COMPLETED') return _OrderStatusKind.completed;
     final deadline = parseThaiDate(o.dateDeadline);
-    if (deadline != null && deadline.isBefore(DateTime.now())) return _OrderStatusKind.overdue;
+    if (deadline != null && deadline.isBefore(DateTime.now()))
+      return _OrderStatusKind.overdue;
     final started = steps.any((s) => s.state != TimelineStepState.pending);
     if (!started) return _OrderStatusKind.draft;
     return _OrderStatusKind.inProgress;
@@ -582,15 +847,22 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   Widget _statusPillFor(_OrderStatusKind kind) {
     switch (kind) {
       case _OrderStatusKind.missingEgp:
-        return const StatusBadge(label: 'ไม่มีเลข e-GP', variant: BadgeVariant.danger, compact: true);
+        return const StatusBadge(
+            label: 'ไม่มีเลข e-GP',
+            variant: BadgeVariant.danger,
+            compact: true);
       case _OrderStatusKind.completed:
-        return const StatusBadge(label: 'เสร็จสิ้น', variant: BadgeVariant.success, compact: true);
+        return const StatusBadge(
+            label: 'เสร็จสิ้น', variant: BadgeVariant.success, compact: true);
       case _OrderStatusKind.overdue:
-        return const StatusBadge(label: 'เกินกำหนด', variant: BadgeVariant.warning, compact: true);
+        return const StatusBadge(
+            label: 'เกินกำหนด', variant: BadgeVariant.warning, compact: true);
       case _OrderStatusKind.draft:
-        return const StatusBadge(label: 'ร่าง', variant: BadgeVariant.neutral, compact: true);
+        return const StatusBadge(
+            label: 'ร่าง', variant: BadgeVariant.neutral, compact: true);
       case _OrderStatusKind.inProgress:
-        return const StatusBadge(label: 'กำลังดำเนินการ', variant: BadgeVariant.info, compact: true);
+        return const StatusBadge(
+            label: 'กำลังดำเนินการ', variant: BadgeVariant.info, compact: true);
     }
   }
 
@@ -641,24 +913,24 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     // ทำให้ปุ่มดูจางกลืนพื้นหลังกว่าที่ตั้งใจไว้ในโหมดมืด
     final inactiveColor = colorScheme.onSurface;
     return Container(
-        height: 28,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: active ? Colors.white : inactiveColor),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: AppTypography.bodySmall,
-                fontWeight: AppTypography.weightBold,
-                color: active ? Colors.white : inactiveColor,
-              ),
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: active ? Colors.white : inactiveColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: AppTypography.bodySmall,
+              fontWeight: AppTypography.weightBold,
+              color: active ? Colors.white : inactiveColor,
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -680,7 +952,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           // ครอบตรงนี้เพื่อจำกัดความกว้างเหมือน mockup จริงๆ
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: Dimensions.maxContentWidth),
+              constraints:
+                  const BoxConstraints(maxWidth: Dimensions.maxContentWidth),
               child: Padding(
                 padding: EdgeInsets.all(Dimensions.pageMargin),
                 child: Column(
@@ -714,14 +987,26 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         // mockup .fab ตัวหนา 800 (extraBold) ไม่ใช่ 700 (bold ธรรมดา)
-        label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w800)),
+        label: const Text('สร้างใหม่',
+            style: TextStyle(fontWeight: FontWeight.w800)),
       ),
     );
   }
 
   static const _thaiMonths = [
-    '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    '',
+    'มกราคม',
+    'กุมภาพันธ์',
+    'มีนาคม',
+    'เมษายน',
+    'พฤษภาคม',
+    'มิถุนายน',
+    'กรกฎาคม',
+    'สิงหาคม',
+    'กันยายน',
+    'ตุลาคม',
+    'พฤศจิกายน',
+    'ธันวาคม',
   ];
 
   String get _todayThaiLabel {
@@ -734,7 +1019,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     final subtitleParts = [
       'ปีงบประมาณ ${FiscalYearController.instance.viewingYear}',
       if (school?.schoolAmphoe?.isNotEmpty == true) 'อ.${school!.schoolAmphoe}',
-      if (school?.schoolChangwat?.isNotEmpty == true) 'จ.${school!.schoolChangwat}',
+      if (school?.schoolChangwat?.isNotEmpty == true)
+        'จ.${school!.schoolChangwat}',
       'ข้อมูล ณ $_todayThaiLabel',
     ];
 
@@ -748,7 +1034,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
 
     return HeroCard(
       icon: Icons.school,
-      title: school?.schoolName?.isNotEmpty == true ? school!.schoolName! : 'โครงการงบประมาณ',
+      title: school?.schoolName?.isNotEmpty == true
+          ? school!.schoolName!
+          : 'โครงการงบประมาณ',
       subtitle: subtitleParts.join(' · '),
       moneyItems: [
         MoneyItem(
@@ -769,8 +1057,14 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         DonutSegment(unusedPct, Colors.white.withValues(alpha: 0.22)),
       ],
       legendItems: [
-        HeroDonutLegendItem(color: const Color(0xFF22C55E), label: 'เบิกจ่ายแล้ว', value: formatBaht(spent)),
-        HeroDonutLegendItem(color: const Color(0xFFFB923C), label: 'ผูกพันรอเบิก', value: formatBaht(committed)),
+        HeroDonutLegendItem(
+            color: const Color(0xFF22C55E),
+            label: 'เบิกจ่ายแล้ว',
+            value: formatBaht(spent)),
+        HeroDonutLegendItem(
+            color: const Color(0xFFFB923C),
+            label: 'ผูกพันรอเบิก',
+            value: formatBaht(committed)),
         HeroDonutLegendItem(
           color: Colors.white.withValues(alpha: 0.2),
           outlined: true,
@@ -789,7 +1083,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         AlertTile(
           icon: Icons.error_outline,
           count: missingEgpCount,
-          message: 'รายการยังไม่มีเลขที่ e-GP ต้องกรอกตาม ม.23 พ.ร.บ.จัดซื้อจัดจ้างฯ 2560',
+          message:
+              'รายการยังไม่มีเลขที่ e-GP ต้องกรอกตาม ม.23 พ.ร.บ.จัดซื้อจัดจ้างฯ 2560',
           variant: BadgeVariant.danger,
           onTap: () => _setFilter('missing_egp'),
         ),
@@ -899,7 +1194,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                 const SizedBox(width: 8),
                 // ตรงกับ .ch .nb ใน mockup — พื้นเทาอ่อน มุมมนเต็ม
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: BrandAccent.surface2(context),
                     borderRadius: BorderRadius.circular(RadiusSize.full),
@@ -974,7 +1270,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                             SizedBox(
                               width: 18,
                               child: _sortMode == entry.key
-                                  ? Icon(Icons.check, size: 15, color: BrandAccent.tealOn(context))
+                                  ? Icon(Icons.check,
+                                      size: 15,
+                                      color: BrandAccent.tealOn(context))
                                   : null,
                             ),
                             const SizedBox(width: 4),
@@ -985,7 +1283,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                                 fontWeight: _sortMode == entry.key
                                     ? AppTypography.weightBold
                                     : AppTypography.weightMedium,
-                                color: _sortMode == entry.key ? BrandAccent.tealOn(context) : colorScheme.onSurface,
+                                color: _sortMode == entry.key
+                                    ? BrandAccent.tealOn(context)
+                                    : colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -1004,7 +1304,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                         ),
                       ),
                       const SizedBox(width: 3),
-                      Icon(Icons.swap_vert, size: 13, color: BrandAccent.tealOn(context)),
+                      Icon(Icons.swap_vert,
+                          size: 13, color: BrandAccent.tealOn(context)),
                     ],
                   ),
                 ),
@@ -1113,6 +1414,16 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                     label: 'รีเฟรช',
                     onTap: _load,
                   ),
+                  QuickAction(
+                    icon: _importingFullMode
+                        ? Icons.hourglass_top
+                        : Icons.drive_folder_upload_outlined,
+                    label: _importingFullMode
+                        ? 'กำลังนำเข้า...'
+                        : 'นำเข้าโครงการเก่า',
+                    onTap:
+                        _importingFullMode ? () {} : _importOldProjectsFullMode,
+                  ),
                   for (final a in _optionalQuickActionsCatalog)
                     if (_enabledQuickActionIds.contains(a.id))
                       QuickAction(
@@ -1136,9 +1447,12 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                         date: '${e.date.day}',
                         month: thaiMonthsAbbrev[e.date.month],
                         title: '${e.taskType} · ${e.projectLabel}',
-                        subtitle: '${e.controlNumber} · ${_deadlineDaysLabel(e.date)}',
+                        subtitle:
+                            '${e.controlNumber} · ${_deadlineDaysLabel(e.date)}',
                         isUrgent: !e.date.isAfter(DateTime.now()),
-                        onTap: e.order != null ? () => widget.onEditOrder(e.order!) : null,
+                        onTap: e.order != null
+                            ? () => widget.onEditOrder(e.order!)
+                            : null,
                       ),
                   ],
                 ),
@@ -1168,7 +1482,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inbox_outlined, size: 48, color: colorScheme.onSurfaceVariant),
+              Icon(Icons.inbox_outlined,
+                  size: 48, color: colorScheme.onSurfaceVariant),
               const SizedBox(height: 12),
               Text(
                 _query.isNotEmpty ? 'ไม่พบผลการค้นหา' : 'ไม่มีเอกสารในหมวดนี้',
@@ -1197,7 +1512,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     // นี้สูงไปจะเลื่อนแนวนอนทุกครั้งโดยไม่จำเป็นเหมือนที่เจอมาแล้ว) — 100px ยังพอ
     // ให้ ellipsis ข้อความสั้นๆ อ่านได้ ไม่ใช่ตัวเลขที่ต้องแม่นเป๊ะ แค่กันพังจริงๆ
     const minFlexColumnWidth = 100.0;
-    final fixedColumnsWidth = _orderColumns.fold<double>(0, (sum, c) => sum + (c.width ?? 0));
+    final fixedColumnsWidth =
+        _orderColumns.fold<double>(0, (sum, c) => sum + (c.width ?? 0));
     final leadingWidth = _selectionMode ? 34.0 : 0.0;
     final minTableWidth = fixedColumnsWidth + minFlexColumnWidth + leadingWidth;
 
@@ -1208,7 +1524,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           columns: _orderColumns,
           leading: _selectionMode ? const SizedBox(width: 34) : null,
         ),
-        for (int i = 0; i < pageItems.length; i++) _buildTableRow(colorScheme, pageItems[i], start + i),
+        for (int i = 0; i < pageItems.length; i++)
+          _buildTableRow(colorScheme, pageItems[i], start + i),
       ],
     );
 
@@ -1220,7 +1537,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
             selectedCount: _selectedIds.length,
             totalCount: filtered.length,
             onSelectAll: () => setState(
-              () => _selectedIds.addAll(filtered.map((o) => o.id).whereType<int>()),
+              () => _selectedIds
+                  .addAll(filtered.map((o) => o.id).whereType<int>()),
             ),
             onCancel: () => setState(() {
               _selectionMode = false;
@@ -1228,7 +1546,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
             }),
             onCopyToCurrentYear: _selectedIds.isEmpty
                 ? null
-                : () => showAppToast('ฟีเจอร์คัดลอกไปปีงบปัจจุบันยังไม่เปิดใช้งาน'),
+                : () =>
+                    showAppToast('ฟีเจอร์คัดลอกไปปีงบปัจจุบันยังไม่เปิดใช้งาน'),
             onGenerateDocuments: _selectedIds.isEmpty || _bulkGenerating
                 ? null
                 : _bulkGenerateSelected,
@@ -1258,7 +1577,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     );
   }
 
-  Widget _buildTableRow(ColorScheme colorScheme, ProcurementOrder order, int index) {
+  Widget _buildTableRow(
+      ColorScheme colorScheme, ProcurementOrder order, int index) {
     final id = order.id;
     final isExpanded = id != null && _expandedOrderId == id;
     final isSelected = id != null && _selectedIds.contains(id);
@@ -1267,7 +1587,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     final progress = order.progressPercent.clamp(0.0, 1.0);
     final netPayable = order.netPayableAmount;
     final currentPrice = order.currentOrderPrice;
-    final amountNote = (netPayable != null && currentPrice != null && netPayable != currentPrice)
+    final amountNote = (netPayable != null &&
+            currentPrice != null &&
+            netPayable != currentPrice)
         ? 'สุทธิ ${formatBaht(netPayable)}'
         : 'ไม่หักภาษี';
 
@@ -1323,7 +1645,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         DsCell(
           column: _orderColumns[1],
           child: DsTwoLineCell(
-            primary: order.procurementSubject ?? order.activityName ?? '(ไม่มีชื่อกิจกรรม)',
+            primary: order.procurementSubject ??
+                order.activityName ??
+                '(ไม่มีชื่อกิจกรรม)',
             secondary: order.projectName,
           ),
         ),
@@ -1336,9 +1660,12 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         ),
         DsCell(
           column: _orderColumns[3],
-          child: DsAmountCell(amount: '${formatBaht(currentPrice ?? 0)}', note: amountNote),
+          child: DsAmountCell(
+              amount: '${formatBaht(currentPrice ?? 0)}', note: amountNote),
         ),
-        DsCell(column: _orderColumns[4], child: Center(child: _statusPillFor(statusKind))),
+        DsCell(
+            column: _orderColumns[4],
+            child: Center(child: _statusPillFor(statusKind))),
         DsCell(
           column: _orderColumns[5],
           child: Column(
@@ -1423,7 +1750,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.timeline, size: 14, color: colorScheme.onSurfaceVariant),
+                      Icon(Icons.timeline,
+                          size: 14, color: colorScheme.onSurfaceVariant),
                       const SizedBox(width: 7),
                       Expanded(
                         child: Text(
@@ -1452,7 +1780,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                               ),
                             ),
                             const SizedBox(width: 3),
-                            Icon(Icons.open_in_new, size: 13, color: BrandAccent.tealOn(context)),
+                            Icon(Icons.open_in_new,
+                                size: 13, color: BrandAccent.tealOn(context)),
                           ],
                         ),
                       ),
@@ -1466,7 +1795,6 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           : null,
     );
   }
-
 
   Widget _buildBudgetChart(ColorScheme colorScheme) {
     final budgetsByDept = _getBudgetByDepartment();
@@ -1489,7 +1817,8 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                 color: BrandAccent.tealOn(context),
               ),
             ),
-            Icon(Icons.chevron_right, size: 14, color: BrandAccent.tealOn(context)),
+            Icon(Icons.chevron_right,
+                size: 14, color: BrandAccent.tealOn(context)),
           ],
         ),
       ),
@@ -1500,11 +1829,16 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                _legendDot(colorScheme, BrandAccent.teal(context).withValues(alpha: 0.2), 'วงเงินที่ได้รับจัดสรร (100%)'),
+                _legendDot(
+                    colorScheme,
+                    BrandAccent.teal(context).withValues(alpha: 0.2),
+                    'วงเงินที่ได้รับจัดสรร (100%)'),
                 const SizedBox(width: 14),
-                _legendDot(colorScheme, BrandAccent.teal(context), 'ใช้ไปแล้ว (% ของที่ได้รับจัดสรรแต่ละฝ่าย)'),
+                _legendDot(colorScheme, BrandAccent.teal(context),
+                    'ใช้ไปแล้ว (% ของที่ได้รับจัดสรรแต่ละฝ่าย)'),
                 const SizedBox(width: 14),
-                _legendDot(colorScheme, BrandAccent.red(context), 'เกินงบที่ได้รับจัดสรร'),
+                _legendDot(colorScheme, BrandAccent.red(context),
+                    'เกินงบที่ได้รับจัดสรร'),
               ],
             ),
           ),
@@ -1527,9 +1861,17 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 9, height: 9, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: AppTypography.caption, color: colorScheme.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold)),
+        Text(label,
+            style: TextStyle(
+                fontSize: AppTypography.caption,
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: AppTypography.weightSemiBold)),
       ],
     );
   }
@@ -1555,7 +1897,10 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
             textAlign: TextAlign.right,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightSemiBold, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: AppTypography.caption,
+                fontWeight: AppTypography.weightSemiBold,
+                color: colorScheme.onSurfaceVariant),
           ),
         ),
         const SizedBox(width: 12),
@@ -1573,7 +1918,12 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           child: Text(
             '${usedPct.toStringAsFixed(0)}%',
             textAlign: TextAlign.right,
-            style: TextStyle(fontSize: AppTypography.micro, fontWeight: AppTypography.weightBold, color: overBudget ? BrandAccent.red(context) : colorScheme.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: AppTypography.micro,
+                fontWeight: AppTypography.weightBold,
+                color: overBudget
+                    ? BrandAccent.red(context)
+                    : colorScheme.onSurfaceVariant),
           ),
         ),
         const SizedBox(width: 12),
@@ -1582,7 +1932,10 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           child: Text(
             formatBaht(allocated),
             textAlign: TextAlign.right,
-            style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colorScheme.onSurface),
+            style: TextStyle(
+                fontSize: AppTypography.caption,
+                fontWeight: AppTypography.weightBold,
+                color: colorScheme.onSurface),
           ),
         ),
       ],
@@ -1606,7 +1959,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     final budgetDept = <int, String>{
       for (final b in _budgets)
         if (b.id != null)
-          b.id!: (b.groupName?.trim().isNotEmpty ?? false) ? b.groupName! : 'ไม่ระบุฝ่าย/แผนงาน',
+          b.id!: (b.groupName?.trim().isNotEmpty ?? false)
+              ? b.groupName!
+              : 'ไม่ระบุฝ่าย/แผนงาน',
     };
     final totals = <String, double>{};
     for (final o in _orders) {
@@ -1622,11 +1977,11 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     final colors = [
       BrandAccent.teal(context),
       BrandAccent.indigo(context),
-      BrandColors.orange, // ไม่มีในชุดโทเค็น mockup (สีเสริมเฉพาะจุดนี้) คงค่าเดียวไว้
+      BrandColors
+          .orange, // ไม่มีในชุดโทเค็น mockup (สีเสริมเฉพาะจุดนี้) คงค่าเดียวไว้
       BrandAccent.purple(context),
       BrandAccent.blue(context),
     ];
     return colors[index % colors.length];
   }
 }
-

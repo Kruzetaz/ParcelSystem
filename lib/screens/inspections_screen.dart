@@ -20,26 +20,31 @@ import '../widgets/thai_date_picker.dart';
 import '../services/toast_service.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
-import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
-import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction;
 import '../widgets/design_system/hover_clear_button.dart';
 import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
-const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonTextStyle =
+    TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
 const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
 const _dialogLabelStyle = TextStyle(fontSize: 15);
 
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+InputDecoration _dialogFieldDecoration(BuildContext context,
+    {required String label, String? hint}) {
   final colors = Theme.of(context).colorScheme;
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
   return InputDecoration(
     labelText: label,
     hintText: hint,
     floatingLabelBehavior: FloatingLabelBehavior.always,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
+    labelStyle: _dialogLabelStyle.copyWith(
+        color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -58,11 +63,23 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
 }
 
 const _thaiMonths = [
-  '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  '',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ];
 
-String _formatThai(DateTime d) => '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
+String _formatThai(DateTime d) =>
+    '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
 
 DateTime? _parseThai(String? text) {
   if (text == null || text.trim().isEmpty) return null;
@@ -105,12 +122,16 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final inspections = await _repo.getAllInspections(fiscalYear: FiscalYearController.instance.viewingYear);
+    final inspections = await _repo.getAllInspections(
+        fiscalYear: FiscalYearController.instance.viewingYear);
     final orders = await _repo.getAllOrders();
     if (!mounted) return;
     setState(() {
       _inspections = inspections;
-      _ordersById = {for (final o in orders) if (o.id != null) o.id!: o};
+      _ordersById = {
+        for (final o in orders)
+          if (o.id != null) o.id!: o
+      };
       _loading = false;
     });
   }
@@ -124,7 +145,8 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
 
   int get _pendingCount => _inspections.where((i) => i.result == null).length;
   int get _completedCount => _inspections.where((i) => i.result != null).length;
-  int get _problemCount => _inspections.where((i) => i.result == 'ไม่ผ่าน' || _isLate(i)).length;
+  int get _problemCount =>
+      _inspections.where((i) => i.result == 'ไม่ผ่าน' || _isLate(i)).length;
 
   Future<void> _openForm({Inspection? existing}) async {
     final orders = await _repo.getAllOrders();
@@ -142,15 +164,22 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
-        content: Text('ต้องการลบรายการตรวจรับ "${i.inspectionNumber ?? "-"}" ใช่หรือไม่?', style: _dialogContentStyle),
+        content: Text(
+            'ต้องการลบรายการตรวจรับ "${i.inspectionNumber ?? "-"}" ใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -171,11 +200,15 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('คำนวณค่าปรับไม่ได้', style: _dialogTitleStyle),
-          content: const Text('ต้องมีวันที่ครบกำหนดและวันที่ส่งมอบจริง และวันที่ส่งมอบจริงต้องเกินกำหนดเท่านั้น', style: _dialogContentStyle),
+          content: const Text(
+              'ต้องมีวันที่ครบกำหนดและวันที่ส่งมอบจริง และวันที่ส่งมอบจริงต้องเกินกำหนดเท่านั้น',
+              style: _dialogContentStyle),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+              style: TextButton.styleFrom(
+                  padding: _dialogButtonPadding,
+                  textStyle: _dialogButtonTextStyle),
               child: const Text('ปิด'),
             ),
           ],
@@ -199,25 +232,34 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('ล่าช้า $daysLate วัน', style: _dialogContentStyle),
-            Text('วงเงิน ${formatBaht(baseAmount)} บาท × อัตราค่าปรับ $penaltyRate% ต่อวัน', style: _dialogContentStyle),
+            Text(
+                'วงเงิน ${formatBaht(baseAmount)} บาท × อัตราค่าปรับ $penaltyRate% ต่อวัน',
+                style: _dialogContentStyle),
             const SizedBox(height: 8),
             Text('≈ ${formatBaht(estimated)} บาท',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
             const SizedBox(height: 8),
             Text(
               'ตัวเลขนี้เป็นค่าประมาณการเท่านั้น โปรดตรวจสอบอัตราค่าปรับตามสัญญาจริงอีกครั้งก่อนใช้อ้างอิงในเอกสารราชการ',
-              style: TextStyle(fontSize: 12.5, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                  fontSize: 12.5,
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ปิด'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('บันทึกค่านี้'),
           ),
@@ -242,17 +284,21 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
   Future<void> _exportDisbursementMemo(Inspection i) async {
     final order = i.orderId != null ? _ordersById[i.orderId] : null;
     if (order == null) {
-      showAppToast('รายการตรวจรับนี้ไม่ได้ผูกกับรายการจัดซื้อจัดจ้าง จึงออกเอกสารไม่ได้', isError: true);
+      showAppToast(
+          'รายการตรวจรับนี้ไม่ได้ผูกกับรายการจัดซื้อจัดจ้าง จึงออกเอกสารไม่ได้',
+          isError: true);
       return;
     }
     final school = await _repo.getSchoolSettings();
     if (school == null) {
-      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน',
+          isError: true);
       return;
     }
     setState(() => _exportingId = i.id);
     try {
-      FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'ตรวจรับพัสดุ');
+      FeatureAccessService.instance
+          .requireModule(FeatureModules.contractManagement, 'ตรวจรับพัสดุ');
       final items = await _repo.getItems(order.id!);
       await ProcurementDocumentGenerator.generateAndOpen(
         type: ProcurementDocumentType.disbursementMemo,
@@ -299,13 +345,18 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.fact_check_outlined, color: BrandAccent.tealOn(context), size: 22),
+                              Icon(Icons.fact_check_outlined,
+                                  color: BrandAccent.tealOn(context), size: 22),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text('ตรวจรับพัสดุ',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: AppTypography.heading2,
+                                        fontWeight:
+                                            AppTypography.weightExtraBold,
+                                        color: colors.onSurface)),
                               ),
                             ],
                           ),
@@ -318,19 +369,27 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.fact_check_outlined, size: 64, color: colors.onSurfaceVariant),
+                                        Icon(Icons.fact_check_outlined,
+                                            size: 64,
+                                            color: colors.onSurfaceVariant),
                                         const SizedBox(height: 12),
-                                        Text('ยังไม่มีรายการตรวจรับ\nกด "เพิ่มรายการตรวจรับ" เพื่อเริ่มต้น',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
+                                        Text(
+                                            'ยังไม่มีรายการตรวจรับ\nกด "เพิ่มรายการตรวจรับ" เพื่อเริ่มต้น',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                color: colors.onSurfaceVariant,
+                                                fontSize:
+                                                    AppTypography.heading4)),
                                       ],
                                     ),
                                   )
                                 : ListView.separated(
                                     itemCount: _inspections.length,
                                     padding: const EdgeInsets.only(bottom: 80),
-                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                    itemBuilder: (_, i) => _buildCard(context, colors, _inspections[i]),
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 8),
+                                    itemBuilder: (_, i) => _buildCard(
+                                        context, colors, _inspections[i]),
                                   ),
                           ),
                         ],
@@ -418,28 +477,50 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      StatusBadge(label: i.result ?? 'รอตรวจรับ', variant: resultVariant, compact: true),
+                      StatusBadge(
+                          label: i.result ?? 'รอตรวจรับ',
+                          variant: resultVariant,
+                          compact: true),
                       if (late) ...[
                         const SizedBox(width: 6),
-                        StatusBadge(label: 'ส่งมอบล่าช้า', variant: BadgeVariant.danger, compact: true),
+                        StatusBadge(
+                            label: 'ส่งมอบล่าช้า',
+                            variant: BadgeVariant.danger,
+                            compact: true),
                       ],
                     ]),
                     const SizedBox(height: 6),
                     Text(i.inspectionNumber ?? '(ไม่มีเลขที่ตรวจรับ)',
-                      style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.heading4,
+                            color: colors.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                     if (order != null) ...[
                       const SizedBox(height: 2),
-                      Text('${order.projectName ?? order.procurementSubject ?? "-"} · ผู้ส่งมอบ: ${order.vendorName ?? "-"}',
-                        style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                          '${order.projectName ?? order.procurementSubject ?? "-"} · ผู้ส่งมอบ: ${order.vendorName ?? "-"}',
+                          style: TextStyle(
+                              fontSize: AppTypography.bodySmall,
+                              color: colors.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                     ],
                     const SizedBox(height: 2),
-                    Text('ครบกำหนด: ${i.dueDate ?? "-"}  ·  ส่งมอบจริง: ${i.actualDeliveryDate ?? "-"}',
-                      style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                    Text(
+                        'ครบกำหนด: ${i.dueDate ?? "-"}  ·  ส่งมอบจริง: ${i.actualDeliveryDate ?? "-"}',
+                        style: TextStyle(
+                            fontSize: AppTypography.caption,
+                            color: colors.onSurfaceVariant)),
                     if (i.penaltyAmount != null) ...[
                       const SizedBox(height: 2),
-                      Text('ค่าปรับโดยประมาณ: ${formatBaht(i.penaltyAmount)} บาท',
-                        style: TextStyle(fontSize: AppTypography.bodyMedium, color: BrandAccent.red(context), fontWeight: AppTypography.weightSemiBold)),
+                      Text(
+                          'ค่าปรับโดยประมาณ: ${formatBaht(i.penaltyAmount)} บาท',
+                          style: TextStyle(
+                              fontSize: AppTypography.bodyMedium,
+                              color: BrandAccent.red(context),
+                              fontWeight: AppTypography.weightSemiBold)),
                     ],
                   ],
                 ),
@@ -447,7 +528,10 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
               if (late)
                 TextButton(
                   onPressed: () => _calculatePenalty(i),
-                  style: TextButton.styleFrom(textStyle: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold)),
+                  style: TextButton.styleFrom(
+                      textStyle: TextStyle(
+                          fontSize: AppTypography.bodySmall,
+                          fontWeight: AppTypography.weightBold)),
                   child: const Text('คำนวณค่าปรับ'),
                 ),
               const SizedBox(width: 4),
@@ -465,7 +549,10 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                     borderRadius: BorderRadius.circular(RadiusSize.sm),
                     border: Border.all(color: colors.outline),
                   ),
-                  child: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                  child: const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
               DsActionIconButtons(
                 actions: [
@@ -475,7 +562,11 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                       tooltip: 'สร้าง/ดูเอกสารบันทึกขออนุมัติเบิกจ่าย',
                       onTap: () => _exportDisbursementMemo(i),
                     ),
-                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(i), danger: true),
+                  DsRowAction(
+                      icon: Icons.delete_outline,
+                      tooltip: 'ลบ',
+                      onTap: () => _confirmDelete(i),
+                      danger: true),
                 ],
               ),
             ],
@@ -491,7 +582,11 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
 /// บนสุด + ไอคอนในกล่องสี่เหลี่ยมมุมมน + ตัวเลขใหญ่) ไม่งั้นจะดูไม่เข้าชุดกับ
 /// การ์ดข้างๆ ที่เป็น KpiCard จริง
 class _RedKpiCard extends StatelessWidget {
-  const _RedKpiCard({required this.label, required this.value, required this.unit, required this.icon});
+  const _RedKpiCard(
+      {required this.label,
+      required this.value,
+      required this.unit,
+      required this.icon});
   final String label;
   final String value;
   final String unit;
@@ -517,7 +612,9 @@ class _RedKpiCard extends StatelessWidget {
             top: 0,
             child: Container(
               height: 3,
-              decoration: BoxDecoration(color: accent, boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.7), blurRadius: 14)]),
+              decoration: BoxDecoration(color: accent, boxShadow: [
+                BoxShadow(color: accent.withValues(alpha: 0.7), blurRadius: 14)
+              ]),
             ),
           ),
           Padding(
@@ -531,14 +628,21 @@ class _RedKpiCard extends StatelessWidget {
                     Container(
                       width: Dimensions.kpiIconSize,
                       height: Dimensions.kpiIconSize,
-                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(RadiusSize.md)),
+                      decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(RadiusSize.md)),
                       child: Icon(icon, size: IconSizes.md, color: accent),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(label,
-                        style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant, height: 1.3),
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                          style: TextStyle(
+                              fontSize: AppTypography.caption,
+                              fontWeight: AppTypography.weightBold,
+                              color: colors.onSurfaceVariant,
+                              height: 1.3),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
                     ),
                   ],
                 ),
@@ -548,13 +652,23 @@ class _RedKpiCard extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(value,
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: AppTypography.display1, fontWeight: AppTypography.weightExtraBold, letterSpacing: -1.1, height: 1, color: colors.onSurface)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: AppTypography.display1,
+                              fontWeight: AppTypography.weightExtraBold,
+                              letterSpacing: -1.1,
+                              height: 1,
+                              color: colors.onSurface)),
                     ),
                     const SizedBox(width: 4),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 2),
-                      child: Text(unit, style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+                      child: Text(unit,
+                          style: TextStyle(
+                              fontSize: AppTypography.caption,
+                              fontWeight: AppTypography.weightBold,
+                              color: colors.onSurfaceVariant)),
                     ),
                   ],
                 ),
@@ -627,7 +741,8 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
     setState(() => _saving = true);
     final i = Inspection(
       id: widget.existing?.id,
-      inspectionNumber: _numberCtrl.text.trim().isEmpty ? null : _numberCtrl.text.trim(),
+      inspectionNumber:
+          _numberCtrl.text.trim().isEmpty ? null : _numberCtrl.text.trim(),
       orderId: _orderId,
       dueDate: _dueDate,
       actualDeliveryDate: _actualDate,
@@ -648,7 +763,8 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขรายการตรวจรับ' : 'เพิ่มรายการตรวจรับ', style: _dialogTitleStyle),
+      title: Text(isEdit ? 'แก้ไขรายการตรวจรับ' : 'เพิ่มรายการตรวจรับ',
+          style: _dialogTitleStyle),
       content: SizedBox(
         width: 580,
         child: SingleChildScrollView(
@@ -660,7 +776,8 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                 child: ClearableTextField(
                   controller: _numberCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _dialogFieldDecoration(context, label: 'เลขที่ตรวจรับ', hint: 'เช่น ตรวจรับที่ 5/2569'),
+                  decoration: _dialogFieldDecoration(context,
+                      label: 'เลขที่ตรวจรับ', hint: 'เช่น ตรวจรับที่ 5/2569'),
                 ),
               ),
               Padding(
@@ -670,18 +787,28 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
                     initialValue: _orderId,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'รายการจัดซื้อจัดจ้าง').copyWith(
+                    decoration: _dialogFieldDecoration(context,
+                            label: 'รายการจัดซื้อจัดจ้าง')
+                        .copyWith(
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       suffixIcon: hovering && _orderId != null
-                          ? clearIconButton(context, () => setState(() => _orderId = null))
+                          ? clearIconButton(
+                              context, () => setState(() => _orderId = null))
                           : null,
                     ),
                     items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับเอกสาร)')),
-                      ...widget.orders.where((o) => o.id != null).map((o) => DropdownMenuItem<int?>(
-                            value: o.id,
-                            child: Text(o.projectName ?? o.procurementSubject ?? 'เอกสาร #${o.id}', overflow: TextOverflow.ellipsis),
-                          )),
+                      const DropdownMenuItem<int?>(
+                          value: null, child: Text('(ไม่ผูกกับเอกสาร)')),
+                      ...widget.orders
+                          .where((o) => o.id != null)
+                          .map((o) => DropdownMenuItem<int?>(
+                                value: o.id,
+                                child: Text(
+                                    o.projectName ??
+                                        o.procurementSubject ??
+                                        'เอกสาร #${o.id}',
+                                    overflow: TextOverflow.ellipsis),
+                              )),
                     ],
                     onChanged: (v) => setState(() => _orderId = v),
                   ),
@@ -690,28 +817,38 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: InkWell(
-                      onTap: () => _pickDate(isDue: true),
-                      borderRadius: BorderRadius.circular(RadiusSize.md),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: InkWell(
+                        onTap: () => _pickDate(isDue: true),
+                        borderRadius: BorderRadius.circular(RadiusSize.md),
                         child: InputDecorator(
-                          decoration: _dialogFieldDecoration(context, label: 'วันที่ครบกำหนด').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                          child: Text(_dueDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                          decoration: _dialogFieldDecoration(context,
+                                  label: 'วันที่ครบกำหนด')
+                              .copyWith(
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.auto),
+                          child: Text(_dueDate ?? 'เลือกวันที่',
+                              style: _dialogFieldStyle),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: InkWell(
-                      onTap: () => _pickDate(isDue: false),
-                      borderRadius: BorderRadius.circular(RadiusSize.md),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: InkWell(
+                        onTap: () => _pickDate(isDue: false),
+                        borderRadius: BorderRadius.circular(RadiusSize.md),
                         child: InputDecorator(
-                          decoration: _dialogFieldDecoration(context, label: 'วันที่ส่งมอบจริง').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                          child: Text(_actualDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                          decoration: _dialogFieldDecoration(context,
+                                  label: 'วันที่ส่งมอบจริง')
+                              .copyWith(
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.auto),
+                          child: Text(_actualDate ?? 'เลือกวันที่',
+                              style: _dialogFieldStyle),
                         ),
                       ),
                     ),
@@ -721,11 +858,16 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
               DropdownButtonFormField<String?>(
                 initialValue: _result,
                 style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _dialogFieldDecoration(context, label: 'ผลการตรวจรับ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                decoration:
+                    _dialogFieldDecoration(context, label: 'ผลการตรวจรับ')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: const [
-                  DropdownMenuItem<String?>(value: null, child: Text('รอตรวจรับ')),
+                  DropdownMenuItem<String?>(
+                      value: null, child: Text('รอตรวจรับ')),
                   DropdownMenuItem<String?>(value: 'ผ่าน', child: Text('ผ่าน')),
-                  DropdownMenuItem<String?>(value: 'ไม่ผ่าน', child: Text('ไม่ผ่าน')),
+                  DropdownMenuItem<String?>(
+                      value: 'ไม่ผ่าน', child: Text('ไม่ผ่าน')),
                 ],
                 onChanged: (v) => setState(() => _result = v),
               ),
@@ -736,14 +878,22 @@ class _InspectionFormDialogState extends State<_InspectionFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
-          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: TextButton.styleFrom(
+              padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              padding: _dialogButtonPadding,
+              textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
-              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: colors.onPrimary))
               : Text(isEdit ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],

@@ -39,12 +39,14 @@ import '../widgets/design_system/clearable_text_field.dart';
 // สไตล์ dialog มาตรฐานของทั้งแอป (เหมือนกับ guarantees_screen.dart /
 // disposals_screen.dart ฯลฯ) — ใช้กับ dialog "เพิ่มแผนงบประมาณแบบด่วน" ใน Tab 1
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
-const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonTextStyle =
+    TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
 const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
 const _dialogLabelStyle = TextStyle(fontSize: 15);
 
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+InputDecoration _dialogFieldDecoration(BuildContext context,
+    {required String label, String? hint}) {
   final colors = Theme.of(context).colorScheme;
   // colors.outline ซีดเกินไปสำหรับฟิลด์ใน dialog เดี่ยวๆ ที่ไม่มีเงา/พื้นสีช่วยไว้
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
@@ -52,7 +54,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
     labelText: label,
     hintText: hint,
     floatingLabelBehavior: FloatingLabelBehavior.always,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
+    labelStyle: _dialogLabelStyle.copyWith(
+        color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -78,7 +81,8 @@ class _AiActionButton extends StatelessWidget {
   final Widget icon;
   final String label;
 
-  const _AiActionButton({required this.onPressed, required this.icon, required this.label});
+  const _AiActionButton(
+      {required this.onPressed, required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +91,12 @@ class _AiActionButton extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(RadiusSize.md),
         border: Border.all(color: purple.withValues(alpha: 0.6), width: 1.4),
-        boxShadow: [BoxShadow(color: purple.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: purple.withValues(alpha: 0.18),
+              blurRadius: 10,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: TextButton.icon(
         onPressed: onPressed,
@@ -97,7 +106,8 @@ class _AiActionButton extends StatelessWidget {
           foregroundColor: purple,
           backgroundColor: purple.withValues(alpha: 0.08),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(RadiusSize.md)),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
@@ -184,7 +194,8 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       if (signedChanged || shippingChanged) {
         final autoDeadline =
             _calcDeadlineThai(next.dateContractSigned, next.shippingDays);
-        if (autoDeadline != null) next = next.copyWith(dateDeadline: autoDeadline);
+        if (autoDeadline != null)
+          next = next.copyWith(dateDeadline: autoDeadline);
       }
       _draft = next;
     });
@@ -192,15 +203,27 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
   }
 
   static const _thaiMonthNames = [
-    '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    '',
+    'มกราคม',
+    'กุมภาพันธ์',
+    'มีนาคม',
+    'เมษายน',
+    'พฤษภาคม',
+    'มิถุนายน',
+    'กรกฎาคม',
+    'สิงหาคม',
+    'กันยายน',
+    'ตุลาคม',
+    'พฤศจิกายน',
+    'ธันวาคม',
   ];
 
   /// รับวันที่ลงนามสัญญา (รูปแบบ "22 กรกฎาคม 2569" ตามที่ Tab 5 บันทึกจริง
   /// ผ่าน date picker) + จำนวนวันส่งมอบ คืนวันครบกำหนดเป็นสตริงรูปแบบเดียวกัน
   /// หรือ null ถ้าข้อมูลไม่ครบ/แปลงไม่ได้
   static String? _calcDeadlineThai(String? signedText, int? shippingDays) {
-    if (signedText == null || signedText.isEmpty || shippingDays == null) return null;
+    if (signedText == null || signedText.isEmpty || shippingDays == null)
+      return null;
     final parts = signedText.trim().split(RegExp(r'\s+'));
     if (parts.length != 3) return null;
     final day = int.tryParse(parts[0]);
@@ -322,14 +345,17 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     // ได้กลับเข้า draft ทันที ไม่งั้นกด "บันทึก"/"สร้างเอกสาร" ซ้ำในหน้าเดิม
     // (ยังไม่ได้ปิด wizard) จะ insert แถวใหม่ซ้ำแทนที่จะ update แถวเดิม —
     // และฟีเจอร์งวดการเบิกจ่าย (Tab 6) ก็ต้องมี order.id ก่อนถึงจะใช้ได้
-    orderToSave = orderToSave.id == null ? orderToSave.copyWith(id: savedId) : orderToSave;
+    orderToSave = orderToSave.id == null
+        ? orderToSave.copyWith(id: savedId)
+        : orderToSave;
     setState(() => _draft = orderToSave);
 
     // จำข้อมูลร้านค้าไว้ให้เลือกใช้ซ้ำได้ในเอกสารครั้งถัดไป — ร้านที่ไม่มีชื่อร้าน
     // (มีแค่ชื่อเจ้าของ) ใช้ชื่อเจ้าของแทนเป็นชื่อที่บันทึกไว้ค้นหา/เลือกซ้ำได้
-    final vendorDisplayName = (orderToSave.vendorName?.trim().isNotEmpty ?? false)
-        ? orderToSave.vendorName!.trim()
-        : orderToSave.vendorOwner?.trim();
+    final vendorDisplayName =
+        (orderToSave.vendorName?.trim().isNotEmpty ?? false)
+            ? orderToSave.vendorName!.trim()
+            : orderToSave.vendorOwner?.trim();
     if (vendorDisplayName != null && vendorDisplayName.isNotEmpty) {
       await _repo.upsertVendor(Vendor(
         name: vendorDisplayName,
@@ -420,8 +446,10 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
             labelColor: Colors.white,
             unselectedLabelColor: colors.onSurfaceVariant,
             labelPadding: EdgeInsets.zero,
-            labelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            labelStyle:
+                const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+            unselectedLabelStyle:
+                const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
             tabs: [
               _wizardStepTab(1, 'โรงเรียน/งบประมาณ'),
               _wizardStepTab(2, 'ผู้ปฏิบัติงาน'),
@@ -435,9 +463,16 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _Tab1SchoolBudget(draft: _draft, onChanged: _updateDraft, repo: _repo, onAiBusyChanged: widget.onAiBusyChanged),
+              _Tab1SchoolBudget(
+                  draft: _draft,
+                  onChanged: _updateDraft,
+                  repo: _repo,
+                  onAiBusyChanged: widget.onAiBusyChanged),
               _Tab2Officers(draft: _draft, onChanged: _updateDraft),
-              _Tab3VendorTerms(draft: _draft, onChanged: _updateDraft, itemsSubtotal: _itemsSubtotal),
+              _Tab3VendorTerms(
+                  draft: _draft,
+                  onChanged: _updateDraft,
+                  itemsSubtotal: _itemsSubtotal),
               _Tab4Items(
                 initialItems: _items,
                 itemsController: _itemsTableController,
@@ -473,7 +508,8 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                     foregroundColor: colors.primary,
                     side: BorderSide(color: colors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md)),
                     textStyle: _dialogButtonTextStyle,
                   ),
                 ),
@@ -481,19 +517,24 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: (_saving || _generatingDoc) ? null : _saveAndGenerateDocument,
+                  onPressed: (_saving || _generatingDoc)
+                      ? null
+                      : _saveAndGenerateDocument,
                   icon: _generatingDoc
                       ? SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: colors.onPrimary),
                         )
                       : const Icon(Icons.description),
-                  label: Text(_generatingDoc ? 'กำลังสร้าง...' : 'สร้างเอกสาร Word'),
+                  label: Text(
+                      _generatingDoc ? 'กำลังสร้าง...' : 'สร้างเอกสาร Word'),
                   style: FilledButton.styleFrom(
                     backgroundColor: colors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md)),
                     textStyle: _dialogButtonTextStyle,
                   ),
                 ),
@@ -523,8 +564,15 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                 width: 15,
                 height: 15,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: fg, width: 1.2)),
-                child: Text('$step', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: fg, height: 1)),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: fg, width: 1.2)),
+                child: Text('$step',
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: fg,
+                        height: 1)),
               ),
               const SizedBox(width: 6),
               Text(label),
@@ -582,20 +630,26 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
   @override
   void initState() {
     super.initState();
-    _procurementNumberCtrl = TextEditingController(text: widget.draft.procurementNumber);
-    _procurementSubjectCtrl = TextEditingController(text: widget.draft.procurementSubject);
+    _procurementNumberCtrl =
+        TextEditingController(text: widget.draft.procurementNumber);
+    _procurementSubjectCtrl =
+        TextEditingController(text: widget.draft.procurementSubject);
     _orderNumberCtrl = TextEditingController(text: widget.draft.orderNumber);
     _egpProjectIdCtrl = TextEditingController(text: widget.draft.egpProjectId);
-    _projectNumberCtrl = TextEditingController(text: widget.draft.projectNumber);
+    _projectNumberCtrl =
+        TextEditingController(text: widget.draft.projectNumber);
     _projectNameCtrl = TextEditingController(text: widget.draft.projectName);
     _activityNameCtrl = TextEditingController(text: widget.draft.activityName);
-    _purposeReasonCtrl = TextEditingController(text: widget.draft.purposeReason);
+    _purposeReasonCtrl =
+        TextEditingController(text: widget.draft.purposeReason);
     _orderType = widget.draft.orderType;
     // ค่า fundType ที่บันทึกไว้เป็นข้อความเอง (พิมพ์ตอนเลือก "อื่นๆ") จะไม่ตรงกับ
     // ตัวเลือกในลิสต์ — ในกรณีนี้ให้ dropdown โชว์ "อื่นๆ" ไว้ แล้ว prefill ข้อความ
     // เดิมลงช่องกรอกเอง แทนที่จะรีเซ็ตเป็น (ไม่ระบุ) ทุกครั้งที่เปิดกลับมาแก้ไข
     final draftFundType = widget.draft.fundType;
-    if (draftFundType != null && draftFundType.isNotEmpty && !orderFundTypes.contains(draftFundType)) {
+    if (draftFundType != null &&
+        draftFundType.isNotEmpty &&
+        !orderFundTypes.contains(draftFundType)) {
       _fundType = 'อื่นๆ';
       _fundTypeOtherCtrl = TextEditingController(text: draftFundType);
     } else {
@@ -603,13 +657,15 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       _fundTypeOtherCtrl = TextEditingController();
     }
     _isRecurringContract = widget.draft.isRecurringContract;
-    _procurementMethod = widget.draft.procurementMethod ?? procurementMethodOptions.first.value;
+    _procurementMethod =
+        widget.draft.procurementMethod ?? procurementMethodOptions.first.value;
     if (widget.draft.procurementMethod == null) {
       // ค่า default ตอนเปิดหน้าครั้งแรกยังไม่ถูกบันทึกลง draft จริง เว้นแต่ผู้ใช้
       // ไปแตะ dropdown เอง — commit ให้ตั้งแต่ frame แรกกันข้อมูลว่างตอนสร้างเอกสาร
       // (บั๊กแบบเดียวกับที่เคยเจอกับ inspectorTitleGroup)
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onChanged((d) => d.copyWith(procurementMethod: _procurementMethod));
+        widget.onChanged(
+            (d) => d.copyWith(procurementMethod: _procurementMethod));
       });
     }
     _loadBudgets();
@@ -619,7 +675,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     // กรองเฉพาะปีงบที่กำลังดูอยู่ตอนนี้ (ป้ายปีงบมุมขวาบน) — กันเลือกแผนงบ
     // ผิดปีงบเวลามีทั้งปีเก่า/ปีใหม่ปนกันอยู่ในระบบ (ก่อนหน้านี้โชว์ทุกปีปนกัน
     // ทำให้เผลอเลือกแผนงบคนละปีกับที่กำลังตั้งใจจะสร้างโครงการได้ง่าย)
-    final budgets = await widget.repo.getAllBudgets(fiscalYear: FiscalYearController.instance.viewingYear);
+    final budgets = await widget.repo
+        .getAllBudgets(fiscalYear: FiscalYearController.instance.viewingYear);
     if (!mounted) return;
     setState(() {
       _budgets = budgets;
@@ -633,7 +690,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
     // เดิม hardcode เทียบปี 2568/2569 ตรงๆ ซึ่งจะผิดทันทีตอนขึ้นปีงบ 2570 —
     // เปลี่ยนไปใช้ปีงบที่กำลังดูอยู่ (FiscalYearController) แทน ถูกต้องทุกปี
     // อัตโนมัติ ไม่ต้องแก้โค้ดใหม่ทุกปี และตรงกับปีที่ผู้ใช้กำลังดูอยู่จริงด้วย
-    final yearCtrl = TextEditingController(text: FiscalYearController.instance.viewingYear);
+    final yearCtrl =
+        TextEditingController(text: FiscalYearController.instance.viewingYear);
     final projCtrl = TextEditingController();
     final actCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
@@ -643,84 +701,98 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-        title: const Text('เพิ่มแผนงบประมาณแบบด่วน', style: _dialogTitleStyle),
-        content: SizedBox(
-          width: 440,
-          child: SingleChildScrollView(
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClearableTextField(
-                controller: yearCtrl,
-                style: _dialogFieldStyle,
-                decoration: _dialogFieldDecoration(context, label: 'ปีงบประมาณ (พ.ศ.)'),
+          title:
+              const Text('เพิ่มแผนงบประมาณแบบด่วน', style: _dialogTitleStyle),
+          content: SizedBox(
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClearableTextField(
+                    controller: yearCtrl,
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context,
+                        label: 'ปีงบประมาณ (พ.ศ.)'),
+                  ),
+                  const SizedBox(height: 14),
+                  ClearableTextField(
+                    controller: projCtrl,
+                    style: _dialogFieldStyle,
+                    decoration:
+                        _dialogFieldDecoration(context, label: 'ชื่อโครงการ'),
+                  ),
+                  const SizedBox(height: 14),
+                  ClearableTextField(
+                    controller: actCtrl,
+                    style: _dialogFieldStyle,
+                    decoration:
+                        _dialogFieldDecoration(context, label: 'ชื่อกิจกรรม'),
+                  ),
+                  const SizedBox(height: 14),
+                  ClearableTextField(
+                    controller: amountCtrl,
+                    style: _dialogFieldStyle,
+                    decoration: _dialogFieldDecoration(context,
+                        label: 'งบประมาณจัดสรร (บาท)'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: source,
+                    isExpanded: true,
+                    style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                    decoration: _dialogFieldDecoration(context,
+                            label: 'แหล่งงบประมาณ')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    items: budgetSources
+                        .map((s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(s, overflow: TextOverflow.ellipsis)))
+                        .toList(),
+                    onChanged: (v) =>
+                        setDialogState(() => source = v ?? budgetSourceSchool),
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              ClearableTextField(
-                controller: projCtrl,
-                style: _dialogFieldStyle,
-                decoration: _dialogFieldDecoration(context, label: 'ชื่อโครงการ'),
-              ),
-              const SizedBox(height: 14),
-              ClearableTextField(
-                controller: actCtrl,
-                style: _dialogFieldStyle,
-                decoration: _dialogFieldDecoration(context, label: 'ชื่อกิจกรรม'),
-              ),
-              const SizedBox(height: 14),
-              ClearableTextField(
-                controller: amountCtrl,
-                style: _dialogFieldStyle,
-                decoration: _dialogFieldDecoration(context, label: 'งบประมาณจัดสรร (บาท)'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<String>(
-                initialValue: source,
-                isExpanded: true,
-                style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _dialogFieldDecoration(context, label: 'แหล่งงบประมาณ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                items: budgetSources
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
-                    .toList(),
-                onChanged: (v) => setDialogState(() => source = v ?? budgetSourceSchool),
-              ),
-            ],
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
-            child: const Text('ยกเลิก'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: colors.primary,
-              padding: _dialogButtonPadding,
-              textStyle: _dialogButtonTextStyle,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: TextButton.styleFrom(
+                  padding: _dialogButtonPadding,
+                  textStyle: _dialogButtonTextStyle),
+              child: const Text('ยกเลิก'),
             ),
-            onPressed: () async {
-              final allocated = double.tryParse(amountCtrl.text) ?? 0.0;
-              final newBudget = Budget(
-                fiscalYear: yearCtrl.text.isEmpty ? '-' : yearCtrl.text,
-                projectName: projCtrl.text,
-                activityName: actCtrl.text,
-                allocatedAmount: allocated,
-                remainingAmount: allocated,
-                budgetSource: source,
-              );
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.primary,
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(RadiusSize.md)),
+              ),
+              onPressed: () async {
+                final allocated = double.tryParse(amountCtrl.text) ?? 0.0;
+                final newBudget = Budget(
+                  fiscalYear: yearCtrl.text.isEmpty ? '-' : yearCtrl.text,
+                  projectName: projCtrl.text,
+                  activityName: actCtrl.text,
+                  allocatedAmount: allocated,
+                  remainingAmount: allocated,
+                  budgetSource: source,
+                );
 
-              // สมมติว่ามีฟังก์ชันบันทึกงบประมาณใน repo เช่น saveBudget
-              // หากใน repo ตัวแปรใช้ saveBudget หรือเพิ่มเข้าไปตรงๆ สามารถเรียกตรงนี้ได้เลย
-              // เพื่อความปลอดภัยเราใช้ฟังก์ชันผ่านตัวแปรกลางหรือส่งกลับไปประมวลผลภายนอก
-              Navigator.pop(ctx, newBudget);
-            },
-            child: const Text('บันทึก'),
-          ),
-        ],
+                // สมมติว่ามีฟังก์ชันบันทึกงบประมาณใน repo เช่น saveBudget
+                // หากใน repo ตัวแปรใช้ saveBudget หรือเพิ่มเข้าไปตรงๆ สามารถเรียกตรงนี้ได้เลย
+                // เพื่อความปลอดภัยเราใช้ฟังก์ชันผ่านตัวแปรกลางหรือส่งกลับไปประมวลผลภายนอก
+                Navigator.pop(ctx, newBudget);
+              },
+              child: const Text('บันทึก'),
+            ),
+          ],
         ),
       ),
     );
@@ -761,13 +833,17 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
 
   // Feature C: AI ช่วยเขียน "เหตุผลความจำเป็น" จากข้อมูลที่กรอกไว้แล้วใน Tab 1
   Future<void> _generateReason() async {
-    if (_projectNameCtrl.text.trim().isEmpty && _procurementSubjectCtrl.text.trim().isEmpty) {
-      showAppToast('กรุณากรอกหัวเรื่องหรือชื่อโครงการก่อน ให้ AI มีข้อมูลพอเขียนเหตุผลได้', isError: true);
+    if (_projectNameCtrl.text.trim().isEmpty &&
+        _procurementSubjectCtrl.text.trim().isEmpty) {
+      showAppToast(
+          'กรุณากรอกหัวเรื่องหรือชื่อโครงการก่อน ให้ AI มีข้อมูลพอเขียนเหตุผลได้',
+          isError: true);
       return;
     }
     final apiKey = await GeminiService.instance.getApiKey();
     if (apiKey == null) {
-      showAppToast('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน', isError: true);
+      showAppToast('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน',
+          isError: true);
       return;
     }
 
@@ -824,7 +900,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
         : null;
     // เจ้าของงบ/ผู้จัดทำสเปค ดึงจาก "ผู้รับผิดชอบ" ที่ตั้งไว้ในแผนงบมาให้อัตโนมัติ
     // (Tab 2) ผู้ใช้ยังลบ/แก้ไขเองต่อได้ตามปกติหลังจากนั้น
-    final hasResponsiblePerson = budget.responsiblePerson?.trim().isNotEmpty ?? false;
+    final hasResponsiblePerson =
+        budget.responsiblePerson?.trim().isNotEmpty ?? false;
     widget.onChanged((d) => d.copyWith(
           budgetId: budget.id,
           fiscalYear: budget.fiscalYear,
@@ -834,8 +911,11 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
           egpProjectId: budget.egpNumber,
           projectName: budget.projectName,
           activityName: budget.activityName,
-          ownerName: hasResponsiblePerson ? budget.responsiblePerson : d.ownerName,
-          specCreatorName: hasResponsiblePerson ? budget.responsiblePerson : d.specCreatorName,
+          ownerName:
+              hasResponsiblePerson ? budget.responsiblePerson : d.ownerName,
+          specCreatorName: hasResponsiblePerson
+              ? budget.responsiblePerson
+              : d.specCreatorName,
         ));
     setState(() {
       _projectNameCtrl.text = budget.projectName ?? '';
@@ -881,7 +961,10 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                   )
                 : DropdownButtonFormField<Budget>(
                     initialValue: selectedBudget,
-                    decoration: _inputDecoration('แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ)').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    decoration: _inputDecoration(
+                            'แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ)')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
                     isExpanded: true,
                     items: _budgets
                         .map((b) => DropdownMenuItem(
@@ -891,18 +974,30 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                               // เป็นตัวหนาเท่ากันหมดทั้งบรรทัดแบบเดิม
                               child: Text.rich(
                                 TextSpan(
-                                  style: TextStyle(fontWeight: AppTypography.weightSemiBold, color: colors.onSurface),
+                                  style: TextStyle(
+                                      fontWeight: AppTypography.weightSemiBold,
+                                      color: colors.onSurface),
                                   children: [
-                                    TextSpan(text: '${b.fiscalYear} • ${b.projectName ?? "-"}'),
-                                    if (b.activityName?.trim().isNotEmpty ?? false)
+                                    TextSpan(
+                                        text:
+                                            '${b.fiscalYear} • ${b.projectName ?? "-"}'),
+                                    if (b.activityName?.trim().isNotEmpty ??
+                                        false)
                                       TextSpan(
                                         text: ' › ${b.activityName}',
-                                        style: TextStyle(fontWeight: AppTypography.weightRegular, color: colors.onSurfaceVariant),
+                                        style: TextStyle(
+                                            fontWeight:
+                                                AppTypography.weightRegular,
+                                            color: colors.onSurfaceVariant),
                                       ),
                                     TextSpan(
-                                      text: '${b.budgetSource == budgetSourceDistrict ? " [งบเขต]" : ""} '
+                                      text:
+                                          '${b.budgetSource == budgetSourceDistrict ? " [งบเขต]" : ""} '
                                           '(คงเหลือ ${b.remainingAmount?.toStringAsFixed(0) ?? "-"} บาท)',
-                                      style: TextStyle(fontWeight: AppTypography.weightRegular, color: colors.onSurfaceVariant),
+                                      style: TextStyle(
+                                          fontWeight:
+                                              AppTypography.weightRegular,
+                                          color: colors.onSurfaceVariant),
                                     ),
                                   ],
                                 ),
@@ -916,7 +1011,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             _sectionTitle(colors, 'ประเภทเอกสาร'),
             DropdownButtonFormField<String>(
               initialValue: _orderType,
-              decoration: _inputDecoration('จัดซื้อ หรือ จัดจ้าง').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+              decoration: _inputDecoration('จัดซื้อ หรือ จัดจ้าง')
+                  .copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
               items: const [
                 DropdownMenuItem(value: 'ซื้อ', child: Text('จัดซื้อ')),
                 DropdownMenuItem(value: 'จ้าง', child: Text('จัดจ้าง')),
@@ -930,7 +1026,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             _sectionTitle(colors, 'วิธี/ระเบียบการจัดซื้อจัดจ้าง'),
             DropdownButtonFormField<String>(
               initialValue: _procurementMethod,
-              decoration: _inputDecoration('เลือกวิธีที่ใช้').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+              decoration: _inputDecoration('เลือกวิธีที่ใช้')
+                  .copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
               items: [
                 for (final opt in procurementMethodOptions)
                   DropdownMenuItem(
@@ -940,7 +1037,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                       opt.enabled ? opt.label : '${opt.label} (เร็วๆ นี้)',
                       style: opt.enabled
                           ? null
-                          : TextStyle(color: colors.onSurface.withValues(alpha: 0.38)),
+                          : TextStyle(
+                              color: colors.onSurface.withValues(alpha: 0.38)),
                     ),
                   ),
               ],
@@ -978,9 +1076,12 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                     'เช่น จ้างเหมาประกอบอาหารกลางวัน, เช่าอินเทอร์เน็ตรายเดือน — '
                     'เปิดแล้วโครงการนี้จะไปโผล่ในเมนู "สัญญาต่อเนื่อง/อาหารกลางวัน" '
                     'เพื่อบริหารงวดจ่ายแยกทุกเดือน',
-                    style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodySmall,
+                        color: colors.onSurfaceVariant),
                   ),
-                  secondary: Icon(Icons.restaurant_outlined, color: BrandAccent.tealOn(context)),
+                  secondary: Icon(Icons.restaurant_outlined,
+                      color: BrandAccent.tealOn(context)),
                 ),
               ),
             ),
@@ -991,16 +1092,20 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _procurementNumberCtrl,
-                    decoration: _inputDecoration('เลขที่จัดซื้อ', hint: 'เช่น ซ.1/2569'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementNumber: v)),
+                    decoration: _inputDecoration('เลขที่จัดซื้อ',
+                        hint: 'เช่น ซ.1/2569'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(procurementNumber: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ClearableTextField(
                     controller: _orderNumberCtrl,
-                    decoration: _inputDecoration('เลขที่คำสั่ง', hint: 'เช่น คำสั่งที่ 15/2569'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(orderNumber: v)),
+                    decoration: _inputDecoration('เลขที่คำสั่ง',
+                        hint: 'เช่น คำสั่งที่ 15/2569'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(orderNumber: v)),
                   ),
                 ),
               ],
@@ -1008,8 +1113,10 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
             const SizedBox(height: 16),
             ClearableTextField(
               controller: _egpProjectIdCtrl,
-              decoration: _inputDecoration('เลขที่โครงการ e-GP', hint: 'auto-fill จากแผนงบ แก้ไขเองได้'),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(egpProjectId: v)),
+              decoration: _inputDecoration('เลขที่โครงการ e-GP',
+                  hint: 'auto-fill จากแผนงบ แก้ไขเองได้'),
+              onChanged: (v) =>
+                  widget.onChanged((d) => d.copyWith(egpProjectId: v)),
             ),
             const SizedBox(height: 16),
             Row(
@@ -1018,17 +1125,22 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                   child: DropdownButtonFormField<String?>(
                     initialValue: _fundType,
                     isExpanded: true,
-                    decoration: _inputDecoration('ประเภทของเงิน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    decoration: _inputDecoration('ประเภทของเงิน').copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
-                      ...orderFundTypes.map((f) => DropdownMenuItem(value: f, child: Text(f))),
+                      const DropdownMenuItem<String?>(
+                          value: null, child: Text('(ไม่ระบุ)')),
+                      ...orderFundTypes.map(
+                          (f) => DropdownMenuItem(value: f, child: Text(f))),
                     ],
                     onChanged: (v) {
                       setState(() => _fundType = v);
                       // เลือก "อื่นๆ" แล้วยังไม่ได้พิมพ์ข้อความเอง — บันทึกข้อความ
                       // ที่เคยพิมพ์ไว้ก่อนหน้า (ถ้ามี) แทนคำว่า "อื่นๆ" ตรงๆ เพื่อให้
                       // เอกสารที่สร้างออกมาแสดงชื่อประเภทเงินจริงที่ผู้ใช้กรอกเอง
-                      widget.onChanged((d) => d.copyWith(fundType: v == 'อื่นๆ' ? _fundTypeOtherCtrl.text : v));
+                      widget.onChanged((d) => d.copyWith(
+                          fundType:
+                              v == 'อื่นๆ' ? _fundTypeOtherCtrl.text : v));
                     },
                   ),
                 ),
@@ -1036,8 +1148,11 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _projectNumberCtrl,
-                    decoration: _inputDecoration('เลขที่โครงการ (ทะเบียนคุมภายใน)', hint: 'เช่น 001/2569'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(projectNumber: v)),
+                    decoration: _inputDecoration(
+                        'เลขที่โครงการ (ทะเบียนคุมภายใน)',
+                        hint: 'เช่น 001/2569'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(projectNumber: v)),
                   ),
                 ),
               ],
@@ -1046,8 +1161,10 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
               const SizedBox(height: 16),
               ClearableTextField(
                 controller: _fundTypeOtherCtrl,
-                decoration: _inputDecoration('ระบุประเภทของเงิน', hint: 'เช่น เงินอุดหนุนรายหัว'),
-                onChanged: (v) => widget.onChanged((d) => d.copyWith(fundType: v)),
+                decoration: _inputDecoration('ระบุประเภทของเงิน',
+                    hint: 'เช่น เงินอุดหนุนรายหัว'),
+                onChanged: (v) =>
+                    widget.onChanged((d) => d.copyWith(fundType: v)),
               ),
             ],
             const SizedBox(height: 16),
@@ -1058,21 +1175,26 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                 'หัวเรื่อง',
                 hint: 'เช่น จัดซื้อวัสดุแข่งขันทักษะทางวิชาการระดับเครือข่าย',
               ),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(procurementSubject: v)),
+              onChanged: (v) =>
+                  widget.onChanged((d) => d.copyWith(procurementSubject: v)),
             ),
             const SizedBox(height: 16),
             MemoryTextField(
               fieldKey: 'order.projectName',
               controller: _projectNameCtrl,
-              decoration: _inputDecoration('ชื่อโครงการ', hint: 'เช่น โครงการพัฒนาห้องสมุดโรงเรียน'),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(projectName: v)),
+              decoration: _inputDecoration('ชื่อโครงการ',
+                  hint: 'เช่น โครงการพัฒนาห้องสมุดโรงเรียน'),
+              onChanged: (v) =>
+                  widget.onChanged((d) => d.copyWith(projectName: v)),
             ),
             const SizedBox(height: 16),
             MemoryTextField(
               fieldKey: 'order.activityName',
               controller: _activityNameCtrl,
-              decoration: _inputDecoration('ชื่อกิจกรรม', hint: 'เช่น จัดซื้อหนังสือเข้าห้องสมุด'),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(activityName: v)),
+              decoration: _inputDecoration('ชื่อกิจกรรม',
+                  hint: 'เช่น จัดซื้อหนังสือเข้าห้องสมุด'),
+              onChanged: (v) =>
+                  widget.onChanged((d) => d.copyWith(activityName: v)),
             ),
             const SizedBox(height: 24),
             Row(
@@ -1085,36 +1207,45 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                       ? SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: BrandAccent.purple(context)),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: BrandAccent.purple(context)),
                         )
                       : const Icon(Icons.auto_awesome, size: 16),
-                  label: _generatingReason ? 'กำลังเขียน...' : '✨ ช่วยเขียนเหตุผล',
+                  label:
+                      _generatingReason ? 'กำลังเขียน...' : '✨ ช่วยเขียนเหตุผล',
                 ),
               ],
             ),
             ClearableTextField(
               controller: _purposeReasonCtrl,
-              decoration: _inputDecoration('เหตุผลความจำเป็น', hint: 'เช่น เพื่อใช้ในการจัดการเรียนการสอนให้มีประสิทธิภาพ'),
+              decoration: _inputDecoration('เหตุผลความจำเป็น',
+                  hint: 'เช่น เพื่อใช้ในการจัดการเรียนการสอนให้มีประสิทธิภาพ'),
               maxLines: 4,
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(purposeReason: v)),
+              onChanged: (v) =>
+                  widget.onChanged((d) => d.copyWith(purposeReason: v)),
             ),
             const SizedBox(height: 24),
             _sectionTitle(colors, 'งบประมาณ'),
             Row(
               children: [
                 Expanded(
-                  child: _readonlyMoneyField('งบจัดสรร', widget.draft.allocatedAmount),
+                  child: _readonlyMoneyField(
+                      'งบจัดสรร', widget.draft.allocatedAmount),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _readonlyMoneyField('งบคงเหลือ', widget.draft.remainingAmount),
+                  child: _readonlyMoneyField(
+                      'งบคงเหลือ', widget.draft.remainingAmount),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               'ยอดงบประมาณดึงมาจากแผนงบที่เลือกด้านบนโดยอัตโนมัติ (แก้ที่หน้าจัดการแผนงบ)',
-              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
+              style: TextStyle(
+                  fontSize: AppTypography.bodySmall,
+                  color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 40),
           ],
@@ -1143,12 +1274,21 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       labelText: label,
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
-      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
-      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
+      labelStyle: const TextStyle(
+          fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(
+          fontSize: AppTypography.bodyMedium,
+          color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
     );
   }
 
@@ -1157,7 +1297,8 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
       key: ValueKey('$label-$value'),
       readOnly: true,
       initialValue: value == null ? '-' : '${formatBaht(value)} บาท',
-      decoration: _inputDecoration(label).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+      decoration: _inputDecoration(label)
+          .copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
     );
   }
 }
@@ -1205,7 +1346,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     _ownerNameCtrl = TextEditingController(text: d.ownerName);
     _ownerPositionCtrl = TextEditingController(text: d.ownerPosition);
     _specCreatorNameCtrl = TextEditingController(text: d.specCreatorName);
-    _specCreatorPositionCtrl = TextEditingController(text: d.specCreatorPosition);
+    _specCreatorPositionCtrl =
+        TextEditingController(text: d.specCreatorPosition);
 
     _inspector1Ctrl = TextEditingController(text: d.inspector1);
     _inspector1PosCtrl = TextEditingController(text: d.inspector1Pos);
@@ -1222,7 +1364,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     // null อยู่) ทั้งที่ UI โชว์ว่าเลือก "ผู้ตรวจรับคนเดียว" ไว้แล้วก็ตาม
     if (d.inspectorTitleGroup == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onChanged((draft) => draft.copyWith(inspectorTitleGroup: _inspectorTitleGroup));
+        widget.onChanged((draft) =>
+            draft.copyWith(inspectorTitleGroup: _inspectorTitleGroup));
       });
     }
     _loadSchoolInfo();
@@ -1246,7 +1389,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
   ) {
     if (posCtrl.text.trim().isNotEmpty) return;
     for (final p in _personnel) {
-      if (p.name.trim() == name.trim() && (p.position?.trim().isNotEmpty ?? false)) {
+      if (p.name.trim() == name.trim() &&
+          (p.position?.trim().isNotEmpty ?? false)) {
         setState(() => posCtrl.text = p.position!);
         widget.onChanged((d) => applyPosition(d, p.position!));
         break;
@@ -1265,7 +1409,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
     required ProcurementOrder Function(ProcurementOrder, String) applyPosition,
   }) {
     return PopupMenuButton<Personnel>(
-      icon: Icon(Icons.people_alt_outlined, size: 20, color: BrandAccent.tealOn(context)),
+      icon: Icon(Icons.people_alt_outlined,
+          size: 20, color: BrandAccent.tealOn(context)),
       tooltip: 'เลือกจากทำเนียบบุคลากร',
       enabled: _personnel.isNotEmpty,
       itemBuilder: (ctx) => [
@@ -1273,7 +1418,9 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
           PopupMenuItem(
             value: p,
             child: Text(
-              (p.position?.trim().isNotEmpty ?? false) ? '${p.name} — ${p.position}' : p.name,
+              (p.position?.trim().isNotEmpty ?? false)
+                  ? '${p.name} — ${p.position}'
+                  : p.name,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -1366,7 +1513,9 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _ownerNameCtrl,
-                    decoration: _inputDecoration('ชื่อเจ้าของงบ/โครงการ', hint: 'เช่น นายสมชาย ใจดี').copyWith(
+                    decoration: _inputDecoration('ชื่อเจ้าของงบ/โครงการ',
+                            hint: 'เช่น นายสมชาย ใจดี')
+                        .copyWith(
                       suffixIcon: _personnelPickerButton(
                         nameCtrl: _ownerNameCtrl,
                         posCtrl: _ownerPositionCtrl,
@@ -1387,8 +1536,10 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _ownerPositionCtrl,
-                    decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(ownerPosition: v)),
+                    decoration:
+                        _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(ownerPosition: v)),
                   ),
                 ),
               ],
@@ -1401,17 +1552,23 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _specCreatorNameCtrl,
-                    decoration: _inputDecoration('ผู้จัดทำรายละเอียดคุณลักษณะ (สเปค)', hint: 'เช่น นางสาวสมหญิง ตั้งใจ').copyWith(
+                    decoration: _inputDecoration(
+                            'ผู้จัดทำรายละเอียดคุณลักษณะ (สเปค)',
+                            hint: 'เช่น นางสาวสมหญิง ตั้งใจ')
+                        .copyWith(
                       suffixIcon: _personnelPickerButton(
                         nameCtrl: _specCreatorNameCtrl,
                         posCtrl: _specCreatorPositionCtrl,
                         applyName: (d, v) => d.copyWith(specCreatorName: v),
-                        applyPosition: (d, v) => d.copyWith(specCreatorPosition: v),
+                        applyPosition: (d, v) =>
+                            d.copyWith(specCreatorPosition: v),
                       ),
                     ),
                     onChanged: (v) {
                       widget.onChanged((d) => d.copyWith(specCreatorName: v));
-                      _autofillPositionFromPersonnel(v, _specCreatorPositionCtrl,
+                      _autofillPositionFromPersonnel(
+                          v,
+                          _specCreatorPositionCtrl,
                           (d, pos) => d.copyWith(specCreatorPosition: pos));
                     },
                   ),
@@ -1422,8 +1579,10 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _specCreatorPositionCtrl,
-                    decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(specCreatorPosition: v)),
+                    decoration:
+                        _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(specCreatorPosition: v)),
                   ),
                 ),
               ],
@@ -1432,8 +1591,11 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
             _sectionTitle(colors, 'คณะกรรมการ/ผู้ตรวจรับพัสดุ'),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'ผู้ตรวจรับพัสดุ', label: Text('ผู้ตรวจรับคนเดียว')),
-                ButtonSegment(value: 'คณะกรรมการตรวจรับ', label: Text('คณะกรรมการ (สูงสุด 3 คน)')),
+                ButtonSegment(
+                    value: 'ผู้ตรวจรับพัสดุ', label: Text('ผู้ตรวจรับคนเดียว')),
+                ButtonSegment(
+                    value: 'คณะกรรมการตรวจรับ',
+                    label: Text('คณะกรรมการ (สูงสุด 3 คน)')),
               ],
               selected: {_inspectorTitleGroup},
               onSelectionChanged: (s) => _onGroupChanged(s.first),
@@ -1446,7 +1608,10 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personName',
                     presetOptions: _personnelNames,
                     controller: _inspector1Ctrl,
-                    decoration: _inputDecoration(isCommittee ? 'กรรมการคนที่ 1' : 'ผู้ตรวจรับพัสดุ', hint: 'เช่น นายสมชาย ใจดี').copyWith(
+                    decoration: _inputDecoration(
+                            isCommittee ? 'กรรมการคนที่ 1' : 'ผู้ตรวจรับพัสดุ',
+                            hint: 'เช่น นายสมชาย ใจดี')
+                        .copyWith(
                       suffixIcon: _personnelPickerButton(
                         nameCtrl: _inspector1Ctrl,
                         posCtrl: _inspector1PosCtrl,
@@ -1467,8 +1632,10 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _inspector1PosCtrl,
-                    decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector1Pos: v)),
+                    decoration:
+                        _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(inspector1Pos: v)),
                   ),
                 ),
               ],
@@ -1482,7 +1649,9 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personName',
                       presetOptions: _personnelNames,
                       controller: _inspector2Ctrl,
-                      decoration: _inputDecoration('กรรมการคนที่ 2', hint: 'เช่น นายสมชาย ใจดี').copyWith(
+                      decoration: _inputDecoration('กรรมการคนที่ 2',
+                              hint: 'เช่น นายสมชาย ใจดี')
+                          .copyWith(
                         suffixIcon: _personnelPickerButton(
                           nameCtrl: _inspector2Ctrl,
                           posCtrl: _inspector2PosCtrl,
@@ -1501,10 +1670,12 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                   Expanded(
                     child: MemoryTextField(
                       fieldKey: 'wizard.personPosition',
-                    presetOptions: commonPositions,
+                      presetOptions: commonPositions,
                       controller: _inspector2PosCtrl,
-                      decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
-                      onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector2Pos: v)),
+                      decoration:
+                          _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                      onChanged: (v) =>
+                          widget.onChanged((d) => d.copyWith(inspector2Pos: v)),
                     ),
                   ),
                 ],
@@ -1517,7 +1688,9 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personName',
                       presetOptions: _personnelNames,
                       controller: _inspector3Ctrl,
-                      decoration: _inputDecoration('กรรมการคนที่ 3', hint: 'เช่น นายสมชาย ใจดี').copyWith(
+                      decoration: _inputDecoration('กรรมการคนที่ 3',
+                              hint: 'เช่น นายสมชาย ใจดี')
+                          .copyWith(
                         suffixIcon: _personnelPickerButton(
                           nameCtrl: _inspector3Ctrl,
                           posCtrl: _inspector3PosCtrl,
@@ -1536,10 +1709,12 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                   Expanded(
                     child: MemoryTextField(
                       fieldKey: 'wizard.personPosition',
-                    presetOptions: commonPositions,
+                      presetOptions: commonPositions,
                       controller: _inspector3PosCtrl,
-                      decoration: _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
-                      onChanged: (v) => widget.onChanged((d) => d.copyWith(inspector3Pos: v)),
+                      decoration:
+                          _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                      onChanged: (v) =>
+                          widget.onChanged((d) => d.copyWith(inspector3Pos: v)),
                     ),
                   ),
                 ],
@@ -1579,12 +1754,15 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, size: 16, color: colors.onSurfaceVariant),
+              Icon(Icons.info_outline,
+                  size: 16, color: colors.onSurfaceVariant),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'ดึงจากข้อมูลประจำโรงเรียน ใช้ค่าเดียวกันทุกเอกสาร',
-                  style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                  style: TextStyle(
+                      fontSize: AppTypography.bodyMedium,
+                      color: colors.onSurfaceVariant),
                 ),
               ),
               TextButton.icon(
@@ -1613,13 +1791,16 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
             const SizedBox(height: 4),
             Text(
               'ยังไม่ได้กรอกข้อมูลผู้บริหาร/เจ้าหน้าที่ กดปุ่ม "แก้ไข" ด้านบนเพื่อกรอก',
-              style: TextStyle(fontSize: AppTypography.body, color: BrandAccent.tertiary(context)),
+              style: TextStyle(
+                  fontSize: AppTypography.body,
+                  color: BrandAccent.tertiary(context)),
             ),
           ] else ...[
             const Divider(height: 20),
             _officerRow(colors, 'ผู้อำนวยการโรงเรียน', school?.directorName),
             _officerRow(colors, 'เจ้าหน้าที่พัสดุ', school?.procurementOfficer),
-            _officerRow(colors, 'หัวหน้าเจ้าหน้าที่พัสดุ', school?.procurementHead),
+            _officerRow(
+                colors, 'หัวหน้าเจ้าหน้าที่พัสดุ', school?.procurementHead),
             _officerRow(colors, 'เจ้าหน้าที่การเงิน', school?.financeOfficer),
           ],
         ],
@@ -1635,14 +1816,19 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
         children: [
           SizedBox(
             width: 170,
-            child: Text(label, style: TextStyle(fontSize: AppTypography.body, color: colors.onSurfaceVariant)),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: AppTypography.body,
+                    color: colors.onSurfaceVariant)),
           ),
           Expanded(
             child: Text(
               hasValue ? value! : '(ยังไม่ได้กรอก)',
               style: TextStyle(
                 fontSize: AppTypography.body,
-                fontWeight: hasValue ? AppTypography.weightSemiBold : AppTypography.weightRegular,
+                fontWeight: hasValue
+                    ? AppTypography.weightSemiBold
+                    : AppTypography.weightRegular,
                 fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
                 color: hasValue ? colors.onSurface : colors.onSurfaceVariant,
               ),
@@ -1673,12 +1859,21 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
       labelText: label,
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
-      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
-      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
+      labelStyle: const TextStyle(
+          fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(
+          fontSize: AppTypography.bodyMedium,
+          color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
     );
   }
 }
@@ -1692,7 +1887,10 @@ class _Tab3VendorTerms extends StatefulWidget {
   final void Function(ProcurementOrder Function(ProcurementOrder)) onChanged;
   final double itemsSubtotal;
 
-  const _Tab3VendorTerms({required this.draft, required this.onChanged, required this.itemsSubtotal});
+  const _Tab3VendorTerms(
+      {required this.draft,
+      required this.onChanged,
+      required this.itemsSubtotal});
 
   @override
   State<_Tab3VendorTerms> createState() => _Tab3VendorTermsState();
@@ -1727,7 +1925,12 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
 
   // เพิ่มคอนโทรลเลอร์สำหรับตัวแปรเลขที่เอกสารส่งมอบ
   late final TextEditingController _deliveryDocNumberCtrl;
-  final List<String> _docTypes = ['ใบส่งของ', 'ใบกำกับภาษี/ใบส่งของ', 'ใบเสร็จรับเงิน', 'บิลเงินสด'];
+  final List<String> _docTypes = [
+    'ใบส่งของ',
+    'ใบกำกับภาษี/ใบส่งของ',
+    'ใบเสร็จรับเงิน',
+    'บิลเงินสด'
+  ];
 
   @override
   void initState() {
@@ -1744,8 +1947,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _vendorPostalCodeCtrl = TextEditingController(text: d.vendorPostalCode);
     _shippingDaysCtrl = TextEditingController(text: d.shippingDays?.toString());
     _warrantyPeriodCtrl = TextEditingController(text: d.warrantyPeriod);
-    _contractControlNumberCtrl = TextEditingController(text: d.contractControlNumber);
-    _inspectionControlNumberCtrl = TextEditingController(text: d.inspectionControlNumber);
+    _contractControlNumberCtrl =
+        TextEditingController(text: d.contractControlNumber);
+    _inspectionControlNumberCtrl =
+        TextEditingController(text: d.inspectionControlNumber);
     _penaltyRateCtrl = TextEditingController(
       text: d.penaltyRate.toStringAsFixed(2),
     );
@@ -1759,7 +1964,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
     _withholdingAmountCtrl = TextEditingController();
     _deliveryDocNumberCtrl = TextEditingController(text: d.deliveryDocNumber);
     _loadVendors();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshTaxAmountFields());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _refreshTaxAmountFields());
   }
 
   @override
@@ -1777,7 +1983,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
   /// [skipVat]/[skipWithholding] ใช้ตอนผู้ใช้กำลังพิมพ์ในช่องจำนวนเงินนั้นๆ เอง
   /// เพื่อไม่ให้เขียนทับข้อความที่กำลังพิมพ์อยู่กลางคัน (ทำให้เคอร์เซอร์กระโดด
   /// ไปท้ายข้อความทุกตัวอักษร พิมพ์เลขหลักที่สองไม่ได้)
-  void _refreshTaxAmountFields({bool skipVat = false, bool skipWithholding = false}) {
+  void _refreshTaxAmountFields(
+      {bool skipVat = false, bool skipWithholding = false}) {
     final s = widget.itemsSubtotal;
     final vRate = widget.draft.vatRate;
     final wRate = widget.draft.withholdingTaxRate;
@@ -1909,7 +2116,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               DropdownButtonFormField<Vendor>(
                 initialValue: null,
                 isExpanded: true,
-                decoration: _inputDecoration('เลือกร้านค้าที่เคยบันทึกไว้ (เติมข้อมูลอัตโนมัติ)').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                decoration: _inputDecoration(
+                        'เลือกร้านค้าที่เคยบันทึกไว้ (เติมข้อมูลอัตโนมัติ)')
+                    .copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: _savedVendors
                     .map((v) => DropdownMenuItem(
                           value: v,
@@ -1931,9 +2141,11 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                     fieldKey: 'vendor.name',
                     controller: _vendorNameCtrl,
                     decoration: _inputDecoration('ชื่อร้านค้า/บริษัท').copyWith(
-                      hintText: 'ถ้าร้านไม่มีชื่อร้าน เว้นว่างได้ ระบบจะใช้ชื่อเจ้าของร้านแทน',
+                      hintText:
+                          'ถ้าร้านไม่มีชื่อร้าน เว้นว่างได้ ระบบจะใช้ชื่อเจ้าของร้านแทน',
                     ),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorName: v)),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(vendorName: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1941,8 +2153,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.owner',
                     controller: _vendorOwnerCtrl,
-                    decoration: _inputDecoration('เจ้าของร้าน', hint: 'เช่น นายสมชาย ใจดี'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorOwner: v)),
+                    decoration: _inputDecoration('เจ้าของร้าน',
+                        hint: 'เช่น นายสมชาย ใจดี'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(vendorOwner: v)),
                   ),
                 ),
               ],
@@ -1957,7 +2171,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                     decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่').copyWith(
                       hintText: 'เช่น 123 หมู่ 4 ถนนราชมนตรี',
                     ),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorAddressNo: v)),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(vendorAddressNo: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1965,8 +2180,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.subdistrict',
                     controller: _vendorSubdistrictCtrl,
-                    decoration: _inputDecoration('ตำบล/แขวง', hint: 'เช่น ในเมือง'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorSubdistrict: v)),
+                    decoration:
+                        _inputDecoration('ตำบล/แขวง', hint: 'เช่น ในเมือง'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(vendorSubdistrict: v)),
                   ),
                 ),
               ],
@@ -1978,8 +2195,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.district',
                     controller: _vendorDistrictCtrl,
-                    decoration: _inputDecoration('อำเภอ/เขต', hint: 'เช่น เมืองลำพูน'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorDistrict: v)),
+                    decoration:
+                        _inputDecoration('อำเภอ/เขต', hint: 'เช่น เมืองลำพูน'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(vendorDistrict: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1988,7 +2207,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                     fieldKey: 'address.province',
                     controller: _vendorProvinceCtrl,
                     decoration: _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorProvince: v)),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(vendorProvince: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1996,8 +2216,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.postalCode',
                     controller: _vendorPostalCodeCtrl,
-                    decoration: _inputDecoration('รหัสไปรษณีย์', hint: 'เช่น 51000'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorPostalCode: v)),
+                    decoration:
+                        _inputDecoration('รหัสไปรษณีย์', hint: 'เช่น 51000'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(vendorPostalCode: v)),
                   ),
                 ),
               ],
@@ -2009,8 +2231,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.phone',
                     controller: _vendorPhoneCtrl,
-                    decoration: _inputDecoration('เบอร์โทรศัพท์', hint: 'เช่น 053-511111'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorPhone: v)),
+                    decoration: _inputDecoration('เบอร์โทรศัพท์',
+                        hint: 'เช่น 053-511111'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(vendorPhone: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -2018,8 +2242,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'vendor.taxId',
                     controller: _vendorTaxIdCtrl,
-                    decoration: _inputDecoration('เลขประจำตัวผู้เสียภาษี', hint: 'เช่น 1234567890123'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(vendorTaxId: v)),
+                    decoration: _inputDecoration('เลขประจำตัวผู้เสียภาษี',
+                        hint: 'เช่น 1234567890123'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(vendorTaxId: v)),
                   ),
                 ),
               ],
@@ -2031,17 +2257,25 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: currentDocType,
-                    decoration: _inputDecoration('ใช้เอกสารอะไรตรวจรับ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                    items: _docTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocType: v)),
+                    decoration: _inputDecoration('ใช้เอกสารอะไรตรวจรับ')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    items: _docTypes
+                        .map((type) =>
+                            DropdownMenuItem(value: type, child: Text(type)))
+                        .toList(),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(deliveryDocType: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ClearableTextField(
                     controller: _deliveryDocNumberCtrl,
-                    decoration: _inputDecoration('เลขที่เอกสารหลักฐาน', hint: 'เช่น เลขที่ 001'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(deliveryDocNumber: v)),
+                    decoration: _inputDecoration('เลขที่เอกสารหลักฐาน',
+                        hint: 'เช่น เลขที่ 001'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(deliveryDocNumber: v)),
                   ),
                 ),
               ],
@@ -2058,7 +2292,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                       suffixText: '%',
                       hintText: '0 หรือ 7',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (v) {
                       final pct = double.tryParse(v);
                       if (pct != null) {
@@ -2073,8 +2308,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   width: 110,
                   child: ClearableTextField(
                     controller: _vatAmountCtrl,
-                    decoration: _inputDecoration('จำนวนเงิน').copyWith(isDense: true, hintText: 'บาท'),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: _inputDecoration('จำนวนเงิน')
+                        .copyWith(isDense: true, hintText: 'บาท'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     onChanged: _onVatAmountChanged,
                   ),
                 ),
@@ -2086,11 +2323,13 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                       suffixText: '%',
                       hintText: '0, 1 หรือ 3',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (v) {
                       final pct = double.tryParse(v);
                       if (pct != null) {
-                        widget.onChanged((d) => d.copyWith(withholdingTaxRate: pct / 100));
+                        widget.onChanged(
+                            (d) => d.copyWith(withholdingTaxRate: pct / 100));
                         _refreshTaxAmountFields();
                       }
                     },
@@ -2101,8 +2340,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   width: 110,
                   child: ClearableTextField(
                     controller: _withholdingAmountCtrl,
-                    decoration: _inputDecoration('จำนวนเงิน').copyWith(isDense: true, hintText: 'บาท'),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: _inputDecoration('จำนวนเงิน')
+                        .copyWith(isDense: true, hintText: 'บาท'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     onChanged: _onWithholdingAmountChanged,
                   ),
                 ),
@@ -2114,7 +2355,9 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
               'ระบบจะแยกยอดก่อนภาษีออกจากยอดรวมให้อัตโนมัติ ไม่ได้บวก VAT เพิ่มเข้าไปอีก\n'
               'ไม่แน่ใจว่าร้านหักกี่ % ให้พิมพ์จำนวนเงินจริงจากบิล (ช่องเล็กด้านขวา) แทนได้เลย ระบบจะคำนวณ % ให้เอง '
               '(ต้องกรอกรายการพัสดุในแท็บ 4 ให้เสร็จก่อน ถึงจะคำนวณได้)',
-              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
+              style: TextStyle(
+                  fontSize: AppTypography.bodySmall,
+                  color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             _sectionTitle(colors, 'เงื่อนไขการส่งมอบ / ค่าปรับ / ประกัน'),
@@ -2123,8 +2366,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _shippingDaysCtrl,
-                    decoration: _inputDecoration('ระยะเวลาส่งมอบ (วัน)').copyWith(
-                      helperText: 'ระบบจะคำนวณ "วันครบกำหนดส่งมอบ" ในแท็บ 5 ให้อัตโนมัติ',
+                    decoration:
+                        _inputDecoration('ระยะเวลาส่งมอบ (วัน)').copyWith(
+                      helperText:
+                          'ระบบจะคำนวณ "วันครบกำหนดส่งมอบ" ในแท็บ 5 ให้อัตโนมัติ',
                       helperMaxLines: 2,
                     ),
                     keyboardType: TextInputType.number,
@@ -2137,8 +2382,10 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _warrantyPeriodCtrl,
-                    decoration: _inputDecoration('ระยะเวลาประกัน', hint: 'เช่น 1 ปี'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(warrantyPeriod: v)),
+                    decoration:
+                        _inputDecoration('ระยะเวลาประกัน', hint: 'เช่น 1 ปี'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(warrantyPeriod: v)),
                   ),
                 ),
               ],
@@ -2150,7 +2397,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 hintText: 'เช่น 0.10 หรือ 0.20',
                 suffixText: 'ต่อวัน',
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               onChanged: (v) {
                 final rate = double.tryParse(v);
                 if (rate != null) {
@@ -2165,16 +2413,20 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _contractControlNumberCtrl,
-                    decoration: _inputDecoration('เลขที่ควบคุมสัญญา', hint: 'เช่น สัญญาที่ 5/2569'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(contractControlNumber: v)),
+                    decoration: _inputDecoration('เลขที่ควบคุมสัญญา',
+                        hint: 'เช่น สัญญาที่ 5/2569'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(contractControlNumber: v)),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ClearableTextField(
                     controller: _inspectionControlNumberCtrl,
-                    decoration: _inputDecoration('เลขที่ควบคุมการตรวจรับ', hint: 'เช่น ตรวจรับที่ 5/2569'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(inspectionControlNumber: v)),
+                    decoration: _inputDecoration('เลขที่ควบคุมการตรวจรับ',
+                        hint: 'เช่น ตรวจรับที่ 5/2569'),
+                    onChanged: (v) => widget.onChanged(
+                        (d) => d.copyWith(inspectionControlNumber: v)),
                   ),
                 ),
               ],
@@ -2206,12 +2458,21 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
       labelText: label,
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
-      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
-      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
+      labelStyle: const TextStyle(
+          fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(
+          fontSize: AppTypography.bodyMedium,
+          color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
     );
   }
 }
@@ -2263,7 +2524,8 @@ class _Tab4ItemsState extends State<_Tab4Items> {
   Future<void> _pickAndReadReceipt() async {
     final apiKey = await GeminiService.instance.getApiKey();
     if (apiKey == null) {
-      showAppToast('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน', isError: true);
+      showAppToast('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน',
+          isError: true);
       return;
     }
 
@@ -2361,10 +2623,13 @@ class _Tab4ItemsState extends State<_Tab4Items> {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: BrandAccent.purple(context)),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: BrandAccent.purple(context)),
                       )
                     : const Icon(Icons.camera_alt_outlined),
-                label: _readingReceipt ? 'กำลังอ่านใบเสร็จ...' : '📷 อ่านจากใบเสร็จ',
+                label: _readingReceipt
+                    ? 'กำลังอ่านใบเสร็จ...'
+                    : '📷 อ่านจากใบเสร็จ',
               ),
             ),
             const SizedBox(height: 12),
@@ -2426,6 +2691,11 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
       label: 'รายงานขอซื้อ/ขอจ้าง',
       getValue: (d) => d.dateOrderCreated ?? '',
       setValue: (d, v) => d.copyWith(dateOrderCreated: v),
+    ),
+    _DateFieldSpec(
+      label: 'วันที่คำสั่งแต่งตั้งผู้ตรวจรับพัสดุ',
+      getValue: (d) => d.inspectorOrderDate ?? '',
+      setValue: (d, v) => d.copyWith(inspectorOrderDate: v),
     ),
     _DateFieldSpec(
       label: 'วันที่ประกาศ',
@@ -2497,9 +2767,19 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
   }
 
   static const _thaiMonths = [
-    '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
-    'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
-    'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    '',
+    'มกราคม',
+    'กุมภาพันธ์',
+    'มีนาคม',
+    'เมษายน',
+    'พฤษภาคม',
+    'มิถุนายน',
+    'กรกฎาคม',
+    'สิงหาคม',
+    'กันยายน',
+    'ตุลาคม',
+    'พฤศจิกายน',
+    'ธันวาคม',
   ];
 
   // แปลง String วันที่เดิม (เช่น "22 กรกฎาคม 2569" ตามที่บันทึกจริง) กลับเป็น
@@ -2588,7 +2868,8 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
                               ),
                             ),
                           ),
-                          suffixIcon: const Icon(Icons.calendar_today, size: 20),
+                          suffixIcon:
+                              const Icon(Icons.calendar_today, size: 20),
                           helperText: _fields[i].label == 'วันครบกำหนดส่งมอบ'
                               ? 'คำนวณอัตโนมัติจากวันที่ลงนามสัญญา + ระยะเวลาส่งมอบ (แตะเพื่อแก้เองได้)'
                               : null,
@@ -2628,18 +2909,22 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
       decoration: BoxDecoration(
         color: BrandAccent.teal(context).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(RadiusSize.card),
-        border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: BrandAccent.tealOn(context), size: 20),
+              Icon(Icons.info_outline,
+                  color: BrandAccent.tealOn(context), size: 20),
               const SizedBox(width: 8),
               Text(
                 'คำแนะนำลำดับการกรอกวันที่ (ตัวเลขตรงกับช่องด้านบน)',
-                style: TextStyle(fontWeight: AppTypography.weightBold, color: BrandAccent.tealOn(context)),
+                style: TextStyle(
+                    fontWeight: AppTypography.weightBold,
+                    color: BrandAccent.tealOn(context)),
               ),
             ],
           ),
@@ -2655,12 +2940,15 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
                     backgroundColor: BrandAccent.teal(context),
                     child: Text(
                       '${i + 1}',
-                      style: TextStyle(fontSize: AppTypography.caption, color: colors.onPrimary),
+                      style: TextStyle(
+                          fontSize: AppTypography.caption,
+                          color: colors.onPrimary),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(_guideItems[i], style: TextStyle(fontSize: AppTypography.body)),
+                    child: Text(_guideItems[i],
+                        style: TextStyle(fontSize: AppTypography.body)),
                   ),
                 ],
               ),
@@ -2690,12 +2978,21 @@ class _Tab5TimelineState extends State<_Tab5Timeline> {
       labelText: label,
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
-      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
-      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
+      labelStyle: const TextStyle(
+          fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(
+          fontSize: AppTypography.bodyMedium,
+          color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
     );
   }
 }

@@ -22,6 +22,22 @@ import 'package:archive/archive_io.dart';
 import '../models/procurement_item.dart';
 import '../utils/money_format.dart';
 
+/// สเปกของแถวที่จะ clone หนึ่งชุด — ใช้กับ
+/// [DocxTemplateService.processMultiRowTemplate] ตอนที่เอกสารเดียวมีตารางซ้ำ
+/// มากกว่า 1 จุดที่ต้อง clone แยกอิสระจากกัน (เช่น เอกสารตรวจสอบพัสดุประจำปี
+/// ที่มีทั้งตารางรายชื่อกรรมการ และตารางพัสดุชำรุด คนละ seedKey กัน)
+class RowCloneSpec {
+  final String seedKey;
+  final List<Map<String, String>> rows;
+  final List<String> blankAfterFirst;
+
+  const RowCloneSpec({
+    required this.seedKey,
+    required this.rows,
+    this.blankAfterFirst = const [],
+  });
+}
+
 /// แทน 1 แถวสินค้าที่จะ clone ลงตาราง
 class ProcurementItemData {
   final int idx;
@@ -155,6 +171,106 @@ class DocxTemplateService {
     return Uint8List.fromList(output);
   }
 
+  /// เวอร์ชัน "ทั่วไป" ของ processTemplate — ไม่ผูกกับ ProcurementItemData/
+  /// participantRows โดยเฉพาะ ใช้ [rowsSeedKey] กำหนดเองว่าจะ clone แถวไหน
+  /// (เช่น 'tx_date' สำหรับตารางประวัติรับ-จ่ายวัสดุ) เอาไว้ให้ export
+  /// ประเภทอื่นที่ไม่ใช่เอกสารจัดซื้อจัดจ้างโดยตรง (เช่น บัญชีวัสดุ) ใช้ engine
+  /// เดียวกันได้โดยไม่ต้องเพิ่มพารามิเตอร์เฉพาะทางเข้า processTemplate เรื่อยๆ
+  static Uint8List processGenericTemplate({
+    required Uint8List templateBytes,
+    required Map<String, String> fieldValues,
+    required String rowsSeedKey,
+    required List<Map<String, String>> rows,
+    List<String> blankAfterFirst = const [],
+    Map<String, bool> conditionalFlags = const {},
+  }) {
+    final archive = ZipDecoder().decodeBytes(templateBytes);
+
+    final docFile = archive.files.firstWhere(
+      (f) => f.name == _documentXmlPath,
+      orElse: () => throw DocxTemplateException(
+        'ไม่พบ $_documentXmlPath ในไฟล์ template — อาจไม่ใช่ .docx ที่ถูกต้อง',
+      ),
+    );
+
+    String xml = utf8.decode(docFile.content as List<int>);
+    xml = _splitMergedMarkerRuns(xml);
+    xml = _mergeSplitPlaceholderRuns(xml);
+    xml = _stripMergeFields(xml);
+    xml = _cloneRowsGeneric(xml,
+        seedKey: rowsSeedKey, rows: rows, blankAfterFirst: blankAfterFirst);
+    xml = _applyConditionals(xml, conditionalFlags);
+    xml = _replacePlaceholders(xml, fieldValues);
+
+    final newDocBytes = utf8.encode(xml);
+    final newArchive = Archive();
+    for (final file in archive.files) {
+      if (file.name == _documentXmlPath) {
+        newArchive
+            .addFile(ArchiveFile(file.name, newDocBytes.length, newDocBytes));
+      } else if (file.isFile) {
+        newArchive
+            .addFile(ArchiveFile(file.name, file.content.length, file.content));
+      }
+    }
+
+    final output = ZipEncoder().encode(newArchive);
+    if (output == null) {
+      throw DocxTemplateException('บีบอัดไฟล์ .docx ใหม่ไม่สำเร็จ');
+    }
+    return Uint8List.fromList(output);
+  }
+
+  /// เวอร์ชันของ [processGenericTemplate] ที่รองรับ clone ตารางได้หลายชุดใน
+  /// เอกสารเดียวกัน (คนละ seedKey กัน) — ทำทีละชุดตามลำดับที่ส่งมา ก่อนจะไป
+  /// ทำ conditional/placeholder ตามปกติ
+  static Uint8List processMultiRowTemplate({
+    required Uint8List templateBytes,
+    required Map<String, String> fieldValues,
+    required List<RowCloneSpec> rowGroups,
+    Map<String, bool> conditionalFlags = const {},
+  }) {
+    final archive = ZipDecoder().decodeBytes(templateBytes);
+
+    final docFile = archive.files.firstWhere(
+      (f) => f.name == _documentXmlPath,
+      orElse: () => throw DocxTemplateException(
+        'ไม่พบ $_documentXmlPath ในไฟล์ template — อาจไม่ใช่ .docx ที่ถูกต้อง',
+      ),
+    );
+
+    String xml = utf8.decode(docFile.content as List<int>);
+    xml = _splitMergedMarkerRuns(xml);
+    xml = _mergeSplitPlaceholderRuns(xml);
+    xml = _stripMergeFields(xml);
+    for (final group in rowGroups) {
+      xml = _cloneRowsGeneric(xml,
+          seedKey: group.seedKey,
+          rows: group.rows,
+          blankAfterFirst: group.blankAfterFirst);
+    }
+    xml = _applyConditionals(xml, conditionalFlags);
+    xml = _replacePlaceholders(xml, fieldValues);
+
+    final newDocBytes = utf8.encode(xml);
+    final newArchive = Archive();
+    for (final file in archive.files) {
+      if (file.name == _documentXmlPath) {
+        newArchive
+            .addFile(ArchiveFile(file.name, newDocBytes.length, newDocBytes));
+      } else if (file.isFile) {
+        newArchive
+            .addFile(ArchiveFile(file.name, file.content.length, file.content));
+      }
+    }
+
+    final output = ZipEncoder().encode(newArchive);
+    if (output == null) {
+      throw DocxTemplateException('บีบอัดไฟล์ .docx ใหม่ไม่สำเร็จ');
+    }
+    return Uint8List.fromList(output);
+  }
+
   static Future<File> saveOutput({
     required Uint8List docxBytes,
     required String outputDir,
@@ -196,7 +312,8 @@ class DocxTemplateService {
     final baseArchive = ZipDecoder().decodeBytes(parts.first);
     final baseDocFile = baseArchive.files.firstWhere(
       (f) => f.name == _documentXmlPath,
-      orElse: () => throw DocxTemplateException('ไฟล์แรกไม่ใช่ .docx ที่ถูกต้อง'),
+      orElse: () =>
+          throw DocxTemplateException('ไฟล์แรกไม่ใช่ .docx ที่ถูกต้อง'),
     );
     var baseXml = utf8.decode(baseDocFile.content as List<int>);
 
@@ -206,15 +323,19 @@ class DocxTemplateService {
       final archive = ZipDecoder().decodeBytes(parts[i]);
       final docFile = archive.files.firstWhere(
         (f) => f.name == _documentXmlPath,
-        orElse: () => throw DocxTemplateException('เอกสารลำดับที่ ${i + 1} ไม่ใช่ .docx ที่ถูกต้อง'),
+        orElse: () => throw DocxTemplateException(
+            'เอกสารลำดับที่ ${i + 1} ไม่ใช่ .docx ที่ถูกต้อง'),
       );
       final xml = utf8.decode(docFile.content as List<int>);
       // จับเนื้อหาทั้งหมดใน <w:body> ก่อนถึง <w:sectPr> ตัวสุดท้าย (greedy
       // .* จะกินไปจนถึง sectPr ตัวท้ายสุดพอดี เผื่อกรณีมี sectPr กลางเอกสาร)
-      final match = RegExp(r'<w:body>(.*)<w:sectPr\b[^>]*>.*?</w:sectPr>\s*</w:body>', dotAll: true)
+      final match = RegExp(
+              r'<w:body>(.*)<w:sectPr\b[^>]*>.*?</w:sectPr>\s*</w:body>',
+              dotAll: true)
           .firstMatch(xml);
       if (match == null) {
-        throw DocxTemplateException('ไม่พบโครงสร้าง <w:body> ในเอกสารลำดับที่ ${i + 1}');
+        throw DocxTemplateException(
+            'ไม่พบโครงสร้าง <w:body> ในเอกสารลำดับที่ ${i + 1}');
       }
       buffer.write(pageBreak);
       buffer.write(match.group(1));
@@ -226,15 +347,19 @@ class DocxTemplateService {
     if (baseSectPrIndex == -1) {
       throw DocxTemplateException('ไม่พบ <w:sectPr> ในไฟล์ฐาน');
     }
-    baseXml = baseXml.substring(0, baseSectPrIndex) + buffer.toString() + baseXml.substring(baseSectPrIndex);
+    baseXml = baseXml.substring(0, baseSectPrIndex) +
+        buffer.toString() +
+        baseXml.substring(baseSectPrIndex);
 
     final newDocBytes = utf8.encode(baseXml);
     final newArchive = Archive();
     for (final file in baseArchive.files) {
       if (file.name == _documentXmlPath) {
-        newArchive.addFile(ArchiveFile(file.name, newDocBytes.length, newDocBytes));
+        newArchive
+            .addFile(ArchiveFile(file.name, newDocBytes.length, newDocBytes));
       } else if (file.isFile) {
-        newArchive.addFile(ArchiveFile(file.name, file.content.length, file.content));
+        newArchive
+            .addFile(ArchiveFile(file.name, file.content.length, file.content));
       }
     }
     final output = ZipEncoder().encode(newArchive);
@@ -260,16 +385,25 @@ class DocxTemplateService {
     final runPattern = RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true);
     return xml.replaceAllMapped(runPattern, (m) {
       final run = m.group(0)!;
-      final tMatch = RegExp(r'<w:t[^>]*>(.*?)</w:t>', dotAll: true).firstMatch(run);
+      // '\b' หลัง 'w:t' กันไปแมตช์ <w:tab/> ผิดๆ (ขึ้นต้นด้วย "w:t" เหมือนกัน) —
+      // ถ้า run นี้มีทั้ง <w:tab/> และ <w:t> เป็น sibling กัน (เช่น <w:r><w:tab/>
+      // <w:t>...) จะไล่หา </w:t> ข้ามไปเจอตัวปลาย รวมเอา '<w:t>' ตัวจริงเข้ามาเป็น
+      // เนื้อหาด้วยโดยไม่ตั้งใจ
+      final tMatch =
+          RegExp(r'<w:t\b[^>]*>(.*?)</w:t>', dotAll: true).firstMatch(run);
       if (tMatch == null) return run;
       final text = tMatch.group(1)!;
-      final tokens = RegExp(r'\{\{[^{}]+\}\}').allMatches(text).map((t) => t.group(0)!).toList();
+      final tokens = RegExp(r'\{\{[^{}]+\}\}')
+          .allMatches(text)
+          .map((t) => t.group(0)!)
+          .toList();
       // ต้องมีมากกว่า 1 marker และเนื้อหาทั้งหมดใน run นี้ประกอบด้วย marker
       // ล้วนๆ ต่อกัน (ไม่มีข้อความอื่นแทรกอยู่) ถึงจะปลอดภัยที่จะแยก — ถ้ามี
       // ข้อความอื่นปนอยู่ด้วย (เช่น "ก่อน {{a}}") ให้ข้ามไป ไม่ยุ่งกับมัน
       if (tokens.length < 2 || tokens.join() != text) return run;
 
-      final rprMatch = RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true).firstMatch(run);
+      final rprMatch =
+          RegExp(r'<w:rPr>.*?</w:rPr>', dotAll: true).firstMatch(run);
       final rpr = rprMatch?.group(0) ?? '';
       final buffer = StringBuffer();
       for (final token in tokens) {
@@ -291,7 +425,11 @@ class DocxTemplateService {
 
     return xml.replaceAllMapped(paraPattern, (m) {
       final para = m.group(0)!;
-      if (!para.contains('{{')) return para;
+      // เดิมเช็ค '{{' ตรงๆ บน raw XML แต่ Word มักแยกวงเล็บเปิดแต่ละตัวคนละ
+      // <w:r> (เช่น '{' , '{' , 'material_name' , '}}') ทำให้ raw XML ไม่มี
+      // "{{" ติดกันเลยแม้ placeholder จะขาดตอนจริง — เช็คแค่ '{' ตัวเดียวพอ
+      // แล้วปล่อยให้การเช็ค combined text ที่บรรทัดล่างเป็นตัวตัดสินจริง
+      if (!para.contains('{')) return para;
 
       final runPattern = RegExp(r'<w:r\b[^>]*>.*?</w:r>', dotAll: true);
       final runs = runPattern.allMatches(para).map((r) => r.group(0)!).toList();
@@ -335,7 +473,8 @@ class DocxTemplateService {
           mergeRanges.add([firstIdx, lastIdx]);
         }
       }
-      if (mergeRanges.isEmpty) return para; // ไม่มี placeholder ไหนถูกตัดขาดจริง
+      if (mergeRanges.isEmpty)
+        return para; // ไม่มี placeholder ไหนถูกตัดขาดจริง
 
       // รวม range ที่ทับซ้อน/ติดกันเข้าด้วยกัน (เผื่อ 2 placeholder แชร์ run กลาง)
       mergeRanges.sort((a, b) => a[0].compareTo(b[0]));
@@ -369,13 +508,16 @@ class DocxTemplateService {
           final range = safeMerged[rangeIdx];
           final groupText = StringBuffer();
           for (var j = range[0]; j <= range[1]; j++) {
-            groupText.write(runTexts[j]); // เก็บ raw-escaped text ตรงๆ พอ (จะ escape รวมทีเดียวด้านล่าง)
+            groupText.write(runTexts[
+                j]); // เก็บ raw-escaped text ตรงๆ พอ (จะ escape รวมทีเดียวด้านล่าง)
           }
           final firstRun = runs[range[0]];
           final rprMatch = rprPattern.firstMatch(firstRun);
           final rpr = rprMatch?.group(0) ?? '';
-          final escaped = _escapeXmlText(_unescapeXmlText(groupText.toString()));
-          buffer.write('<w:r>$rpr<w:t xml:space="preserve">$escaped</w:t></w:r>');
+          final escaped =
+              _escapeXmlText(_unescapeXmlText(groupText.toString()));
+          buffer
+              .write('<w:r>$rpr<w:t xml:space="preserve">$escaped</w:t></w:r>');
           i = range[1] + 1;
           rangeIdx++;
         } else {
@@ -414,16 +556,22 @@ class DocxTemplateService {
   }
 
   static String _stripMergeFields(String xml) {
+    // สำคัญ: '.*?' ในกลุ่ม (?:<w:rPr>...</w:rPr>)? ที่เป็น optional ต้องห้าม
+    // ข้าม '</w:r>' ไป — ไม่งั้นถ้า run ถัดจาก rPr ไม่ใช่ <w:instrText>/<w:fldChar>
+    // จริง (ซึ่งเป็นเกือบทุก run ปกติในเอกสาร) ตัว regex engine จะ backtrack
+    // ขยาย '.*?' ข้ามหลาย <w:r>/<w:tr> ไปเรื่อยๆ จนกว่าจะเจอ instrText/fldChar
+    // จริงที่อยู่ห่างออกไปมาก (เช่น legacy MERGEFIELD ที่หลงเหลือในเซลล์อื่น)
+    // แล้วลบเนื้อหาทั้งหมดระหว่างทางทิ้งไปด้วย ทำให้ทั้งแถว/ทั้งตารางหายไป
     xml = xml.replaceAll(
       RegExp(
-        r'<w:r\b[^>]*>(?:<w:rPr>.*?</w:rPr>)?<w:instrText[^>]*>.*?</w:instrText>(?:<w:fldChar[^/]*/?>)?</w:r>',
+        r'<w:r\b[^>]*>(?:<w:rPr>(?:(?!</w:r>).)*?</w:rPr>)?<w:instrText[^>]*>.*?</w:instrText>(?:<w:fldChar[^/]*/?>)?</w:r>',
         dotAll: true,
       ),
       '',
     );
     xml = xml.replaceAll(
       RegExp(
-        r'<w:r\b[^>]*>(?:<w:rPr>.*?</w:rPr>)?<w:fldChar\b[^/]*/?>(?:<w:ffData>.*?</w:ffData>)?</w:r>',
+        r'<w:r\b[^>]*>(?:<w:rPr>(?:(?!</w:r>).)*?</w:rPr>)?<w:fldChar\b[^/]*/?>(?:<w:ffData>.*?</w:ffData>)?</w:r>',
         dotAll: true,
       ),
       '',
@@ -497,6 +645,43 @@ class DocxTemplateService {
         final endMatch = endRunPattern.firstMatch(result);
         if (startMatch == null || endMatch == null) break;
 
+        // กรณี {{if:x}}...{{endif:x}} สั้นๆ ทั้งคู่อยู่ใน <w:t> เดียวกัน/run
+        // เดียวกัน (เช่น "{{if:a}} ตำบล{{endif:a}}{{if:b}} แขวง{{endif:b}}"
+        // ที่ Word ไม่ได้ตัด run ระหว่างสองเงื่อนไขเลย) — startMatch/endMatch
+        // จะ match run เดียวกันทั้งคู่ (regex จับทั้ง <w:r>...</w:r> ไม่ใช่แค่
+        // ตัว marker) ถ้าลบ replaceRange 2 ครั้งซ้อนแบบเดิม ครั้งที่สองจะใช้
+        // offset ที่เพี้ยนไปแล้วจากการลบครั้งแรก ทำให้ XML ตัดผิดตำแหน่งและไฟล์
+        // เปิดไม่ได้ (พังแบบเงียบๆ ไม่ throw ตอน generate แต่ Word เปิดไม่ขึ้น)
+        // — ต้องจัดการแบบตัดแค่ข้อความในแท็ก <w:t> ของ run นั้นแทนการลบทั้ง run
+        if (startMatch.start == endMatch.start &&
+            startMatch.end == endMatch.end) {
+          final run = startMatch.group(0)!;
+          final tMatch = RegExp(r'(<w:t\b[^>]*>)(.*?)(</w:t>)', dotAll: true)
+              .firstMatch(run);
+          if (tMatch == null) break; // ไม่มี <w:t> ให้แก้ — เลี่ยงลูปค้าง
+          final text = tMatch.group(2)!;
+          final startIdx = text.indexOf(startMarker);
+          final endIdx = text.indexOf(endMarker, startIdx);
+          if (startIdx == -1 || endIdx == -1) break;
+          String newText;
+          if (entry.value) {
+            // เก็บข้อความระหว่าง marker ไว้ ตัดแค่ตัว marker ทั้งสองออก
+            newText = text.substring(0, startIdx) +
+                text.substring(startIdx + startMarker.length, endIdx) +
+                text.substring(endIdx + endMarker.length);
+          } else {
+            // ตัดทั้ง marker และข้อความระหว่างกลางออกทั้งหมด
+            newText = text.substring(0, startIdx) +
+                text.substring(endIdx + endMarker.length);
+          }
+          final wholeTTag = tMatch.group(0)!;
+          final newTTag = '${tMatch.group(1)}$newText${tMatch.group(3)}';
+          final newRun = run.replaceFirst(wholeTTag, newTTag);
+          result =
+              result.replaceRange(startMatch.start, startMatch.end, newRun);
+          continue;
+        }
+
         if (entry.value) {
           // ลบจากท้ายไปหน้า (endMatch ก่อน) กัน offset ของ startMatch เพี้ยน
           result = result.replaceRange(endMatch.start, endMatch.end, '');
@@ -514,7 +699,11 @@ class DocxTemplateService {
       xml,
       seedKey: 'item_name',
       rows: [for (final item in items) item.toPlaceholderMap()],
-      blankAfterFirst: const ['procurement_number', 'purpose_reason', 'order_number'],
+      blankAfterFirst: const [
+        'procurement_number',
+        'purpose_reason',
+        'order_number'
+      ],
     );
   }
 

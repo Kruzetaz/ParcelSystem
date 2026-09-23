@@ -7,10 +7,16 @@
 
 class ProcurementOrder {
   final int? id;
+  // เวลาที่บันทึก/แก้ไขล่าสุด (ISO8601) — คนละตัวกับ dateOrderCreated ที่เป็น
+  // วันที่ตามหน้าเอกสาร (ผู้ใช้แก้เองได้) ตัวนี้ระบบ stamp ให้อัตโนมัติทุกครั้ง
+  // ที่ insert/update เพื่อใช้เรียง "แก้ไขล่าสุดก่อน" ในหน้า Dashboard ได้จริง
+  // (เดิมใช้ id เรียงแทน ซึ่งสะท้อนแค่ลำดับ "สร้าง" ไม่ใช่ "แก้ไข")
+  final String? updatedAt;
   final int? budgetId;
   final String? fiscalYear;
   final String? orderType; // 'ซื้อ' | 'จ้าง'
-  final String? procurementMethod; // เช่น 'เฉพาะเจาะจง ไม่เกิน 5,000 บาท', 'ว.804 ไม่เกิน 50,000 บาท'
+  final String?
+      procurementMethod; // เช่น 'เฉพาะเจาะจง ไม่เกิน 5,000 บาท', 'ว.804 ไม่เกิน 50,000 บาท'
 
   final String? procurementNumber; // {{procurement_number}}
   final String? orderNumber; // {{order_number}}
@@ -44,6 +50,10 @@ class ProcurementOrder {
   final String? inspector2Pos;
   final String? inspector3;
   final String? inspector3Pos;
+  // วันที่คำสั่งแต่งตั้งผู้ตรวจรับพัสดุ — เดิมไม่มีฟิลด์แยก ใช้วันที่บันทึกขอ
+  // ซื้อ/ขอจ้าง (dateOrderCreated) แทนเสมอ ทั้งที่ในทางปฏิบัติคำสั่งแต่งตั้งอาจ
+  // ลงนามคนละวันกับบันทึกฉบับแรกได้ (เพิ่มใหม่ปี 2026)
+  final String? inspectorOrderDate; // {{inspector_order_date}}
 
   final String? vendorName;
   final String? vendorOwner;
@@ -56,8 +66,10 @@ class ProcurementOrder {
   final String? vendorPostalCode;
 
   // ข้อมูลเอกสารหลักฐานที่ใช้ส่งมอบเพื่อการตรวจรับ (เพิ่มใหม่ปี 2026)
-  final String? deliveryDocType;    // {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
-  final String? deliveryDocNumber;  // {{delivery_doc_number}} เลขที่ใบส่งของ/หลักฐาน
+  final String?
+      deliveryDocType; // {{delivery_doc_type}} เช่น ใบส่งของ, ใบกำกับภาษี
+  final String?
+      deliveryDocNumber; // {{delivery_doc_number}} เลขที่ใบส่งของ/หลักฐาน
 
   final double? currentOrderPrice;
   final String? totalPriceTh;
@@ -109,6 +121,7 @@ class ProcurementOrder {
 
   const ProcurementOrder({
     this.id,
+    this.updatedAt,
     this.budgetId,
     this.fiscalYear,
     this.orderType,
@@ -139,6 +152,7 @@ class ProcurementOrder {
     this.inspector2Pos,
     this.inspector3,
     this.inspector3Pos,
+    this.inspectorOrderDate,
     this.vendorName,
     this.vendorOwner,
     this.vendorAddressNo,
@@ -186,6 +200,7 @@ class ProcurementOrder {
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
+        'updated_at': updatedAt,
         'budget_id': budgetId,
         'fiscal_year': fiscalYear,
         'order_type': orderType,
@@ -216,6 +231,7 @@ class ProcurementOrder {
         'inspector_2_pos': inspector2Pos,
         'inspector_3': inspector3,
         'inspector_3_pos': inspector3Pos,
+        'inspector_order_date': inspectorOrderDate,
         'vendor_name': vendorName,
         'vendor_owner': vendorOwner,
         'vendor_address_no': vendorAddressNo,
@@ -263,6 +279,7 @@ class ProcurementOrder {
 
   factory ProcurementOrder.fromMap(Map<String, dynamic> m) => ProcurementOrder(
         id: m['id'] as int?,
+        updatedAt: m['updated_at'] as String?,
         budgetId: m['budget_id'] as int?,
         fiscalYear: m['fiscal_year'] as String?,
         orderType: m['order_type'] as String?,
@@ -293,6 +310,7 @@ class ProcurementOrder {
         inspector2Pos: m['inspector_2_pos'] as String?,
         inspector3: m['inspector_3'] as String?,
         inspector3Pos: m['inspector_3_pos'] as String?,
+        inspectorOrderDate: m['inspector_order_date'] as String?,
         vendorName: m['vendor_name'] as String?,
         vendorOwner: m['vendor_owner'] as String?,
         vendorAddressNo: m['vendor_address_no'] as String?,
@@ -309,7 +327,8 @@ class ProcurementOrder {
         subtotalBeforeVat: (m['subtotal_before_vat'] as num?)?.toDouble(),
         vatRate: (m['vat_rate'] as num?)?.toDouble() ?? 0.07,
         vatAmount: (m['vat_amount'] as num?)?.toDouble(),
-        withholdingTaxRate: (m['withholding_tax_rate'] as num?)?.toDouble() ?? 0.01,
+        withholdingTaxRate:
+            (m['withholding_tax_rate'] as num?)?.toDouble() ?? 0.01,
         taxWithholdingAmount: (m['tax_withholding_amount'] as num?)?.toDouble(),
         netPayableAmount: (m['net_payable_amount'] as num?)?.toDouble(),
         shippingDays: m['shipping_days'] as int?,
@@ -332,7 +351,8 @@ class ProcurementOrder {
         progressPercent: (m['progress_percent'] as num?)?.toDouble() ?? 0.0,
         currentStatus: m['current_status'] as String? ?? 'DRAFT',
         isRecurringContract: (m['is_recurring_contract'] as int? ?? 0) == 1,
-        docChecklistHasReceipt: (m['doc_checklist_has_receipt'] as int? ?? 0) == 1,
+        docChecklistHasReceipt:
+            (m['doc_checklist_has_receipt'] as int? ?? 0) == 1,
         docChecklistPrinted: (m['doc_checklist_printed'] as int? ?? 0) == 1,
         docChecklistPaidDate: m['doc_checklist_paid_date'] as String?,
         docChecklistNote: m['doc_checklist_note'] as String?,
@@ -340,6 +360,7 @@ class ProcurementOrder {
 
   ProcurementOrder copyWith({
     int? id,
+    String? updatedAt,
     int? budgetId,
     String? fiscalYear,
     String? orderType,
@@ -370,6 +391,7 @@ class ProcurementOrder {
     String? inspector2Pos,
     String? inspector3,
     String? inspector3Pos,
+    String? inspectorOrderDate,
     String? vendorName,
     String? vendorOwner,
     String? vendorAddressNo,
@@ -416,6 +438,7 @@ class ProcurementOrder {
   }) {
     return ProcurementOrder(
       id: id ?? this.id,
+      updatedAt: updatedAt ?? this.updatedAt,
       budgetId: budgetId ?? this.budgetId,
       fiscalYear: fiscalYear ?? this.fiscalYear,
       orderType: orderType ?? this.orderType,
@@ -446,6 +469,7 @@ class ProcurementOrder {
       inspector2Pos: inspector2Pos ?? this.inspector2Pos,
       inspector3: inspector3 ?? this.inspector3,
       inspector3Pos: inspector3Pos ?? this.inspector3Pos,
+      inspectorOrderDate: inspectorOrderDate ?? this.inspectorOrderDate,
       vendorName: vendorName ?? this.vendorName,
       vendorOwner: vendorOwner ?? this.vendorOwner,
       vendorAddressNo: vendorAddressNo ?? this.vendorAddressNo,
@@ -469,8 +493,10 @@ class ProcurementOrder {
       penaltyRate: penaltyRate ?? this.penaltyRate,
       warrantyPeriod: warrantyPeriod ?? this.warrantyPeriod,
       egpProjectId: egpProjectId ?? this.egpProjectId,
-      contractControlNumber: contractControlNumber ?? this.contractControlNumber,
-      inspectionControlNumber: inspectionControlNumber ?? this.inspectionControlNumber,
+      contractControlNumber:
+          contractControlNumber ?? this.contractControlNumber,
+      inspectionControlNumber:
+          inspectionControlNumber ?? this.inspectionControlNumber,
       fundType: fundType ?? this.fundType,
       projectNumber: projectNumber ?? this.projectNumber,
       dateMemoUsed: dateMemoUsed ?? this.dateMemoUsed,
@@ -485,7 +511,8 @@ class ProcurementOrder {
       progressPercent: progressPercent ?? this.progressPercent,
       currentStatus: currentStatus ?? this.currentStatus,
       isRecurringContract: isRecurringContract ?? this.isRecurringContract,
-      docChecklistHasReceipt: docChecklistHasReceipt ?? this.docChecklistHasReceipt,
+      docChecklistHasReceipt:
+          docChecklistHasReceipt ?? this.docChecklistHasReceipt,
       docChecklistPrinted: docChecklistPrinted ?? this.docChecklistPrinted,
       docChecklistPaidDate: docChecklistPaidDate ?? this.docChecklistPaidDate,
       docChecklistNote: docChecklistNote ?? this.docChecklistNote,
@@ -516,9 +543,12 @@ String procurementMethodForAmount(double amount) {
 }
 
 /// ตัวเลือกวิธี/ระเบียบการจัดซื้อจัดจ้าง ที่แสดงใน Dropdown ของ Wizard
-/// ตอนนี้เปิดใช้งานจริงเฉพาะ 'เฉพาะเจาะจง' (ค่า default เดิมของระบบ) เพราะ
-/// ต้องรอยืนยันถ้อยคำ/เลขหนังสือเวียนที่ถูกต้องจากผู้ใช้ก่อนต่อเข้ากับเอกสารจริง
-/// — ตัวเลือกอื่นแสดงไว้เป็น "เร็วๆ นี้" (ปิดกดไม่ได้) เพื่อให้เห็นแผนล่วงหน้า
+/// เปิดใช้งานจริงแล้ว 2 ตัว: 'เฉพาะเจาะจง' (ค่า default เดิมของระบบ ใช้ได้
+/// ทุกวงเงิน) และ 'ว.804' (ทางเลือกสำหรับวงเงินไม่เกิน 50,000 บาท ตามหนังสือ
+/// กวจ. 0405.2/ว804 ลว. 12 พ.ย. 2568 — ไม่บังคับใช้ตามวงเงิน ผู้ใช้เลือกเองว่า
+/// จะใช้ฟอร์มเฉพาะเจาะจงแบบเดิมหรือฟอร์ม ว.804 ก็ได้ ตามที่คุยกันไว้)
+/// ตัวเลือกที่เหลือยังรอยืนยันถ้อยคำ/เลขหนังสือเวียนจากผู้ใช้ก่อน แสดงไว้เป็น
+/// "เร็วๆ นี้" (ปิดกดไม่ได้) เพื่อให้เห็นแผนล่วงหน้า
 class ProcurementMethodOption {
   final String value;
   final String label;
@@ -529,7 +559,7 @@ class ProcurementMethodOption {
 const procurementMethodOptions = [
   ProcurementMethodOption('เฉพาะเจาะจง', 'ปกติ (เฉพาะเจาะจง)'),
   ProcurementMethodOption('ย้อนหลัง', 'ย้อนหลัง', enabled: false),
-  ProcurementMethodOption('ว.804', 'ว.804 (ไม่เกิน 50,000 บาท)', enabled: false),
+  ProcurementMethodOption('ว.804', 'ว.804 (ไม่เกิน 50,000 บาท)'),
   ProcurementMethodOption(
     'เร่งด่วน ข้อ 79 วรรค 2',
     'จำเป็นเร่งด่วน ข้อ 79 วรรค 2',

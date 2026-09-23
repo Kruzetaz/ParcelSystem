@@ -19,6 +19,8 @@ import 'document_hub_screen.dart';
 import 'travel_reimbursement_screen.dart';
 import 'order_register_screen.dart';
 import 'control_log_screen.dart';
+import 'delivery_note_register_screen.dart';
+import 'expenditure_register_screen.dart';
 import 'document_checklist_screen.dart';
 import 'learning_materials_screen.dart';
 import 'budget_list_screen.dart';
@@ -32,6 +34,7 @@ import 'repair_history_screen.dart';
 import 'procurement_calendar_screen.dart';
 import 'materials_screen.dart';
 import 'annual_count_screen.dart';
+import 'staff_appointment_screen.dart';
 import 'disposals_screen.dart';
 import 'reports_screen.dart';
 import 'settings_screen.dart';
@@ -133,14 +136,19 @@ class _AppShellState extends State<AppShell> {
   bool _egpRequiredButMissing(ProcurementOrder o) {
     final hasEgp = o.egpProjectId?.trim().isNotEmpty ?? false;
     if (hasEgp) return false;
-    final exempt = (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000;
+    final exempt =
+        (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000;
     return !exempt;
   }
 
-  int get _notifMissingEgpCount => _notifOrders.where(_egpRequiredButMissing).length;
-  int get _notifDraftCount => _notifOrders.where((o) => o.currentStatus != 'COMPLETED').length;
-  int get _notifPendingInspectionCount =>
-      _notifInspections.where((i) => i.actualDeliveryDate == null || i.actualDeliveryDate!.trim().isEmpty).length;
+  int get _notifMissingEgpCount =>
+      _notifOrders.where(_egpRequiredButMissing).length;
+  int get _notifDraftCount =>
+      _notifOrders.where((o) => o.currentStatus != 'COMPLETED').length;
+  int get _notifPendingInspectionCount => _notifInspections
+      .where((i) =>
+          i.actualDeliveryDate == null || i.actualDeliveryDate!.trim().isEmpty)
+      .length;
 
   /// ใกล้ครบกำหนด/เกินกำหนดแล้ว — ใช้ตรรกะเดียวกับ "ครบกำหนดเร็วๆ นี้" ใน
   /// แดชบอร์ด แต่นับเฉพาะจำนวน ไม่ต้องประกอบข้อความรายละเอียดที่นี่
@@ -158,7 +166,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   int get _notifTotalCount =>
-      _notifMissingEgpCount + _notifDraftCount + _notifPendingInspectionCount + _notifDeadlineCount;
+      _notifMissingEgpCount +
+      _notifDraftCount +
+      _notifPendingInspectionCount +
+      _notifDeadlineCount;
 
   Future<void> _loadSchool() async {
     final school = await _repo.getSchoolSettings();
@@ -182,7 +193,8 @@ class _AppShellState extends State<AppShell> {
   // null ให้อัตโนมัติ กันตัวกรองเก่าค้างตอนกดเข้าแดชบอร์ดทางปกติภายหลัง
   String? _pendingDashboardFilter;
 
-  Future<void> _requestModeChange(AppMode newMode, {ProcurementOrder? editingOrder, String? dashboardFilter}) async {
+  Future<void> _requestModeChange(AppMode newMode,
+      {ProcurementOrder? editingOrder, String? dashboardFilter}) async {
     // Security level: กันซ้ำตอน routing จริง — ไม่ใช่แค่ล็อกไอคอนที่ sidebar
     // เผื่อมีทางเข้าอื่นที่ไม่ผ่านการกดเมนู (shortcut/ปุ่มลัดจากหน้าอื่น ฯลฯ)
     //
@@ -192,17 +204,21 @@ class _AppShellState extends State<AppShell> {
     // requiredModuleFor ปกติตรงนี้ ไม่งั้น Free tier จะแก้ไขโครงการเดิมไม่ได้
     // เลยทั้งที่ตั้งใจให้ทำได้ (แค่สร้างใหม่ไม่ได้)
     final requiredModule = newMode == AppMode.newOrder
-        ? (editingOrder == null ? FeatureModules.procurementCreate : FeatureModules.procurement)
+        ? (editingOrder == null
+            ? FeatureModules.procurementCreate
+            : FeatureModules.procurement)
         : requiredModuleFor[newMode];
-    if (requiredModule != null && !FeatureAccessService.instance.hasModule(requiredModule)) {
-      await showUpsellDialog(context, featureLabel: modeMeta[newMode]!.$2, requiredModule: requiredModule);
+    if (requiredModule != null &&
+        !FeatureAccessService.instance.hasModule(requiredModule)) {
+      await showUpsellDialog(context,
+          featureLabel: modeMeta[newMode]!.$2, requiredModule: requiredModule);
       return;
     }
     // ถ้า AI กำลังทำงานอยู่ (เขียนเหตุผล/อ่านใบเสร็จ/นำเข้าไฟล์แผนงบ) → เตือน
     // ก่อน (สลับหน้า = ทำลาย state ทั้งหมด ผลลัพธ์ที่ AI กำลังจะได้จะหายไป
     // เงียบๆ โดยไม่มีข้อความแจ้งอะไรเลย)
-    final aiBusyOnCurrentPage =
-        (_mode == AppMode.newOrder && _wizardAiBusy) || (_mode == AppMode.budgets && _budgetsAiBusy);
+    final aiBusyOnCurrentPage = (_mode == AppMode.newOrder && _wizardAiBusy) ||
+        (_mode == AppMode.budgets && _budgetsAiBusy);
     if (aiBusyOnCurrentPage) {
       final confirmed = await _showAiBusyDialog();
       if (!confirmed) return;
@@ -212,7 +228,8 @@ class _AppShellState extends State<AppShell> {
       final confirmed = await _showDirtyDialog();
       if (!confirmed) return;
     }
-    final leavingSettings = _mode == AppMode.settings && newMode != AppMode.settings;
+    final leavingSettings =
+        _mode == AppMode.settings && newMode != AppMode.settings;
     setState(() {
       _mode = newMode;
       _editingOrder = editingOrder;
@@ -234,30 +251,29 @@ class _AppShellState extends State<AppShell> {
     _loadFiscalYears();
   }
 
+  // เดิมมีปุ่ม "ออกเลย" ให้เลือกทิ้งผลลัพธ์ AI ได้ — แต่ draft ของ wizard เก็บไว้
+  // แค่ในหน่วยความจำเฉยๆ (ไม่มีการบันทึกอัตโนมัติ) ถ้าออกไปกลางคันข้อมูลทั้งฟอร์ม
+  // จะหายหมดอยู่ดี ไม่ใช่แค่ผลลัพธ์ AI — เอาปุ่ม "ออกเลย" ออกไปเลย บังคับให้รอ
+  // AI ทำงานเสร็จก่อนเสมอ กันข้อมูลหายแบบไม่ทันตั้งตัว
   Future<bool> _showAiBusyDialog() async {
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('AI กำลังเขียนเหตุผลอยู่'),
-            content: const Text(
-              'ถ้าออกจากหน้านี้ตอนนี้ ผลลัพธ์ที่ AI กำลังเขียนจะหายไป\n'
-              'ต้องการออกเลยหรือรอให้เขียนเสร็จก่อน?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('รอให้เขียนเสร็จก่อน'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('ออกเลย'),
-              ),
-            ],
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('AI กำลังทำงานอยู่'),
+        content: const Text(
+          'กรุณารอให้ AI ทำงานเสร็จก่อน (เขียนเหตุผล/อ่านใบเสร็จ) แล้วค่อยสลับหน้า '
+          'เพื่อกันไม่ให้ข้อมูลที่กรอกไว้ในฟอร์มนี้หายไป',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ตกลง'),
           ),
-        ) ??
-        false;
+        ],
+      ),
+    );
+    return false;
   }
 
   Future<bool> _showDirtyDialog() async {
@@ -276,7 +292,8 @@ class _AppShellState extends State<AppShell> {
                 child: const Text('ยกเลิก'),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                style:
+                    FilledButton.styleFrom(backgroundColor: Colors.redAccent),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('ออกโดยไม่บันทึก'),
               ),
@@ -323,12 +340,15 @@ class _AppShellState extends State<AppShell> {
       'installment_contracts': AppMode.installmentContracts,
       'order_register': AppMode.orderRegister,
       'control_log': AppMode.controlLog,
+      'delivery_note_register': AppMode.deliveryNoteRegister,
+      'expenditure_register': AppMode.expenditureRegister,
       'document_checklist': AppMode.documentChecklist,
       'learning_materials': AppMode.learningMaterials,
       'fixed_assets': AppMode.fixedAssets,
       'repair_history': AppMode.repairHistory,
       'materials': AppMode.materials,
       'annual_count': AppMode.annualCount,
+      'staff_appointment': AppMode.staffAppointment,
       'disposals': AppMode.disposals,
     };
     final mode = modeMap[modeStr];
@@ -344,7 +364,8 @@ class _AppShellState extends State<AppShell> {
     _requestModeChange(AppMode.documentHub);
   }
 
-  void _onDashboardGenerateDocument(ProcurementOrder order) => _onGenerateDocumentForOrder(order.id);
+  void _onDashboardGenerateDocument(ProcurementOrder order) =>
+      _onGenerateDocumentForOrder(order.id);
 
   // ปุ่มลัด "ดูครุภัณฑ์" ในหน้าประวัติซ่อม — พาไปหน้าทะเบียนครุภัณฑ์พร้อมเลือก
   // ชิ้นนี้ไว้ล่วงหน้า
@@ -369,7 +390,8 @@ class _AppShellState extends State<AppShell> {
           children: [
             const SizedBox(height: 8),
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
@@ -385,13 +407,20 @@ class _AppShellState extends State<AppShell> {
               leading: Icon(Icons.cloud_upload_outlined, color: colors.primary),
               title: const Text('สำรองข้อมูล (Backup)'),
               subtitle: Text('บันทึกไฟล์ .zip ไปที่ $folderName'),
-              onTap: () { Navigator.pop(ctx); _doBackup(); },
+              onTap: () {
+                Navigator.pop(ctx);
+                _doBackup();
+              },
             ),
             ListTile(
-              leading: Icon(Icons.cloud_download_outlined, color: colors.tertiary),
+              leading:
+                  Icon(Icons.cloud_download_outlined, color: colors.tertiary),
               title: const Text('คืนข้อมูล (Restore)'),
               subtitle: const Text('เลือกไฟล์ .zip เพื่อคืนข้อมูลเดิมกลับมา'),
-              onTap: () { Navigator.pop(ctx); _doRestore(); },
+              onTap: () {
+                Navigator.pop(ctx);
+                _doRestore();
+              },
             ),
             const SizedBox(height: 16),
           ],
@@ -400,7 +429,17 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  void _onRefreshPressed() {
+  Future<void> _onRefreshPressed() async {
+    // จุดนี้เคยข้าม aiBusyOnCurrentPage ที่ _requestModeChange เช็คไว้ — กดปุ่ม
+    // รีเฟรชบนแถบบนสุดตอน AI กำลังเขียนเหตุผล/อ่านใบเสร็จ/นำเข้าไฟล์แผนงบอยู่จะ
+    // สลับไปแดชบอร์ดทันทีโดยไม่เตือน ทำให้ผลลัพธ์ AI หายเงียบๆ เหมือนบั๊กเดิมที่
+    // เคยแก้ไว้ที่ sidebar/เมนู เช็คเงื่อนไขเดียวกันตรงนี้ด้วยกันพลาด
+    final aiBusyOnCurrentPage = (_mode == AppMode.newOrder && _wizardAiBusy) ||
+        (_mode == AppMode.budgets && _budgetsAiBusy);
+    if (aiBusyOnCurrentPage) {
+      final confirmed = await _showAiBusyDialog();
+      if (!confirmed) return;
+    }
     setState(() {
       final current = _mode;
       _mode = AppMode.dashboard;
@@ -435,7 +474,9 @@ class _AppShellState extends State<AppShell> {
           'ต้องการดำเนินการต่อหรือไม่?',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
@@ -458,7 +499,9 @@ class _AppShellState extends State<AppShell> {
       if (!mounted) return;
       showAppToast('คืนข้อมูลสำเร็จ กำลังโหลดข้อมูลใหม่...');
       // reload dashboard
-      setState(() { _mode = AppMode.dashboard; });
+      setState(() {
+        _mode = AppMode.dashboard;
+      });
     } catch (e) {
       if (!mounted) return;
       showAppToast('คืนข้อมูลไม่สำเร็จ: $e', isError: true);
@@ -548,7 +591,12 @@ class _AppShellState extends State<AppShell> {
       case AppMode.orderRegister:
         return const OrderRegisterScreen();
       case AppMode.controlLog:
-        return ControlLogScreen(onGenerateDocument: _onGenerateDocumentForOrder);
+        return ControlLogScreen(
+            onGenerateDocument: _onGenerateDocumentForOrder);
+      case AppMode.deliveryNoteRegister:
+        return const DeliveryNoteRegisterScreen();
+      case AppMode.expenditureRegister:
+        return const ExpenditureRegisterScreen();
       case AppMode.documentChecklist:
         return const DocumentChecklistScreen();
       case AppMode.learningMaterials:
@@ -564,6 +612,8 @@ class _AppShellState extends State<AppShell> {
         return const MaterialsScreen();
       case AppMode.annualCount:
         return const AnnualCountScreen();
+      case AppMode.staffAppointment:
+        return const StaffAppointmentScreen();
       case AppMode.disposals:
         return const DisposalsScreen();
       case AppMode.reports:
@@ -590,9 +640,11 @@ class _AppShellState extends State<AppShell> {
   /// (ดูช่อง _fiscalYear ในกล่องเพิ่มแผนงบ ที่ default มาจากปีที่กำลังดูอยู่แล้ว)
   Future<void> _promptAddFiscalYear() async {
     final ctrl = TextEditingController(
-      text: (int.tryParse(FiscalYearController.instance.currentRealYear) ?? 0) > 0
-          ? (int.parse(FiscalYearController.instance.currentRealYear) + 1).toString()
-          : '',
+      text:
+          (int.tryParse(FiscalYearController.instance.currentRealYear) ?? 0) > 0
+              ? (int.parse(FiscalYearController.instance.currentRealYear) + 1)
+                  .toString()
+              : '',
     );
     final year = await showDialog<String>(
       context: context,
@@ -614,7 +666,8 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
             child: const Text('สลับไปดูปีนี้'),
@@ -626,7 +679,9 @@ class _AppShellState extends State<AppShell> {
     FiscalYearController.instance.setViewingYear(year);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('สลับไปดูปีงบ $year แล้ว — ยังไม่มีข้อมูลอะไรเลย ไปเพิ่มแผนงบ/สร้างโครงการแรกได้เลย')),
+      SnackBar(
+          content: Text(
+              'สลับไปดูปีงบ $year แล้ว — ยังไม่มีข้อมูลอะไรเลย ไปเพิ่มแผนงบ/สร้างโครงการแรกได้เลย')),
     );
   }
 
@@ -659,7 +714,8 @@ class _AppShellState extends State<AppShell> {
                 decoration: const InputDecoration(
                   labelText: 'ปีงบประมาณใหม่ (พ.ศ.)',
                   floatingLabelBehavior: FloatingLabelBehavior.always,
-                  labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  labelStyle:
+                      TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -667,7 +723,8 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
             child: const Text('บันทึก'),
@@ -704,7 +761,9 @@ class _AppShellState extends State<AppShell> {
           'การลบนี้กู้คืนไม่ได้ ต้องการดำเนินการต่อหรือไม่?',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
@@ -755,7 +814,8 @@ class _AppShellState extends State<AppShell> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.85)),
+                Icon(icon,
+                    size: 18, color: Colors.white.withValues(alpha: 0.85)),
                 if (badge != null) badge,
               ],
             ),
@@ -798,9 +858,13 @@ class _AppShellState extends State<AppShell> {
                 child: Row(
                   children: [
                     Icon(
-                      year == fy.viewingYear ? Icons.check_circle : Icons.circle_outlined,
+                      year == fy.viewingYear
+                          ? Icons.check_circle
+                          : Icons.circle_outlined,
                       size: 16,
-                      color: year == fy.viewingYear ? colors.primary : colors.onSurfaceVariant,
+                      color: year == fy.viewingYear
+                          ? colors.primary
+                          : colors.onSurfaceVariant,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -810,7 +874,10 @@ class _AppShellState extends State<AppShell> {
                         children: [
                           Text('ปีงบฯ $year'),
                           if (year == fy.currentRealYear)
-                            Text('(ปัจจุบัน)', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+                            Text('(ปัจจุบัน)',
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: colors.onSurfaceVariant)),
                         ],
                       ),
                     ),
@@ -828,10 +895,12 @@ class _AppShellState extends State<AppShell> {
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: Icon(Icons.edit_outlined, size: 16, color: colors.onSurfaceVariant),
+                          icon: Icon(Icons.edit_outlined,
+                              size: 16, color: colors.onSurfaceVariant),
                           tooltip: 'แก้ไขปีงบ $year',
                           visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          constraints:
+                              const BoxConstraints(minWidth: 28, minHeight: 28),
                           padding: EdgeInsets.zero,
                           onPressed: () {
                             Navigator.of(context).pop();
@@ -845,10 +914,12 @@ class _AppShellState extends State<AppShell> {
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                          icon: const Icon(Icons.delete_outline,
+                              size: 16, color: Colors.redAccent),
                           tooltip: 'ลบปีงบ $year',
                           visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          constraints:
+                              const BoxConstraints(minWidth: 28, minHeight: 28),
                           padding: EdgeInsets.zero,
                           onPressed: () {
                             Navigator.of(context).pop();
@@ -867,7 +938,8 @@ class _AppShellState extends State<AppShell> {
                 children: [
                   Icon(Icons.add, size: 16, color: colors.primary),
                   const SizedBox(width: 10),
-                  Text('เพิ่ม/สลับไปปีงบใหม่...', style: TextStyle(color: colors.primary)),
+                  Text('เพิ่ม/สลับไปปีงบใหม่...',
+                      style: TextStyle(color: colors.primary)),
                 ],
               ),
             ),
@@ -878,17 +950,23 @@ class _AppShellState extends State<AppShell> {
             height: 32,
             padding: const EdgeInsets.symmetric(horizontal: 11),
             decoration: BoxDecoration(
-              color: isCurrent ? Colors.white.withValues(alpha: 0.15) : Colors.amber.withValues(alpha: 0.25),
+              color: isCurrent
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.amber.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isCurrent ? Colors.white.withValues(alpha: 0.25) : Colors.amber.withValues(alpha: 0.45),
+                color: isCurrent
+                    ? Colors.white.withValues(alpha: 0.25)
+                    : Colors.amber.withValues(alpha: 0.45),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  isCurrent ? Icons.calendar_today_outlined : Icons.history_outlined,
+                  isCurrent
+                      ? Icons.calendar_today_outlined
+                      : Icons.history_outlined,
                   size: 14,
                   color: isCurrent ? colors.onPrimary : const Color(0xFFFEF3C7),
                 ),
@@ -898,11 +976,15 @@ class _AppShellState extends State<AppShell> {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: isCurrent ? colors.onPrimary : const Color(0xFFFEF3C7),
+                    color:
+                        isCurrent ? colors.onPrimary : const Color(0xFFFEF3C7),
                   ),
                 ),
                 const SizedBox(width: 2),
-                Icon(Icons.arrow_drop_down, size: 18, color: isCurrent ? colors.onPrimary : const Color(0xFFFEF3C7)),
+                Icon(Icons.arrow_drop_down,
+                    size: 18,
+                    color:
+                        isCurrent ? colors.onPrimary : const Color(0xFFFEF3C7)),
               ],
             ),
           ),
@@ -931,14 +1013,16 @@ class _AppShellState extends State<AppShell> {
             color: Colors.redAccent,
             label: 'ไม่มีเลข e-GP',
             count: _notifMissingEgpCount,
-            onTap: () => _requestModeChange(AppMode.dashboard, dashboardFilter: 'missing_egp'),
+            onTap: () => _requestModeChange(AppMode.dashboard,
+                dashboardFilter: 'missing_egp'),
           ),
           _NotifItem(
             icon: Icons.edit_note,
             color: Colors.amber.shade800,
             label: 'ยังไม่เสร็จสิ้น (ร่าง)',
             count: _notifDraftCount,
-            onTap: () => _requestModeChange(AppMode.dashboard, dashboardFilter: 'draft'),
+            onTap: () =>
+                _requestModeChange(AppMode.dashboard, dashboardFilter: 'draft'),
           ),
           _NotifItem(
             icon: Icons.assignment_late_outlined,
@@ -952,14 +1036,16 @@ class _AppShellState extends State<AppShell> {
             color: Colors.deepOrange,
             label: 'ใกล้/เกินกำหนด',
             count: _notifDeadlineCount,
-            onTap: () => _requestModeChange(AppMode.dashboard, dashboardFilter: 'deadline'),
+            onTap: () => _requestModeChange(AppMode.dashboard,
+                dashboardFilter: 'deadline'),
           ),
         ];
         if (_notifTotalCount == 0) {
           return [
             PopupMenuItem<VoidCallback>(
               enabled: false,
-              child: Text('ไม่มีรายการแจ้งเตือน', style: TextStyle(color: colors.onSurfaceVariant)),
+              child: Text('ไม่มีรายการแจ้งเตือน',
+                  style: TextStyle(color: colors.onSurfaceVariant)),
             ),
           ];
         }
@@ -975,14 +1061,18 @@ class _AppShellState extends State<AppShell> {
                     Expanded(child: Text(item.label)),
                     const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: item.color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(RadiusSize.xxl),
                       ),
                       child: Text(
                         '${item.count}',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: item.color),
+                        style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: item.color),
                       ),
                     ),
                   ],
@@ -1003,7 +1093,8 @@ class _AppShellState extends State<AppShell> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(Icons.notifications_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)),
+            Icon(Icons.notifications_outlined,
+                size: 18, color: Colors.white.withValues(alpha: 0.85)),
             if (_notifTotalCount > 0)
               Positioned(
                 top: 5,
@@ -1067,7 +1158,9 @@ class _AppShellState extends State<AppShell> {
               splashRadius: 18,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               padding: EdgeInsets.zero,
-              onPressed: scale <= minFontScale ? null : () => FontScaleController.instance.decrease(),
+              onPressed: scale <= minFontScale
+                  ? null
+                  : () => FontScaleController.instance.decrease(),
             ),
           ),
           Tooltip(
@@ -1079,7 +1172,10 @@ class _AppShellState extends State<AppShell> {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   '$percent%',
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: colors.onPrimary),
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onPrimary),
                 ),
               ),
             ),
@@ -1093,7 +1189,9 @@ class _AppShellState extends State<AppShell> {
               splashRadius: 18,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               padding: EdgeInsets.zero,
-              onPressed: scale >= maxFontScale ? null : () => FontScaleController.instance.increase(),
+              onPressed: scale >= maxFontScale
+                  ? null
+                  : () => FontScaleController.instance.increase(),
             ),
           ),
         ],
@@ -1109,7 +1207,8 @@ class _AppShellState extends State<AppShell> {
 
     final addressParts = <String>[
       if (school?.schoolAmphoe?.isNotEmpty == true) 'อ.${school!.schoolAmphoe}',
-      if (school?.schoolChangwat?.isNotEmpty == true) 'จ.${school!.schoolChangwat}',
+      if (school?.schoolChangwat?.isNotEmpty == true)
+        'จ.${school!.schoolChangwat}',
     ];
 
     return InkWell(
@@ -1137,19 +1236,25 @@ class _AppShellState extends State<AppShell> {
                     school!.schoolName!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: colors.onPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        color: colors.onPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
                   ),
                   if (addressParts.isNotEmpty)
                     Text(
                       addressParts.join(' '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.75), fontSize: 10.5),
+                      style: TextStyle(
+                          color: colors.onPrimary.withValues(alpha: 0.75),
+                          fontSize: 10.5),
                     ),
                 ],
               ),
             ),
-            Icon(Icons.expand_more, size: 16, color: colors.onPrimary.withValues(alpha: 0.6)),
+            Icon(Icons.expand_more,
+                size: 16, color: colors.onPrimary.withValues(alpha: 0.6)),
           ],
         ),
       ),
@@ -1209,8 +1314,10 @@ class _AppShellState extends State<AppShell> {
     // ป้าย "Ctrl K" ข้างช่องค้นหาเคยเป็นแค่ตัวหนังสือ ไม่ได้ผูก shortcut จริง
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyK, control: true): () => _omniSearchFocusNode.requestFocus(),
-        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () => _omniSearchFocusNode.requestFocus(),
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+            _omniSearchFocusNode.requestFocus(),
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () =>
+            _omniSearchFocusNode.requestFocus(),
       },
       child: Focus(
         autofocus: true,
@@ -1248,21 +1355,30 @@ class _AppShellState extends State<AppShell> {
                               'ระบบเจ้าหน้าที่พัสดุ-จัดซื้อจัดจ้าง',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.onPrimary),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.onPrimary),
                             ),
                           ),
                           if (!narrow) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: colors.onPrimary.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: colors.onPrimary.withValues(alpha: 0.4)),
+                                border: Border.all(
+                                    color: colors.onPrimary
+                                        .withValues(alpha: 0.4)),
                               ),
                               child: Text(
                                 'v3.2 Retamp',
-                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.onPrimary),
+                                style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: colors.onPrimary),
                               ),
                             ),
                           ],
@@ -1273,7 +1389,10 @@ class _AppShellState extends State<AppShell> {
                           'พัฒนาโดย Acha Srangkannork',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: colors.onPrimary.withValues(alpha: 0.7)),
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.normal,
+                              color: colors.onPrimary.withValues(alpha: 0.7)),
                         ),
                     ],
                   ),
@@ -1297,8 +1416,12 @@ class _AppShellState extends State<AppShell> {
           ListenableBuilder(
             listenable: ThemeController.instance,
             builder: (context, _) => _topbarIconButton(
-              icon: ThemeController.instance.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              tooltip: ThemeController.instance.isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด',
+              icon: ThemeController.instance.isDark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+              tooltip: ThemeController.instance.isDark
+                  ? 'สลับเป็นโหมดสว่าง'
+                  : 'สลับเป็นโหมดมืด',
               onPressed: () => ThemeController.instance.toggle(),
             ),
           ),
@@ -1326,14 +1449,17 @@ class _AppShellState extends State<AppShell> {
       body: Column(
         children: [
           if (LicenseService.instance.lastResult?.isGracePeriod == true)
-            LicenseGraceBanner(daysLeft: LicenseService.instance.lastResult!.graceDaysLeft ?? 0),
+            LicenseGraceBanner(
+                daysLeft:
+                    LicenseService.instance.lastResult!.graceDaysLeft ?? 0),
           Expanded(
             child: Row(
               children: [
                 AppSidebar(
                   currentMode: _mode,
                   expanded: _sidebarExpanded,
-                  onToggle: () => setState(() => _sidebarExpanded = !_sidebarExpanded),
+                  onToggle: () =>
+                      setState(() => _sidebarExpanded = !_sidebarExpanded),
                   onSelect: (mode) => _requestModeChange(mode),
                 ),
                 Expanded(

@@ -6,44 +6,121 @@
 //
 // จำกัดไว้ไม่เกิน [maxVisible] อันพร้อมกัน — ถ้ามีเกิน อันเก่าสุดจะค่อยๆ จางหาย
 // (ไม่ใช่หายวับทันที) ก่อนถูกลบออกจริง กันไม่ให้เต็มจอเวลากดรัวๆ
+//
+// [เพิ่ม toast แบบ "กำลังทำงาน"]: งานเบื้องหลังบางอย่าง (import/export,
+// ให้ AI อ่านไฟล์ ฯลฯ) ใช้เวลานานและห้ามผู้ใช้สลับหน้าจอไปทำอย่างอื่นระหว่างรอ
+// (เช่น ฟอร์มที่ยังกรอกค้างอยู่จะหาย) — toast ปกติหายเองตามเวลาคงที่ ไม่พอสำหรับ
+// เคสนี้ จึงเพิ่ม showLoading()/complete()/dismiss() ให้เรียกเป็นคู่ได้:
+// เริ่มงานเรียก showLoading() เก็บ id ไว้ พองานเสร็จเรียก complete(id, ...)
+// เพื่อเปลี่ยนเป็นผลสำเร็จ/ล้มเหลวแล้วค่อยหายเองตามปกติ
 
 import 'package:flutter/material.dart';
 
+enum ToastType { success, error, warning, info, loading }
+
 class ToastItem {
   final String id;
-  final String message;
-  final bool isError;
+  String title;
+  String message;
+  ToastType type;
+  // toast แบบ loading ไม่มีตัวจับเวลาหายเอง ต้องเรียก complete()/dismiss() เอง
+  bool persistent;
   bool removing;
+
   ToastItem({
     required this.id,
+    required this.title,
     required this.message,
-    required this.isError,
+    required this.type,
+    this.persistent = false,
     this.removing = false,
   });
+
+  bool get isError => type == ToastType.error;
 }
 
 class ToastController extends ChangeNotifier {
   ToastController._();
   static final ToastController instance = ToastController._();
 
-  static const maxVisible = 2;
+  static const maxVisible = 3;
   static const _fadeDuration = Duration(milliseconds: 250);
 
   final List<ToastItem> _items = [];
   List<ToastItem> get items => List.unmodifiable(_items);
 
-  void show(String message, {bool isError = false}) {
-    final id = '${DateTime.now().microsecondsSinceEpoch}';
-    _items.add(ToastItem(id: id, message: message, isError: isError));
-    _enforceLimit();
+  /// เดิม: ใช้ข้อความล้วนๆ ไม่มีหัวข้อ — คงไว้เพื่อความเข้ากันได้กับจุดเรียกใช้
+  /// เดิมทั้งหมดในแอป (showAppToast) ที่ยังส่งมาแค่ message/isError
+  String show(String message, {bool isError = false}) {
+    final type = isError ? ToastType.error : ToastType.success;
+    final title = isError ? 'เกิดข้อผิดพลาด' : 'สำเร็จ';
+    return _add(title: title, message: message, type: type);
+  }
+
+  /// เริ่ม toast แบบ "กำลังทำงาน" — ไม่หายเอง ต้องเรียก complete()/dismiss()
+  /// เองเมื่องานเสร็จ คืนค่า id ไว้ใช้เรียกปิด/เปลี่ยนสถานะภายหลัง
+  String showLoading(String title, {String message = 'กรุณารอสักครู่...'}) {
+    return _add(
+        title: title,
+        message: message,
+        type: ToastType.loading,
+        persistent: true);
+  }
+
+  /// อัปเดตข้อความของ toast ที่ยังลอยค้างอยู่ (เช่น รายงานความคืบหน้า
+  /// "5/28 ไฟล์") โดยไม่เปลี่ยนสถานะ/ไม่ปิด — ถ้าหา id ไม่เจอแล้วจะไม่ทำอะไร
+  void updateMessage(String id, String message) {
+    final idx = _items.indexWhere((t) => t.id == id);
+    if (idx == -1) return;
+    _items[idx].message = message;
     notifyListeners();
-    final duration = isError ? const Duration(seconds: 8) : const Duration(seconds: 4);
+  }
+
+  /// เปลี่ยน toast แบบ loading (ตาม id) ให้กลายเป็นผลสำเร็จ/ล้มเหลว แล้วค่อยหาย
+  /// เองตามเวลาปกติ — ถ้าหา id ไม่เจอแล้ว (เช่นผู้ใช้กดปิดเองไปก่อน) จะไม่ทำอะไร
+  void complete(String id,
+      {required bool success, String? title, String? message}) {
+    final idx = _items.indexWhere((t) => t.id == id);
+    if (idx == -1) return;
+    final item = _items[idx];
+    item.type = success ? ToastType.success : ToastType.error;
+    item.title = title ?? (success ? 'สำเร็จ' : 'เกิดข้อผิดพลาด');
+    item.message = message ?? item.message;
+    item.persistent = false;
+    notifyListeners();
+    final duration =
+        success ? const Duration(seconds: 4) : const Duration(seconds: 8);
     Future.delayed(duration, () => dismiss(id));
   }
 
+  String _add(
+      {required String title,
+      required String message,
+      required ToastType type,
+      bool persistent = false}) {
+    final id = '${DateTime.now().microsecondsSinceEpoch}';
+    _items.add(ToastItem(
+        id: id,
+        title: title,
+        message: message,
+        type: type,
+        persistent: persistent));
+    _enforceLimit();
+    notifyListeners();
+    if (!persistent) {
+      final duration = type == ToastType.error
+          ? const Duration(seconds: 8)
+          : const Duration(seconds: 4);
+      Future.delayed(duration, () => dismiss(id));
+    }
+    return id;
+  }
+
   /// เกิน maxVisible แล้ว → ให้อันเก่าสุด (ที่ยังไม่ได้เริ่มจางอยู่) เริ่มจางหายทีละอัน
+  /// ข้าม toast แบบ persistent (loading) ไม่ให้ถูกเบียดออกระหว่างรองานเสร็จ
   void _enforceLimit() {
-    final stillVisible = _items.where((t) => !t.removing).toList();
+    final stillVisible =
+        _items.where((t) => !t.removing && !t.persistent).toList();
     final overflow = stillVisible.length - maxVisible;
     for (var i = 0; i < overflow; i++) {
       _fadeOutAndRemove(stillVisible[i].id);
@@ -68,3 +145,26 @@ class ToastController extends ChangeNotifier {
 void showAppToast(String message, {bool isError = false}) {
   ToastController.instance.show(message, isError: isError);
 }
+
+/// เริ่มแจ้งเตือน "กำลังทำงาน" ที่ลอยค้างไว้จนกว่าจะเรียก [completeAppToast] —
+/// ใช้กับงานเบื้องหลังที่ใช้เวลานานและห้ามสลับหน้าจอระหว่างรอ (import/export,
+/// ให้ AI อ่านไฟล์ ฯลฯ) คืนค่า id ไว้ใช้เรียกปิด/เปลี่ยนสถานะภายหลัง
+String showAppLoadingToast(String title,
+    {String message = 'กรุณารอสักครู่...'}) {
+  return ToastController.instance.showLoading(title, message: message);
+}
+
+/// อัปเดตข้อความความคืบหน้าของ toast ที่เริ่มด้วย [showAppLoadingToast]
+void updateAppLoadingToast(String id, String message) =>
+    ToastController.instance.updateMessage(id, message);
+
+/// เปลี่ยน toast ที่เริ่มด้วย [showAppLoadingToast] ให้เป็นผลสำเร็จ/ล้มเหลว
+void completeAppToast(String id,
+    {required bool success, String? title, String? message}) {
+  ToastController.instance
+      .complete(id, success: success, title: title, message: message);
+}
+
+/// ปิด toast ทันที (ใช้กับ id ที่ได้จาก [showAppLoadingToast] ถ้าต้องการปิดโดย
+/// ไม่ต้องเปลี่ยนเป็นผลสำเร็จ/ล้มเหลว)
+void dismissAppToast(String id) => ToastController.instance.dismiss(id);

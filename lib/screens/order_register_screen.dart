@@ -3,16 +3,21 @@
 // (ไม่ใช่ตารางแยกต่างหาก) มาแสดงเป็นทะเบียนคุม 2 ตาราง (จัดซื้อ/จัดจ้าง)
 // ตามแบบฟอร์มราชการ — ดึงข้อมูลจาก procurement_orders โดยตรง ไม่ต้องกรอกซ้ำ
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
 import '../services/order_register_export_service.dart';
+import '../services/pending_import_controller.dart';
+import '../services/procurement_import_service.dart';
 import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../utils/thai_date.dart';
+import '../utils/thai_numerals.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/column_visibility_menu.dart';
+import '../widgets/procurement_import_dialog.dart';
 import '../theme/design_tokens.dart';
 
 /// คอลัมน์ที่ซ่อน/แสดงได้ในตารางทะเบียนคุม — "ที่"/"เลขที่เอกสาร"/"รายการ/โครงการ"
@@ -20,9 +25,14 @@ import '../theme/design_tokens.dart';
 const _orderRegisterOptionalColumns = [
   'ผู้ขาย/ผู้รับจ้าง',
   'ประเภทเงิน',
+  'โครงการ',
+  'กิจกรรม',
   'เลขที่โครงการ',
   'จำนวนเงิน',
-  'วันที่',
+  'รายงานขอ',
+  'เลขคำสั่ง',
+  'รายงานผล',
+  'ทำสัญญา',
   'ครบกำหนดส่งมอบ',
   'วันตรวจรับ',
   'วันส่งเบิกเงิน',
@@ -48,6 +58,18 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
   void initState() {
     super.initState();
     _load();
+    // ถ้ามีผลนำเข้าโครงการเก่าค้างอยู่ (อ่านไฟล์เสร็จตอนที่ผู้ใช้สลับออกจากหน้า
+    // นี้ไปแล้วระหว่างรอ AI) ให้เปิดหน้าตรวจสอบ/ยืนยันต่อทันทีที่กลับมาหน้านี้
+    // — รอให้เฟรมแรกวาดเสร็จก่อนค่อยเปิด dialog กัน context ยังไม่พร้อม
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPendingImport());
+  }
+
+  Future<void> _checkPendingImport() async {
+    final attempts = PendingImportController.instance.consume();
+    if (attempts == null || attempts.isEmpty || !mounted) return;
+    showAppToast(
+        'มีผลนำเข้าโครงการเก่าที่อ่านไฟล์เสร็จระหว่างที่ไม่อยู่หน้านี้ — กรุณาตรวจสอบข้อมูล');
+    await _reviewAndSaveImportAttempts(attempts);
   }
 
   @override
@@ -64,28 +86,176 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
     if (!mounted) return;
     setState(() {
       _orders = orders;
-      _budgetsById = {for (final b in budgets) if (b.id != null) b.id!: b};
+      _budgetsById = {
+        for (final b in budgets)
+          if (b.id != null) b.id!: b
+      };
       _loading = false;
     });
   }
 
-  List<String> get _fiscalYears =>
-      _orders.map((o) => o.fiscalYear).whereType<String>().where((s) => s.isNotEmpty).toSet().toList()..sort();
+  List<String> get _fiscalYears => _orders
+      .map((o) => o.fiscalYear)
+      .whereType<String>()
+      .where((s) => s.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
 
-  List<ProcurementOrder> get _filtered =>
-      _fiscalYearFilter == null ? _orders : _orders.where((o) => o.fiscalYear == _fiscalYearFilter).toList();
+  List<ProcurementOrder> get _filtered => _fiscalYearFilter == null
+      ? _orders
+      : _orders.where((o) => o.fiscalYear == _fiscalYearFilter).toList();
 
-  List<ProcurementOrder> get _purchases => _filtered.where((o) => o.orderType != 'จ้าง').toList();
-  List<ProcurementOrder> get _hires => _filtered.where((o) => o.orderType == 'จ้าง').toList();
+  List<ProcurementOrder> get _purchases =>
+      _sortedByDate(_filtered.where((o) => o.orderType != 'จ้าง'));
+  List<ProcurementOrder> get _hires =>
+      _sortedByDate(_filtered.where((o) => o.orderType == 'จ้าง'));
 
-  String? _projectLabel(ProcurementOrder o) {
+  // เรียงตามวันที่เอกสารจากเก่าไปใหม่ (ลำดับ ๑, ๒, ๓... แบบทะเบียนคุมของจริง) —
+  // เดิมไม่ได้เรียงเลย ทำให้ลำดับสลับมั่วตามลำดับที่บันทึกลงฐานข้อมูล รายการที่
+  // ไม่มีวันที่ (เช่นกรอกไม่ครบ) ให้ไปอยู่ท้ายสุดแทนที่จะทำให้ทั้งลิสต์เรียงผิด
+  List<ProcurementOrder> _sortedByDate(Iterable<ProcurementOrder> orders) {
+    final list = orders.toList();
+    list.sort((a, b) {
+      final da = parseThaiDate(a.dateOrderCreated);
+      final db = parseThaiDate(b.dateOrderCreated);
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    });
+    return list;
+  }
+
+  // คอลัมน์ "โครงการ"/"กิจกรรม" แยกกัน (เดิมรวมเป็น "แผนงาน/โครงการ" คอลัมน์
+  // เดียว — แยกออกให้ตรงกับทะเบียนคุมที่โรงเรียนใช้เดิม) budget.projectName
+  // ตกกลับไปใช้ o.projectName ถ้างบไม่ได้ผูกไว้
+  String _projectNameLabel(ProcurementOrder o) {
     final budget = o.budgetId != null ? _budgetsById[o.budgetId] : null;
-    if (budget?.projectName != null) return budget!.projectName;
-    return o.projectName;
+    return (budget?.projectName ?? o.projectName)?.trim() ?? '';
+  }
+
+  String _activityNameLabel(ProcurementOrder o) {
+    final budget = o.budgetId != null ? _budgetsById[o.budgetId] : null;
+    return budget?.activityName?.trim() ?? '';
   }
 
   bool _exporting = false;
+  bool _importing = false;
   Set<String> _visibleColumns = _orderRegisterOptionalColumns.toSet();
+
+  /// นำเข้าโครงการจัดซื้อจัดจ้างเก่า/นอกระบบ (ไฟล์ .docx/.pdf/.xlsx ที่เคยทำ
+  /// ด้วยมือ) — เลือกได้หลายไฟล์พร้อมกัน แต่ละไฟล์ผ่าน AI อ่านแล้วต้องผ่านหน้า
+  /// ตรวจสอบ/แก้ไขก่อนเสมอ ไม่บันทึกตรงๆ (เพราะ AI อ่านเลขที่เอกสาร/ราคาผิดได้)
+  Future<void> _importFromFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['docx', 'pdf', 'xlsx'],
+      allowMultiple: true,
+      dialogTitle: 'เลือกไฟล์โครงการเก่าที่จะนำเข้า',
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() => _importing = true);
+    // ใช้ toast แบบ "กำลังทำงาน" ลอยค้างไว้แยกจาก state ของหน้านี้ — ให้ AI
+    // อ่านไฟล์หลายไฟล์ใช้เวลานาน ถ้าผู้ใช้สลับไปหน้าอื่นระหว่างรอ ตัวบอกสถานะ
+    // เดิม (_importing ในหน้านี้) จะหายไปจากสายตา แต่ toast ลอยอยู่เหนือทั้งแอป
+    // เห็นได้ต่อเนื่องไม่ว่าจะอยู่หน้าไหน
+    final files = result.files.where((f) => f.path != null).toList();
+    final toastId = showAppLoadingToast('กำลังนำเข้าโครงการเก่า',
+        message: 'ให้ AI อ่านไฟล์ 0/${files.length} ไฟล์...');
+    final attempts = <ImportAttempt>[];
+    try {
+      // อ่านไฟล์พร้อมกันทีละชุด (ไม่ทีละไฟล์) — 28 ไฟล์แบบต่อคิวทีละไฟล์ผ่าน AI
+      // ช้ามาก (แต่ละไฟล์รอ AI ตอบก่อนถึงจะเริ่มไฟล์ถัดไป) ยิงพร้อมกันเป็นชุดๆ
+      // แทนเพื่อลดเวลารวมลงมาก โดยจำกัดจำนวนพร้อมกันไว้กันโดน rate limit ของ
+      // Gemini API หรือเปิดไฟล์ต้นทางพร้อมกันเยอะเกินไป
+      const concurrency = 4;
+      var done = 0;
+      for (var start = 0; start < files.length; start += concurrency) {
+        final batch = files.skip(start).take(concurrency);
+        final results = await Future.wait(batch.map((f) async {
+          try {
+            final parsed =
+                await ProcurementImportService.instance.importFromFile(f.path!);
+            return (name: f.name, parsed: parsed, error: null as Object?);
+          } catch (e) {
+            return (
+              name: f.name,
+              parsed: const <ImportedProject>[],
+              error: e as Object?
+            );
+          }
+        }));
+        for (final r in results) {
+          done++;
+          if (r.error != null) {
+            attempts.add(ImportAttempt.failure(r.name, '${r.error}'));
+          } else {
+            for (final p in r.parsed) {
+              attempts.add(ImportAttempt.success(r.name, p.order, p.items));
+            }
+          }
+        }
+        updateAppLoadingToast(
+            toastId, 'ให้ AI อ่านไฟล์ $done/${files.length} ไฟล์...');
+      }
+
+      if (attempts.isEmpty) {
+        completeAppToast(toastId,
+            success: false, message: 'ไม่พบข้อมูลที่นำเข้าได้');
+        return;
+      }
+
+      if (!mounted) {
+        // ผู้ใช้สลับออกจากหน้านี้ไปแล้วระหว่างรอ AI อ่านไฟล์ (ใช้เวลานาน) —
+        // เก็บผลไว้แทนที่จะทิ้งไปเฉยๆ แล้วให้หน้านี้เปิดหน้าตรวจสอบ/ยืนยันต่อ
+        // อัตโนมัติทันทีที่กลับมาเปิดหน้านี้อีกครั้ง (ดู _checkPendingImport)
+        PendingImportController.instance.store(attempts);
+        completeAppToast(toastId,
+            title: 'อ่านไฟล์เสร็จแล้ว',
+            success: true,
+            message: 'กลับมาหน้าทะเบียนคุมเพื่อตรวจสอบและบันทึกได้เลย');
+        return;
+      }
+      setState(() => _importing = false);
+      completeAppToast(toastId,
+          success: true,
+          title: 'อ่านไฟล์เสร็จแล้ว',
+          message: 'กรุณาตรวจสอบข้อมูลก่อนบันทึก');
+      await _reviewAndSaveImportAttempts(attempts);
+    } catch (e) {
+      completeAppToast(toastId,
+          success: false, message: 'นำเข้าไฟล์ไม่สำเร็จ: $e');
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
+  }
+
+  /// เปิดหน้าตรวจสอบ/แก้ไขผลนำเข้า แล้วบันทึกรายการที่ผู้ใช้ยืนยัน — แยกออกมา
+  /// เพื่อให้ทั้ง _importFromFiles (อ่านเสร็จตอนยังอยู่หน้านี้) และ
+  /// _checkPendingImport (อ่านเสร็จตอนกลับมาหน้านี้ทีหลัง) เรียกใช้ร่วมกันได้
+  Future<void> _reviewAndSaveImportAttempts(
+      List<ImportAttempt> attempts) async {
+    final existingOrderNumbers = _orders
+        .map((o) => o.orderNumber?.trim())
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    final school = await _repo.getSchoolSettings();
+    if (!mounted) return;
+    final confirmed = await showProcurementImportPreviewDialog(
+        context, attempts, existingOrderNumbers,
+        availableBudgets: _budgetsById.values.toList(), school: school);
+    if (confirmed == null || confirmed.isEmpty || !mounted) return;
+
+    for (final c in confirmed) {
+      await _repo.saveOrderWithItems(c.order, c.items);
+    }
+    if (!mounted) return;
+    showAppToast('นำเข้าโครงการแล้ว ${confirmed.length} รายการ');
+    _load();
+  }
 
   Future<void> _exportToExcel() async {
     setState(() => _exporting = true);
@@ -118,6 +288,7 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
         'ใช้ตัวกรองปีงบประมาณด้านบนเพื่อดูเฉพาะปีที่ต้องการ',
         'ถ้ารายการไหนไม่มีเลขที่/วันที่บางช่อง แสดงว่ายังกรอกข้อมูลนั้นไม่ครบในหน้ารายการต้นทาง ให้ไปเติมที่นั่น ไม่ต้องแก้ในหน้านี้',
         'กด "ส่งออก Excel" มุมขวาบนเพื่อบันทึกทะเบียนคุมเป็นไฟล์ .xlsx (แยกชีตจัดซื้อ/จัดจ้าง) ตามตัวกรองปีงบที่เลือกไว้ แล้วเปิดไฟล์ให้อัตโนมัติ',
+        'กด "นำเข้าโครงการเก่า" เพื่อดึงโครงการที่เคยทำนอกระบบ (ไฟล์ .docx/.pdf/.xlsx) เข้ามา — เลือกได้หลายไฟล์พร้อมกัน ให้ AI ช่วยอ่านข้อมูลให้ แล้วตรวจสอบ/แก้ไขก่อนบันทึกจริงเสมอ',
       ],
       corner: Alignment.bottomRight,
       child: _loading
@@ -129,13 +300,17 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.numbers_outlined, color: BrandAccent.tealOn(context), size: 22),
+                      Icon(Icons.numbers_outlined,
+                          color: BrandAccent.tealOn(context), size: 22),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text('ทะเบียนคุมเลขที่จัดซื้อจัดจ้าง',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: AppTypography.heading2,
+                                fontWeight: AppTypography.weightExtraBold,
+                                color: colors.onSurface)),
                       ),
                       const SizedBox(width: 8),
                       SizedBox(
@@ -143,50 +318,102 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                         child: DropdownButtonFormField<String?>(
                           initialValue: _fiscalYearFilter,
                           isExpanded: true,
-                          style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                          style: TextStyle(
+                              fontSize: AppTypography.bodyMedium,
+                              color: colors.onSurface),
                           decoration: InputDecoration(
                             isDense: true,
                             labelText: 'ปีงบประมาณ',
                             floatingLabelBehavior: FloatingLabelBehavior.auto,
-                            labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700, color: colors.onSurfaceVariant),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            labelStyle: TextStyle(
+                                fontSize: AppTypography.bodyMedium,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurfaceVariant),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(RadiusSize.md),
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md),
                               borderSide: BorderSide(color: colors.outline),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(RadiusSize.md),
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md),
                               borderSide: BorderSide(color: colors.outline),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(RadiusSize.md),
-                              borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md),
+                              borderSide: BorderSide(
+                                  color: BrandAccent.teal(context), width: 1.5),
                             ),
                           ),
                           borderRadius: BorderRadius.circular(RadiusSize.md),
                           items: [
-                            const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                            ..._fiscalYears.map((y) => DropdownMenuItem(value: y, child: Text('ปี $y'))),
+                            const DropdownMenuItem<String?>(
+                                value: null, child: Text('ทั้งหมด')),
+                            ..._fiscalYears.map((y) => DropdownMenuItem(
+                                value: y, child: Text('ปี $y'))),
                           ],
-                          onChanged: (v) => setState(() => _fiscalYearFilter = v),
+                          onChanged: (v) =>
+                              setState(() => _fiscalYearFilter = v),
                         ),
                       ),
                       const SizedBox(width: 10),
                       OutlinedButton.icon(
-                        onPressed: _orders.isEmpty || _exporting ? null : _exportToExcel,
+                        onPressed: _importing ? null : _importFromFiles,
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           side: BorderSide(color: colors.outline),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                          textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md)),
+                          textStyle: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w700),
                         ),
-                        icon: _exporting
-                            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
-                            : const Icon(Icons.file_download_outlined, size: 18),
-                        label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                        icon: _importing
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colors.onSurfaceVariant))
+                            : const Icon(Icons.file_upload_outlined, size: 18),
+                        label: Text(_importing
+                            ? 'กำลังอ่านไฟล์...'
+                            : 'นำเข้าโครงการเก่า'),
                       ),
                       const SizedBox(width: 10),
-                      Container(width: 1, height: 28, color: colors.outlineVariant),
+                      OutlinedButton.icon(
+                        onPressed: _orders.isEmpty || _exporting
+                            ? null
+                            : _exportToExcel,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          side: BorderSide(color: colors.outline),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md)),
+                          textStyle: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w700),
+                        ),
+                        icon: _exporting
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colors.onSurfaceVariant))
+                            : const Icon(Icons.file_download_outlined,
+                                size: 18),
+                        label: Text(
+                            _exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                          width: 1, height: 28, color: colors.outlineVariant),
                       const SizedBox(width: 10),
                       ColumnVisibilityMenu(
                         allColumns: _orderRegisterOptionalColumns,
@@ -202,10 +429,13 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.numbers_outlined, size: 64, color: colors.onSurfaceVariant),
+                                Icon(Icons.numbers_outlined,
+                                    size: 64, color: colors.onSurfaceVariant),
                                 const SizedBox(height: 12),
                                 Text('ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ',
-                                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
+                                    style: TextStyle(
+                                        color: colors.onSurfaceVariant,
+                                        fontSize: AppTypography.heading4)),
                               ],
                             ),
                           )
@@ -213,9 +443,11 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _buildSection(colors, 'ทะเบียนคุมการจัดซื้อ', _purchases, _purchaseScrollCtrl),
+                                _buildSection(colors, 'ทะเบียนคุมการจัดซื้อ',
+                                    _purchases, _purchaseScrollCtrl),
                                 const SizedBox(height: 24),
-                                _buildSection(colors, 'ทะเบียนคุมการจัดจ้าง', _hires, _hireScrollCtrl),
+                                _buildSection(colors, 'ทะเบียนคุมการจัดจ้าง',
+                                    _hires, _hireScrollCtrl),
                                 const SizedBox(height: 24),
                               ],
                             ),
@@ -233,8 +465,12 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
     List<ProcurementOrder> orders,
     ScrollController scrollCtrl,
   ) {
-    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant);
-    final total = orders.fold<double>(0, (s, o) => s + (o.currentOrderPrice ?? 0));
+    final headerStyle = TextStyle(
+        fontWeight: AppTypography.weightBold,
+        fontSize: AppTypography.bodySmall,
+        color: colors.onSurfaceVariant);
+    final total =
+        orders.fold<double>(0, (s, o) => s + (o.currentOrderPrice ?? 0));
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
@@ -249,27 +485,37 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: BrandAccent.teal(context).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(RadiusSize.card - 1)),
+              borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(RadiusSize.card - 1)),
               border: Border(bottom: BorderSide(color: colors.outline)),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Text(title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontWeight: AppTypography.weightExtraBold,
+                          fontSize: AppTypography.heading4,
+                          color: colors.onSurface)),
                 ),
                 const SizedBox(width: 8),
                 Text('${orders.length} รายการ · รวม ${formatBaht(total)} บาท',
-                  style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodyMedium,
+                        fontWeight: AppTypography.weightBold,
+                        color: colors.onSurfaceVariant)),
               ],
             ),
           ),
           if (orders.isEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('ไม่มีรายการ', style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.body)),
+              child: Text('ไม่มีรายการ',
+                  style: TextStyle(
+                      color: colors.onSurfaceVariant,
+                      fontSize: AppTypography.body)),
             )
           else ...[
             // บอกใบ้ว่าตารางเลื่อนดูคอลัมน์ที่เหลือได้ (คอลัมน์เยอะกว่าที่จอโชว์พอดี)
@@ -277,10 +523,15 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
               child: Row(
                 children: [
-                  Icon(Icons.swipe_outlined, size: 13, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
+                  Icon(Icons.swipe_outlined,
+                      size: 13,
+                      color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
                   const SizedBox(width: 4),
                   Text('เลื่อนดูคอลัมน์ที่เหลือได้ →',
-                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant.withValues(alpha: 0.7))),
+                      style: TextStyle(
+                          fontSize: AppTypography.caption,
+                          color:
+                              colors.onSurfaceVariant.withValues(alpha: 0.7))),
                 ],
               ),
             ),
@@ -299,59 +550,145 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                   controller: scrollCtrl,
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
-                    width: 1372,
+                    width: 1372 +
+                        (_visibleColumns.contains('โครงการ') ? 136 : 0) +
+                        (_visibleColumns.contains('กิจกรรม') ? 136 : 0) +
+                        (_visibleColumns.contains('รายงานผล') ? 106 : 0) +
+                        (_visibleColumns.contains('ทำสัญญา') ? 106 : 0) +
+                        (_visibleColumns.contains('เลขคำสั่ง') ? 106 : 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(
+                                      color: colors.outlineVariant,
+                                      width: 1.5))),
                           child: Row(
                             children: [
-                              SizedBox(width: 36, child: Text('ที่', style: headerStyle)),
+                              SizedBox(
+                                  width: 36,
+                                  child: Text('ที่', style: headerStyle)),
                               const SizedBox(width: 6),
-                              SizedBox(width: 100, child: Text('เลขที่เอกสาร', style: headerStyle)),
+                              SizedBox(
+                                  width: 100,
+                                  child:
+                                      Text('เลขที่เอกสาร', style: headerStyle)),
                               const SizedBox(width: 6),
-                              Expanded(flex: 3, child: Text('รายการ/โครงการ', style: headerStyle)),
-                              if (_visibleColumns.contains('ผู้ขาย/ผู้รับจ้าง')) ...[
+                              Expanded(
+                                  flex: 3,
+                                  child: Text('รายการ', style: headerStyle)),
+                              if (_visibleColumns
+                                  .contains('ผู้ขาย/ผู้รับจ้าง')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 120, child: Text('ผู้ขาย/ผู้รับจ้าง', style: headerStyle)),
+                                SizedBox(
+                                    width: 120,
+                                    child: Text('ผู้ขาย/ผู้รับจ้าง',
+                                        style: headerStyle)),
                               ],
                               if (_visibleColumns.contains('ประเภทเงิน')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 90, child: Text('ประเภทเงิน', style: headerStyle)),
+                                SizedBox(
+                                    width: 90,
+                                    child:
+                                        Text('ประเภทเงิน', style: headerStyle)),
                               ],
-                              if (_visibleColumns.contains('เลขที่โครงการ')) ...[
+                              if (_visibleColumns.contains('โครงการ')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 90, child: Text('เลขที่โครงการ', style: headerStyle)),
+                                SizedBox(
+                                    width: 130,
+                                    child: Text('โครงการ', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('กิจกรรม')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(
+                                    width: 130,
+                                    child: Text('กิจกรรม', style: headerStyle)),
+                              ],
+                              if (_visibleColumns
+                                  .contains('เลขที่โครงการ')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(
+                                    width: 90,
+                                    child: Text('เลขที่โครงการ',
+                                        style: headerStyle)),
                               ],
                               if (_visibleColumns.contains('จำนวนเงิน')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 110, child: Text('จำนวนเงิน', style: headerStyle, textAlign: TextAlign.right)),
-                                if (_visibleColumns.contains('วันที่') ||
-                                    _visibleColumns.contains('ครบกำหนดส่งมอบ') ||
+                                SizedBox(
+                                    width: 110,
+                                    child: Text('จำนวนเงิน',
+                                        style: headerStyle,
+                                        textAlign: TextAlign.right)),
+                                if (_visibleColumns.contains('รายงานขอ') ||
+                                    _visibleColumns.contains('เลขคำสั่ง') ||
+                                    _visibleColumns.contains('รายงานผล') ||
+                                    _visibleColumns.contains('ทำสัญญา') ||
+                                    _visibleColumns
+                                        .contains('ครบกำหนดส่งมอบ') ||
                                     _visibleColumns.contains('วันตรวจรับ') ||
-                                    _visibleColumns.contains('วันส่งเบิกเงิน')) ...[
+                                    _visibleColumns
+                                        .contains('วันส่งเบิกเงิน')) ...[
                                   const SizedBox(width: 10),
-                                  Container(width: 1, height: 16, color: colors.outlineVariant),
+                                  Container(
+                                      width: 1,
+                                      height: 16,
+                                      color: colors.outlineVariant),
                                   const SizedBox(width: 2),
                                 ],
                               ],
-                              if (_visibleColumns.contains('วันที่')) ...[
+                              if (_visibleColumns.contains('รายงานขอ')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 100, child: Text('วันที่', style: headerStyle)),
+                                SizedBox(
+                                    width: 100,
+                                    child:
+                                        Text('รายงานขอ', style: headerStyle)),
                               ],
-                              if (_visibleColumns.contains('ครบกำหนดส่งมอบ')) ...[
+                              if (_visibleColumns.contains('เลขคำสั่ง')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 110, child: Text('ครบกำหนดส่งมอบ', style: headerStyle)),
+                                SizedBox(
+                                    width: 100,
+                                    child:
+                                        Text('เลขคำสั่ง', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('รายงานผล')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(
+                                    width: 100,
+                                    child:
+                                        Text('รายงานผล', style: headerStyle)),
+                              ],
+                              if (_visibleColumns.contains('ทำสัญญา')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(
+                                    width: 100,
+                                    child: Text('ทำสัญญา', style: headerStyle)),
+                              ],
+                              if (_visibleColumns
+                                  .contains('ครบกำหนดส่งมอบ')) ...[
+                                const SizedBox(width: 6),
+                                SizedBox(
+                                    width: 110,
+                                    child: Text('ครบกำหนดส่งมอบ',
+                                        style: headerStyle)),
                               ],
                               if (_visibleColumns.contains('วันตรวจรับ')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 100, child: Text('วันตรวจรับ', style: headerStyle)),
+                                SizedBox(
+                                    width: 100,
+                                    child:
+                                        Text('วันตรวจรับ', style: headerStyle)),
                               ],
-                              if (_visibleColumns.contains('วันส่งเบิกเงิน')) ...[
+                              if (_visibleColumns
+                                  .contains('วันส่งเบิกเงิน')) ...[
                                 const SizedBox(width: 6),
-                                SizedBox(width: 100, child: Text('วันส่งเบิกเงิน', style: headerStyle)),
+                                SizedBox(
+                                    width: 100,
+                                    child: Text('วันส่งเบิกเงิน',
+                                        style: headerStyle)),
                               ],
                             ],
                           ),
@@ -360,7 +697,8 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                           child: ListView.builder(
                             padding: const EdgeInsets.only(bottom: 10),
                             itemCount: orders.length,
-                            itemBuilder: (_, i) => _buildRow(colors, i + 1, orders[i]),
+                            itemBuilder: (_, i) =>
+                                _buildRow(colors, i + 1, orders[i]),
                           ),
                         ),
                       ],
@@ -377,33 +715,97 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
 
   Widget _buildRow(ColorScheme colors, int index, ProcurementOrder o) {
     final docNumber = o.orderNumber ?? o.procurementNumber ?? '-';
-    final itemLabel = _projectLabel(o) ?? o.procurementSubject ?? '(ไม่มีชื่อรายการ)';
+    final itemLabel = (o.procurementSubject?.trim().isNotEmpty ?? false)
+        ? o.procurementSubject!
+        : '-';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colors.outlineVariant))),
       child: Row(
         children: [
-          SizedBox(width: 36, child: Text('$index', style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 36,
+              child: Text('$index',
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
           const SizedBox(width: 6),
-          SizedBox(width: 100, child: Text(docNumber, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          SizedBox(
+              width: 100,
+              child: Text(docNumber,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 6),
-          Expanded(flex: 3, child: Text(itemLabel, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(
+              flex: 3,
+              child: Text(itemLabel,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis)),
           if (_visibleColumns.contains('ผู้ขาย/ผู้รับจ้าง')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 120, child: Text(o.vendorName ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(
+                width: 120,
+                child: Text(o.vendorName ?? '-',
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
           if (_visibleColumns.contains('ประเภทเงิน')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 90, child: Text(o.fundType ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(
+                width: 90,
+                child: Text(o.fundType ?? '-',
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
+          ],
+          if (_visibleColumns.contains('โครงการ')) ...[
+            const SizedBox(width: 6),
+            SizedBox(
+                width: 130,
+                child: Text(
+                    _projectNameLabel(o).isEmpty ? '-' : _projectNameLabel(o),
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
+          ],
+          if (_visibleColumns.contains('กิจกรรม')) ...[
+            const SizedBox(width: 6),
+            SizedBox(
+                width: 130,
+                child: Text(
+                    _activityNameLabel(o).isEmpty ? '-' : _activityNameLabel(o),
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
           if (_visibleColumns.contains('เลขที่โครงการ')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 90, child: Text(o.projectNumber ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(
+                width: 90,
+                child: Text(
+                    o.egpProjectId != null
+                        ? toArabicDigits(o.egpProjectId)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
           if (_visibleColumns.contains('จำนวนเงิน')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
-            if (_visibleColumns.contains('วันที่') ||
+            SizedBox(
+                width: 110,
+                child: Text(
+                    o.currentOrderPrice != null
+                        ? formatBaht(o.currentOrderPrice)
+                        : '-',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: AppTypography.bodyMedium))),
+            if (_visibleColumns.contains('รายงานขอ') ||
+                _visibleColumns.contains('เลขคำสั่ง') ||
+                _visibleColumns.contains('รายงานผล') ||
+                _visibleColumns.contains('ทำสัญญา') ||
                 _visibleColumns.contains('ครบกำหนดส่งมอบ') ||
                 _visibleColumns.contains('วันตรวจรับ') ||
                 _visibleColumns.contains('วันส่งเบิกเงิน')) ...[
@@ -412,21 +814,80 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
               const SizedBox(width: 2),
             ],
           ],
-          if (_visibleColumns.contains('วันที่')) ...[
+          if (_visibleColumns.contains('รายงานขอ')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 100, child: Text(o.dateOrderCreated != null ? formatThaiDateShort(o.dateOrderCreated) : '-', style: TextStyle(fontSize: AppTypography.caption))),
+            SizedBox(
+                width: 100,
+                child: Text(
+                    o.dateOrderCreated != null
+                        ? formatThaiDateShort(o.dateOrderCreated)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.caption))),
+          ],
+          // ใช้วันที่คำสั่งแต่งตั้งผู้ตรวจรับพัสดุแยกต่างหากถ้ากรอกไว้ (มักออก
+          // พร้อมบันทึกขอซื้อ/จ้างฉบับเดียวกัน แต่บางครั้งลงนามคนละวันได้) ถ้ายัง
+          // ไม่ได้กรอกฟิลด์ใหม่นี้ (โครงการเก่าก่อนอัปเดต) ใช้วันที่ "รายงานขอ"
+          // แทนเหมือนเดิมเป็น fallback
+          if (_visibleColumns.contains('เลขคำสั่ง')) ...[
+            const SizedBox(width: 6),
+            SizedBox(
+                width: 100,
+                child: Text(
+                    (o.inspectorOrderDate ?? o.dateOrderCreated) != null
+                        ? formatThaiDateShort(
+                            o.inspectorOrderDate ?? o.dateOrderCreated)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.caption))),
+          ],
+          if (_visibleColumns.contains('รายงานผล')) ...[
+            const SizedBox(width: 6),
+            SizedBox(
+                width: 100,
+                child: Text(
+                    o.dateAnnouncement != null
+                        ? formatThaiDateShort(o.dateAnnouncement)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.caption))),
+          ],
+          if (_visibleColumns.contains('ทำสัญญา')) ...[
+            const SizedBox(width: 6),
+            SizedBox(
+                width: 100,
+                child: Text(
+                    o.dateContractSigned != null
+                        ? formatThaiDateShort(o.dateContractSigned)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.caption))),
           ],
           if (_visibleColumns.contains('ครบกำหนดส่งมอบ')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 110, child: Text(o.dateDeadline != null ? formatThaiDateShort(o.dateDeadline) : '-', style: TextStyle(fontSize: AppTypography.caption))),
+            SizedBox(
+                width: 110,
+                child: Text(
+                    o.dateDeadline != null
+                        ? formatThaiDateShort(o.dateDeadline)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.caption))),
           ],
           if (_visibleColumns.contains('วันตรวจรับ')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 100, child: Text(o.dateInspection != null ? formatThaiDateShort(o.dateInspection) : '-', style: TextStyle(fontSize: AppTypography.caption))),
+            SizedBox(
+                width: 100,
+                child: Text(
+                    o.dateInspection != null
+                        ? formatThaiDateShort(o.dateInspection)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.caption))),
           ],
           if (_visibleColumns.contains('วันส่งเบิกเงิน')) ...[
             const SizedBox(width: 6),
-            SizedBox(width: 100, child: Text(o.dateDisbursement != null ? formatThaiDateShort(o.dateDisbursement) : '-', style: TextStyle(fontSize: AppTypography.caption))),
+            SizedBox(
+                width: 100,
+                child: Text(
+                    o.dateDisbursement != null
+                        ? formatThaiDateShort(o.dateDisbursement)
+                        : '-',
+                    style: TextStyle(fontSize: AppTypography.caption))),
           ],
         ],
       ),

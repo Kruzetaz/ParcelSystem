@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
 import '../utils/app_folder_name.dart';
+import '../utils/thai_numerals.dart';
 
 class OrderRegisterExportService {
   static Future<File> export({
@@ -22,7 +23,9 @@ class OrderRegisterExportService {
     _writeSheet(excel, 'จัดซื้อ', purchases, budgetsById);
     _writeSheet(excel, 'จัดจ้าง', hires, budgetsById);
 
-    if (starterSheetName != null && starterSheetName != 'จัดซื้อ' && starterSheetName != 'จัดจ้าง') {
+    if (starterSheetName != null &&
+        starterSheetName != 'จัดซื้อ' &&
+        starterSheetName != 'จัดจ้าง') {
       excel.delete(starterSheetName);
     }
 
@@ -70,13 +73,17 @@ class OrderRegisterExportService {
     sheet.appendRow([
       xls.TextCellValue('ที่'),
       xls.TextCellValue('เลขที่เอกสาร'),
-      xls.TextCellValue('วันที่'),
-      xls.TextCellValue('รายการ/โครงการ'),
+      xls.TextCellValue('รายงานขอ'),
+      xls.TextCellValue('รายการ'),
       xls.TextCellValue('จำนวนเงิน'),
       xls.TextCellValue('ประเภทของเงิน'),
       xls.TextCellValue('ผู้ขาย/ผู้รับจ้าง'),
-      xls.TextCellValue('แผนงาน/โครงการ'),
+      xls.TextCellValue('โครงการ'),
+      xls.TextCellValue('กิจกรรม'),
       xls.TextCellValue('เลขที่โครงการ'),
+      xls.TextCellValue('เลขคำสั่ง'),
+      xls.TextCellValue('รายงานผล'),
+      xls.TextCellValue('ทำสัญญา'),
       xls.TextCellValue('ครบกำหนดส่งมอบ'),
       xls.TextCellValue('วันตรวจรับ'),
       xls.TextCellValue('วันส่งเบิกเงิน'),
@@ -85,17 +92,29 @@ class OrderRegisterExportService {
     for (var i = 0; i < orders.length; i++) {
       final o = orders[i];
       final budget = o.budgetId != null ? budgetsById[o.budgetId] : null;
-      final projectLabel = budget?.projectName ?? o.projectName ?? o.procurementSubject ?? '';
+      // "รายการ" = หัวเรื่องเท่านั้น (ไม่ปนชื่อโครงการแบบเดิมแล้ว — แยกไปอยู่
+      // คอลัมน์ "โครงการ"/"กิจกรรม" ต่างหากให้ตรงกับทะเบียนคุมที่โรงเรียนใช้เดิม)
+      final itemLabel = o.procurementSubject?.trim() ?? '';
+      final project = (budget?.projectName ?? o.projectName)?.trim() ?? '';
+      final activity = budget?.activityName?.trim() ?? '';
       sheet.appendRow([
         xls.IntCellValue(i + 1),
         xls.TextCellValue(o.orderNumber ?? o.procurementNumber ?? ''),
         xls.TextCellValue(o.dateOrderCreated ?? ''),
-        xls.TextCellValue(projectLabel),
-        o.currentOrderPrice != null ? xls.DoubleCellValue(o.currentOrderPrice!) : xls.TextCellValue(''),
+        xls.TextCellValue(itemLabel),
+        o.currentOrderPrice != null
+            ? xls.DoubleCellValue(o.currentOrderPrice!)
+            : xls.TextCellValue(''),
         xls.TextCellValue(o.fundType ?? ''),
         xls.TextCellValue(o.vendorName ?? ''),
-        xls.TextCellValue(budget?.groupName ?? ''),
-        xls.TextCellValue(o.projectNumber ?? ''),
+        xls.TextCellValue(project),
+        xls.TextCellValue(activity),
+        xls.TextCellValue(toArabicDigits(o.egpProjectId)),
+        // ใช้วันที่คำสั่งแต่งตั้งผู้ตรวจรับพัสดุแยกถ้ากรอกไว้ ไม่งั้น fallback
+        // เป็นวันที่ "รายงานขอ" เหมือนเดิม (โครงการเก่าก่อนมีฟิลด์นี้)
+        xls.TextCellValue(o.inspectorOrderDate ?? o.dateOrderCreated ?? ''),
+        xls.TextCellValue(o.dateAnnouncement ?? ''),
+        xls.TextCellValue(o.dateContractSigned ?? ''),
         xls.TextCellValue(o.dateDeadline ?? ''),
         xls.TextCellValue(o.dateInspection ?? ''),
         xls.TextCellValue(o.dateDisbursement ?? ''),

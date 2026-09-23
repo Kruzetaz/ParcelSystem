@@ -45,7 +45,35 @@ const _sidebarAnimDuration = Duration(milliseconds: 220);
 const _sidebarAnimCurve = Curves.easeInOut;
 const _sidebarOrderPrefsKey = 'sidebar_item_order_v1';
 
-enum AppMode { dashboard, procurementCalendar, newOrder, easyWizard, budgets, tor, contracts, guarantees, inspections, installmentContracts, documentHub, travelReimbursement, orderRegister, controlLog, documentChecklist, learningMaterials, fixedAssets, repairHistory, materials, annualCount, disposals, reports, settings, aiSettings }
+enum AppMode {
+  dashboard,
+  procurementCalendar,
+  newOrder,
+  easyWizard,
+  budgets,
+  tor,
+  contracts,
+  guarantees,
+  inspections,
+  installmentContracts,
+  documentHub,
+  travelReimbursement,
+  orderRegister,
+  controlLog,
+  deliveryNoteRegister,
+  expenditureRegister,
+  documentChecklist,
+  learningMaterials,
+  fixedAssets,
+  repairHistory,
+  materials,
+  annualCount,
+  staffAppointment,
+  disposals,
+  reports,
+  settings,
+  aiSettings
+}
 
 /// ไอคอน+ชื่อเมนูของแต่ละ AppMode — แยกออกมาจากลำดับการแสดงผล เพื่อให้ลำดับ
 /// ที่ผู้ใช้ลากจัดเองแล้ว ยังหาไอคอน/ชื่อที่ถูกต้องมาแสดงได้เสมอไม่ว่าจะสลับ
@@ -60,17 +88,38 @@ const Map<AppMode, (IconData, String)> modeMeta = {
   AppMode.contracts: (Icons.article_outlined, 'บริหารสัญญา'),
   AppMode.guarantees: (Icons.shield_outlined, 'หลักประกัน'),
   AppMode.inspections: (Icons.fact_check_outlined, 'ตรวจรับพัสดุ'),
-  AppMode.installmentContracts: (Icons.event_repeat_outlined, 'สัญญาต่อเนื่องหลายงวด'),
+  AppMode.installmentContracts: (
+    Icons.event_repeat_outlined,
+    'สัญญาต่อเนื่องหลายงวด'
+  ),
   AppMode.documentHub: (Icons.file_copy_outlined, 'สร้างเอกสารราชการ'),
-  AppMode.travelReimbursement: (Icons.card_travel_outlined, 'เบิกจ่ายเดินทางไปราชการ (แบบ ๘๗๐๘)'),
+  AppMode.travelReimbursement: (
+    Icons.card_travel_outlined,
+    'เบิกจ่ายเดินทางไปราชการ (แบบ ๘๗๐๘)'
+  ),
   AppMode.orderRegister: (Icons.numbers_outlined, 'ทะเบียนคุมเลขที่'),
   AppMode.controlLog: (Icons.receipt_long_outlined, 'ทะเบียนคุมเลขบันทึก/TOR'),
-  AppMode.documentChecklist: (Icons.fact_check_outlined, 'ทะเบียนตรวจสอบเอกสาร'),
-  AppMode.learningMaterials: (Icons.menu_book_outlined, 'หนังสือเรียน/อุปกรณ์การเรียน'),
+  AppMode.deliveryNoteRegister: (
+    Icons.local_shipping_outlined,
+    'ทะเบียนคุมใบส่งของ'
+  ),
+  AppMode.expenditureRegister: (
+    Icons.payments_outlined,
+    'ทะเบียนคุมรายจ่ายโครงการ'
+  ),
+  AppMode.documentChecklist: (
+    Icons.fact_check_outlined,
+    'ทะเบียนตรวจสอบเอกสาร'
+  ),
+  AppMode.learningMaterials: (
+    Icons.menu_book_outlined,
+    'หนังสือเรียน/อุปกรณ์การเรียน'
+  ),
   AppMode.fixedAssets: (Icons.inventory_2_outlined, 'ทะเบียนครุภัณฑ์'),
   AppMode.repairHistory: (Icons.build_outlined, 'ประวัติซ่อมครุภัณฑ์'),
   AppMode.materials: (Icons.inventory_outlined, 'วัสดุ/คลังพัสดุ'),
   AppMode.annualCount: (Icons.checklist_outlined, 'ตรวจนับประจำปี'),
+  AppMode.staffAppointment: (Icons.badge_outlined, 'แต่งตั้งเจ้าหน้าที่พัสดุ'),
   AppMode.disposals: (Icons.delete_sweep_outlined, 'จำหน่ายพัสดุ'),
   AppMode.reports: (Icons.bar_chart_outlined, 'รายงาน/สตง.'),
   AppMode.aiSettings: (Icons.auto_awesome_outlined, 'ตั้งค่า AI'),
@@ -95,6 +144,8 @@ const Map<AppMode, String> requiredModuleFor = {
   AppMode.documentHub: FeatureModules.procurement,
   AppMode.orderRegister: FeatureModules.procurement,
   AppMode.controlLog: FeatureModules.procurement,
+  AppMode.deliveryNoteRegister: FeatureModules.procurement,
+  AppMode.expenditureRegister: FeatureModules.procurement,
   AppMode.documentChecklist: FeatureModules.procurement,
   AppMode.contracts: FeatureModules.contractManagement,
   AppMode.guarantees: FeatureModules.contractManagement,
@@ -105,6 +156,7 @@ const Map<AppMode, String> requiredModuleFor = {
   AppMode.materials: FeatureModules.assetManagement,
   AppMode.learningMaterials: FeatureModules.assetManagement,
   AppMode.annualCount: FeatureModules.assetManagement,
+  AppMode.staffAppointment: FeatureModules.assetManagement,
   AppMode.disposals: FeatureModules.assetManagement,
   AppMode.reports: FeatureModules.reports,
   AppMode.travelReimbursement: FeatureModules.travelExpense,
@@ -127,7 +179,8 @@ class _SidebarSection {
 // ดำเนินการจัดซื้อจัดจ้าง (มีคู่สัญญาแล้ว) → ทะเบียน/เลขที่เอกสารอ้างอิง
 // (งานเอกสารคุมเลขที่ ทำแยกจังหวะกับงานหลักอยู่แล้ว)
 const _sections = [
-  _SidebarSection('overview', 'ภาพรวม', [AppMode.dashboard, AppMode.procurementCalendar]),
+  _SidebarSection(
+      'overview', 'ภาพรวม', [AppMode.dashboard, AppMode.procurementCalendar]),
   _SidebarSection('create', 'สร้างเอกสาร', [
     AppMode.newOrder,
     AppMode.easyWizard,
@@ -147,6 +200,8 @@ const _sections = [
   _SidebarSection('registers', 'ทะเบียน/เลขที่เอกสาร', [
     AppMode.orderRegister,
     AppMode.controlLog,
+    AppMode.deliveryNoteRegister,
+    AppMode.expenditureRegister,
     AppMode.documentChecklist,
   ]),
   _SidebarSection('assets', 'ทรัพย์สินและพัสดุ', [
@@ -155,6 +210,7 @@ const _sections = [
     AppMode.materials,
     AppMode.learningMaterials,
     AppMode.annualCount,
+    AppMode.staffAppointment,
     AppMode.disposals,
   ]),
   _SidebarSection('reports', 'รายงานและตรวจสอบ', [AppMode.reports]),
@@ -216,7 +272,8 @@ class _AppSidebarState extends State<AppSidebar> {
       final saved = jsonDecode(raw) as Map<String, dynamic>;
       final next = <String, List<AppMode>>{};
       for (final s in _sections) {
-        final savedNames = (saved[s.key] as List<dynamic>?)?.cast<String>() ?? const [];
+        final savedNames =
+            (saved[s.key] as List<dynamic>?)?.cast<String>() ?? const [];
         final byName = {for (final m in s.defaultOrder) m.name: m};
         final ordered = <AppMode>[
           for (final name in savedNames)
@@ -239,7 +296,8 @@ class _AppSidebarState extends State<AppSidebar> {
   Future<void> _saveOrder() async {
     final prefs = await SharedPreferences.getInstance();
     final asNames = {
-      for (final entry in _order.entries) entry.key: [for (final m in entry.value) m.name],
+      for (final entry in _order.entries)
+        entry.key: [for (final m in entry.value) m.name],
     };
     await prefs.setString(_sidebarOrderPrefsKey, jsonEncode(asNames));
   }
@@ -276,7 +334,8 @@ class _AppSidebarState extends State<AppSidebar> {
             // พื้นหลังสีเดียวกันทั้งแถบ มองแวบแรกแยกไม่ออกว่าเป็นคนละส่วนกัน
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Divider(height: 1, thickness: 1, color: _RailColors.divider),
+              child:
+                  Divider(height: 1, thickness: 1, color: _RailColors.divider),
             ),
             // เมนูที่เหลือมีเยอะขึ้นเรื่อยๆ ตามฟีเจอร์ที่เพิ่ม — ห่อด้วย Expanded +
             // SingleChildScrollView กันไม่ให้ล้นจอตอนหน้าต่างเตี้ย/เมนูเยอะเกินพื้นที่
@@ -314,7 +373,8 @@ class _AppSidebarState extends State<AppSidebar> {
       buildDefaultDragHandles: false,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      onReorderItem: (oldIndex, newIndex) => _onReorder(section.key, oldIndex, newIndex),
+      onReorderItem: (oldIndex, newIndex) =>
+          _onReorder(section.key, oldIndex, newIndex),
       children: [
         for (var i = 0; i < items.length; i++)
           _buildItem(items[i], key: ValueKey(items[i]), dragIndex: i),
@@ -323,7 +383,8 @@ class _AppSidebarState extends State<AppSidebar> {
   }
 
   Widget _buildToggleButton() {
-    return _SidebarToggleTile(expanded: widget.expanded, onTap: widget.onToggle);
+    return _SidebarToggleTile(
+        expanded: widget.expanded, onTap: widget.onToggle);
   }
 
   /// หัวข้อคั่นหมวดหมู่เมนู — ตอนขยายโชว์เป็นข้อความตัวเล็กพิมพ์ใหญ่แบบ mockup
@@ -331,7 +392,8 @@ class _AppSidebarState extends State<AppSidebar> {
   /// ดูเป็น list เดียวรวด
   Widget _buildSectionHeader(String label, {bool first = false}) {
     return Padding(
-      padding: EdgeInsets.only(top: first ? 0 : 14, bottom: 4, left: 16, right: 16),
+      padding:
+          EdgeInsets.only(top: first ? 0 : 14, bottom: 4, left: 16, right: 16),
       child: widget.expanded
           ? Text(
               label,
@@ -350,7 +412,8 @@ class _AppSidebarState extends State<AppSidebar> {
 
   /// แถบอ้างอิงอัตราหัก ณ ที่จ่ายค้างไว้ท้าย sidebar ตลอด — ช่วยเจ้าหน้าที่ไม่ต้อง
   /// เปิดหาอัตราภาษีทุกครั้งที่กรอกบิล ตอนพับ sidebar เหลือแค่ไอคอนกดดู tooltip
-  static const _whtText = 'ซื้อสินค้า = ไม่หัก (0%)\nจ้างทำของ/บริการ = 3%\nค่าเช่า = 5%';
+  static const _whtText =
+      'ซื้อสินค้า = ไม่หัก (0%)\nจ้างทำของ/บริการ = 3%\nค่าเช่า = 5%';
 
   Widget _buildWhtFooter() {
     final collapsedIcon = Padding(
@@ -358,7 +421,8 @@ class _AppSidebarState extends State<AppSidebar> {
       child: Tooltip(
         message: 'อัตราหัก ณ ที่จ่าย (ประมวลรัษฎากร)\n$_whtText',
         preferBelow: false,
-        child: Icon(Icons.percent_outlined, size: 18, color: _RailColors.textDim),
+        child:
+            Icon(Icons.percent_outlined, size: 18, color: _RailColors.textDim),
       ),
     );
     if (!widget.expanded) return collapsedIcon;
@@ -382,12 +446,16 @@ class _AppSidebarState extends State<AppSidebar> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.percent_outlined, size: 13, color: _RailColors.footerText),
+                Icon(Icons.percent_outlined,
+                    size: 13, color: _RailColors.footerText),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'หัก ณ ที่จ่าย\nซื้อ=0% | จ้าง=3% | เช่า=5%',
-                    style: TextStyle(fontSize: 9, color: _RailColors.footerText, height: 1.5),
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: _RailColors.footerText,
+                        height: 1.5),
                   ),
                 ),
               ],
@@ -405,7 +473,8 @@ class _AppSidebarState extends State<AppSidebar> {
   Widget _buildItem(AppMode mode, {Key? key, int? dragIndex}) {
     final meta = modeMeta[mode]!;
     final requiredModule = requiredModuleFor[mode];
-    final locked = requiredModule != null && !FeatureAccessService.instance.hasModule(requiredModule);
+    final locked = requiredModule != null &&
+        !FeatureAccessService.instance.hasModule(requiredModule);
     final row = _SidebarItemTile(
       icon: meta.$1,
       label: meta.$2,
@@ -414,7 +483,8 @@ class _AppSidebarState extends State<AppSidebar> {
       dragIndex: dragIndex,
       locked: locked,
       onTap: () => locked
-          ? showUpsellDialog(context, featureLabel: meta.$2, requiredModule: requiredModule)
+          ? showUpsellDialog(context,
+              featureLabel: meta.$2, requiredModule: requiredModule)
           : widget.onSelect(mode),
     );
     return key != null ? KeyedSubtree(key: key, child: row) : row;
@@ -460,7 +530,8 @@ class _SidebarToggleTileState extends State<_SidebarToggleTile> {
             curve: _sidebarAnimCurve,
             width: double.infinity,
             margin: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-            padding: const EdgeInsets.only(left: 6, right: 6, top: 8, bottom: 8),
+            padding:
+                const EdgeInsets.only(left: 6, right: 6, top: 8, bottom: 8),
             decoration: BoxDecoration(
               color: _hovering ? _RailColors.hoverBg : Colors.transparent,
               borderRadius: BorderRadius.circular(RadiusSize.lg),
@@ -469,8 +540,10 @@ class _SidebarToggleTileState extends State<_SidebarToggleTile> {
             // วัดพื้นที่จริง กัน overflow ตอน Container กับป้ายข้างในไม่ sync กัน)
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final maxLabelWidth = (constraints.maxWidth - 18 /* icon */).clamp(0.0, double.infinity);
-                final labelWidth = (widget.expanded ? _sidebarLabelWidth : 0.0).clamp(0.0, maxLabelWidth);
+                final maxLabelWidth = (constraints.maxWidth - 18 /* icon */)
+                    .clamp(0.0, double.infinity);
+                final labelWidth = (widget.expanded ? _sidebarLabelWidth : 0.0)
+                    .clamp(0.0, maxLabelWidth);
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -502,7 +575,8 @@ class _SidebarToggleTileState extends State<_SidebarToggleTile> {
                               fontSize: 12,
                               letterSpacing: 0.5,
                               height: 1,
-                              fontWeight: _hovering ? FontWeight.w700 : FontWeight.w400,
+                              fontWeight:
+                                  _hovering ? FontWeight.w700 : FontWeight.w400,
                             ),
                           ),
                         ),
@@ -560,7 +634,11 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: Tooltip(
-        message: widget.expanded ? '' : (widget.locked ? '${widget.label} (ต้องอัปเกรดแพ็กเกจ)' : widget.label),
+        message: widget.expanded
+            ? ''
+            : (widget.locked
+                ? '${widget.label} (ต้องอัปเกรดแพ็กเกจ)'
+                : widget.label),
         preferBelow: false,
         child: InkWell(
           onTap: widget.onTap,
@@ -578,7 +656,8 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
             // ซ้าย 9 ไม่ใช่ 12 — เพราะเส้นขอบซ้าย (border) ด้านล่างกินพื้นที่ไป
             // อีก 3px เสมอ (แม้เป็นสีใส/transparent ก็ยังนับความกว้างอยู่ดี)
             // ถ้าใช้ 12 เท่ากันทุกด้าน รวมแล้วจะเกินพื้นที่จริง 3px ทำให้ล้นตอนพับ
-            padding: const EdgeInsets.only(left: 6, right: 6, top: 8, bottom: 8),
+            padding:
+                const EdgeInsets.only(left: 6, right: 6, top: 8, bottom: 8),
             decoration: BoxDecoration(
               color: widget.isSelected
                   ? _RailColors.selectedBg
@@ -586,7 +665,9 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
               borderRadius: BorderRadius.circular(RadiusSize.lg),
               border: Border(
                 left: BorderSide(
-                  color: widget.isSelected ? _RailColors.selectedAccent : Colors.transparent,
+                  color: widget.isSelected
+                      ? _RailColors.selectedAccent
+                      : Colors.transparent,
                   width: 3,
                 ),
               ),
@@ -617,9 +698,12 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
                     constraints.maxWidth >= iconWidth + dragHandleReserve + 4;
                 final dragHandleWidth = hasDragHandle ? dragHandleReserve : 0.0;
                 final maxLabelWidth =
-                    (constraints.maxWidth - iconWidth - dragHandleWidth).clamp(0.0, double.infinity);
+                    (constraints.maxWidth - iconWidth - dragHandleWidth)
+                        .clamp(0.0, double.infinity);
                 final desiredLabelWidth = widget.expanded
-                    ? (widget.dragIndex != null ? _sidebarLabelWidth - 16 : _sidebarLabelWidth)
+                    ? (widget.dragIndex != null
+                        ? _sidebarLabelWidth - 16
+                        : _sidebarLabelWidth)
                     : 0.0;
                 final labelWidth = desiredLabelWidth.clamp(0.0, maxLabelWidth);
                 return Row(
@@ -636,7 +720,8 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
                                 Positioned(
                                   right: -2,
                                   bottom: -2,
-                                  child: Icon(Icons.lock, color: BrandColors.amber, size: 11),
+                                  child: Icon(Icons.lock,
+                                      color: BrandColors.amber, size: 11),
                                 ),
                               ],
                             )
@@ -663,7 +748,9 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
                               color: fg,
                               // ตัวหนาเฉพาะตอนเลือกอยู่/ชี้เมาส์อยู่ — ปกติเป็นตัว
                               // ธรรมดา (w400) กันดูหนาเกินไปทั้งแถบเวลาไม่มีอะไรทำ
-                              fontWeight: (widget.isSelected || _hovering) ? FontWeight.w700 : FontWeight.w400,
+                              fontWeight: (widget.isSelected || _hovering)
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
                               fontSize: 12.5,
                             ),
                           ),
@@ -680,7 +767,8 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
                             index: widget.dragIndex!,
                             child: MouseRegion(
                               cursor: SystemMouseCursors.grab,
-                              child: Icon(Icons.drag_indicator, size: 14, color: fg.withValues(alpha: 0.5)),
+                              child: Icon(Icons.drag_indicator,
+                                  size: 14, color: fg.withValues(alpha: 0.5)),
                             ),
                           ),
                         ),

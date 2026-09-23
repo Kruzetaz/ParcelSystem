@@ -225,7 +225,13 @@ class BudgetImportService {
     }
     final xmlStr = utf8.decode(docXml.content as List<int>);
     final buffer = StringBuffer();
-    final pattern = RegExp(r'<w:t[^>]*>(.*?)</w:t>|</w:p>', dotAll: true);
+    // สำคัญ: ต้องใช้ '\b' หลัง 'w:t' ไม่ใช่ 'w:t[^>]*' เฉยๆ — ไม่งั้นจะไปแมตช์
+    // <w:tab/>, <w:tabs>, <w:tbl...> ผิดๆ ด้วย (ขึ้นต้นด้วย "w:t" เหมือนกัน) ทำให้
+    // regex ไล่หา </w:t> ที่แท้จริงข้ามเนื้อหาไปไกลมาก แล้วกวาดเอา XML ดิบ (เช่น
+    // รูปภาพ/drawing ที่แทรกอยู่) มาเป็น "ข้อความ" ทั้งก้อนโดยไม่ตั้งใจ — เจอบั๊กนี้
+    // จากไฟล์จริงที่มีโลโก้โรงเรียนแทรกอยู่ (ข้อความที่แกะออกมาพองจาก ~14K ตัวอักษร
+    // เป็น ~225K ตัวอักษร เพราะโดน XML ดิบปนมาด้วย)
+    final pattern = RegExp(r'<w:t\b[^>]*>(.*?)</w:t>|</w:p>', dotAll: true);
     for (final match in pattern.allMatches(xmlStr)) {
       final text = match.group(1);
       buffer.write(text != null ? _unescapeXml(text) : '\n');

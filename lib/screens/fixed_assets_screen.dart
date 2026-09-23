@@ -21,38 +21,42 @@ import '../widgets/standard_price_picker_dialog.dart';
 import '../widgets/thai_date_picker.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
-import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant, DSFilterChip;
-import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant, DSFilterChip;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction;
 import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
-const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonTextStyle =
+    TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
 const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
 const _dialogLabelStyle = TextStyle(fontSize: 15);
 
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+InputDecoration _dialogFieldDecoration(BuildContext context,
+    {required String label, String? hint}) {
   final colors = Theme.of(context).colorScheme;
-  final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
+  final borderColor = colors.outline;
   return InputDecoration(
     labelText: label,
     hintText: hint,
     floatingLabelBehavior: FloatingLabelBehavior.always,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
-    isDense: true,
+    labelStyle: _dialogLabelStyle.copyWith(
+        color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(RadiusSize.md),
-      borderSide: BorderSide(color: borderColor, width: 1.3),
+      borderSide: BorderSide(color: borderColor, width: 1.0),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(RadiusSize.md),
-      borderSide: BorderSide(color: borderColor, width: 1.3),
+      borderSide: BorderSide(color: borderColor, width: 1.0),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(RadiusSize.md),
-      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+      borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
     ),
   );
 }
@@ -61,10 +65,22 @@ enum _AssetViewMode { table, grid }
 
 const _assetStatuses = ['ใช้งานปกติ', 'ชำรุด', 'รอจำหน่าย'];
 const _thaiMonths = [
-  '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  '',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ];
-String _formatThai(DateTime d) => '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
+String _formatThai(DateTime d) =>
+    '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
 
 /// แปลงสตริงวันที่รูปแบบ "${d} ${เดือนไทย} ${ปี พ.ศ.}" กลับเป็น DateTime (ค.ศ.)
 /// ใช้คำนวณค่าเสื่อมราคา — คืน null ถ้าแปลงไม่ได้ (ยังไม่ได้กรอก/รูปแบบเก่า)
@@ -89,7 +105,8 @@ Future<String> _copyPhotoLocally(String sourcePath) async {
   final assetsDir = Directory(p.join(docsDir.path, folderName, 'AssetPhotos'));
   if (!assetsDir.existsSync()) assetsDir.createSync(recursive: true);
   final ext = p.extension(sourcePath);
-  final destPath = p.join(assetsDir.path, 'asset_${DateTime.now().microsecondsSinceEpoch}$ext');
+  final destPath = p.join(
+      assetsDir.path, 'asset_${DateTime.now().microsecondsSinceEpoch}$ext');
   await File(sourcePath).copy(destPath);
   return destPath;
 }
@@ -132,13 +149,16 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       _assets = list;
       _loading = false;
       _selectedId = keepSelected ?? _selectedId;
-      if (_selectedId != null && !list.any((a) => a.id == _selectedId)) _selectedId = null;
+      if (_selectedId != null && !list.any((a) => a.id == _selectedId))
+        _selectedId = null;
     });
   }
 
   List<FixedAsset> get _filtered => _assets
       .where((a) => _statusFilter == null || a.status == _statusFilter)
-      .where((a) => _acquiredYearFilter == null || _acquiredYearOf(a) == _acquiredYearFilter)
+      .where((a) =>
+          _acquiredYearFilter == null ||
+          _acquiredYearOf(a) == _acquiredYearFilter)
       .toList();
 
   /// ปีที่ได้มา (พ.ศ.) ของครุภัณฑ์ชิ้นนี้ — ดึงตรงจากส่วนท้ายสตริงวันที่ (เช่น
@@ -154,12 +174,15 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   /// ปีที่มีครุภัณฑ์อยู่จริง (distinct, เรียงใหม่ไปเก่า) — ใช้ทำตัวเลือกใน
   /// dropdown กรอง ไม่โชว์ปีที่ไม่มีครุภัณฑ์เลย
   List<String> get _availableAcquiredYears {
-    final years = _assets.map(_acquiredYearOf).whereType<String>().toSet().toList();
+    final years =
+        _assets.map(_acquiredYearOf).whereType<String>().toSet().toList();
     years.sort((a, b) => b.compareTo(a));
     return years;
   }
 
-  FixedAsset? get _selected => _selectedId == null ? null : _assets.where((a) => a.id == _selectedId).firstOrNull;
+  FixedAsset? get _selected => _selectedId == null
+      ? null
+      : _assets.where((a) => a.id == _selectedId).firstOrNull;
 
   double get _totalValue => _assets.fold(0, (s, a) => s + a.totalValue);
   int _countByStatus(String s) => _assets.where((a) => a.status == s).length;
@@ -170,15 +193,17 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       });
 
   /// ครุภัณฑ์ที่กรอกอายุการใช้งานไว้ครบพอจะคำนวณตารางค่าเสื่อมราคารายปีได้
-  List<FixedAsset> get _assetsWithDepreciation =>
-      _assets.where((a) => (a.usefulLifeYears ?? 0) > 0 && a.totalValue > 0).toList();
+  List<FixedAsset> get _assetsWithDepreciation => _assets
+      .where((a) => (a.usefulLifeYears ?? 0) > 0 && a.totalValue > 0)
+      .toList();
 
   bool _exportingDepreciation = false;
 
   Future<void> _exportDepreciationSchedule() async {
     setState(() => _exportingDepreciation = true);
     try {
-      await DepreciationScheduleExportService.exportAndOpen(_assetsWithDepreciation);
+      await DepreciationScheduleExportService.exportAndOpen(
+          _assetsWithDepreciation);
       if (!mounted) return;
       showAppToast('สร้างตารางค่าเสื่อมราคาแล้ว');
     } catch (e) {
@@ -194,7 +219,8 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   Future<void> _exportAssetControlLedger() async {
     setState(() => _exportingLedger = true);
     try {
-      await AssetControlLedgerExportService.exportAndOpen(_assets, parseDate: _parseThaiDate);
+      await AssetControlLedgerExportService.exportAndOpen(_assets,
+          parseDate: _parseThaiDate);
       if (!mounted) return;
       showAppToast('สร้างทะเบียนคุมทรัพย์สินแล้ว');
     } catch (e) {
@@ -219,15 +245,21 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
-        content: Text('ต้องการลบครุภัณฑ์ "${a.name}" ใช่หรือไม่?', style: _dialogContentStyle),
+        content: Text('ต้องการลบครุภัณฑ์ "${a.name}" ใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -268,8 +300,10 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       title: 'วิธีใช้หน้าทะเบียนครุภัณฑ์',
       icon: Icons.inventory_2_outlined,
       // มุมขวาบนมีปุ่ม "พิมพ์ตารางค่าเสื่อมราคา" อยู่แล้ว และมุมขวาล่างมีปุ่ม
-      // "เพิ่มครุภัณฑ์" อยู่แล้ว ย้ายปุ่มไกด์ไปมุมซ้ายบนแทน (ไม่มีอะไรชน)
-      corner: Alignment.topLeft,
+      // "เพิ่มครุภัณฑ์" อยู่แล้ว — เดิมย้ายปุ่มไกด์ไปมุมซ้ายบน แต่ตรงนั้นดันไป
+      // ทับหัวข้อ "ทะเบียนครุภัณฑ์" ของหน้าพอดี (title Row เริ่มที่มุมซ้ายบน
+      // เหมือนกัน) ย้ายไปมุมซ้ายล่างแทน เข้ากับแพทเทิร์นที่หน้าอื่นๆ ส่วนใหญ่ใช้
+      corner: Alignment.bottomLeft,
       steps: const [
         'สลับมุมมองตาราง/กริดรูปภาพได้ที่ปุ่มมุมขวาของรายการ — มุมมองกริดเหมาะกับตอนต้องดูรูปครุภัณฑ์ประกอบ',
         'กดที่รายการในตารางเพื่อเปิดแผงรายละเอียดด้านขวา ดูประวัติการใช้งาน/ซ่อมบำรุงของครุภัณฑ์ชิ้นนั้น',
@@ -291,43 +325,73 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.inventory_2_outlined, color: BrandAccent.tealOn(context), size: 22),
+                          Icon(Icons.inventory_2_outlined,
+                              color: BrandAccent.tealOn(context), size: 22),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text('ทะเบียนครุภัณฑ์',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: AppTypography.heading2,
+                                    fontWeight: AppTypography.weightExtraBold,
+                                    color: colors.onSurface)),
                           ),
                           const SizedBox(width: 8),
                           OutlinedButton.icon(
-                            onPressed: (_assets.isEmpty || _exportingLedger) ? null : _exportAssetControlLedger,
+                            onPressed: (_assets.isEmpty || _exportingLedger)
+                                ? null
+                                : _exportAssetControlLedger,
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               side: BorderSide(color: colors.outline),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(RadiusSize.md)),
+                              textStyle: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w700),
                             ),
                             icon: _exportingLedger
-                                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
-                                : const Icon(Icons.receipt_long_outlined, size: 18),
-                            label: Text(_exportingLedger ? 'กำลังสร้าง...' : 'ทะเบียนคุมทรัพย์สิน'),
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: colors.onSurfaceVariant))
+                                : const Icon(Icons.receipt_long_outlined,
+                                    size: 18),
+                            label: Text(_exportingLedger
+                                ? 'กำลังสร้าง...'
+                                : 'ทะเบียนคุมทรัพย์สิน'),
                           ),
                           const SizedBox(width: 8),
                           OutlinedButton.icon(
-                            onPressed: (_assetsWithDepreciation.isEmpty || _exportingDepreciation)
+                            onPressed: (_assetsWithDepreciation.isEmpty ||
+                                    _exportingDepreciation)
                                 ? null
                                 : _exportDepreciationSchedule,
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               side: BorderSide(color: colors.outline),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(RadiusSize.md)),
+                              textStyle: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w700),
                             ),
                             icon: _exportingDepreciation
-                                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: colors.onSurfaceVariant))
                                 : const Icon(Icons.print_outlined, size: 18),
-                            label: Text(_exportingDepreciation ? 'กำลังสร้าง...' : 'พิมพ์ตารางค่าเสื่อมราคา'),
+                            label: Text(_exportingDepreciation
+                                ? 'กำลังสร้าง...'
+                                : 'พิมพ์ตารางค่าเสื่อมราคา'),
                           ),
                         ],
                       ),
@@ -341,7 +405,10 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                             Expanded(child: _buildListPane(context, colors)),
                             if (_selected != null) ...[
                               const SizedBox(width: 16),
-                              SizedBox(width: 360, child: _buildDetailPane(context, colors, _selected!)),
+                              SizedBox(
+                                  width: 360,
+                                  child: _buildDetailPane(
+                                      context, colors, _selected!)),
                             ],
                           ],
                         ),
@@ -444,11 +511,16 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                 const SizedBox(width: 8),
                 SegmentedButton<_AssetViewMode>(
                   segments: const [
-                    ButtonSegment(value: _AssetViewMode.table, icon: Icon(Icons.table_chart_outlined)),
-                    ButtonSegment(value: _AssetViewMode.grid, icon: Icon(Icons.grid_view_outlined)),
+                    ButtonSegment(
+                        value: _AssetViewMode.table,
+                        icon: Icon(Icons.table_chart_outlined)),
+                    ButtonSegment(
+                        value: _AssetViewMode.grid,
+                        icon: Icon(Icons.grid_view_outlined)),
                   ],
                   selected: {_viewMode},
-                  onSelectionChanged: (s) => setState(() => _viewMode = s.first),
+                  onSelectionChanged: (s) =>
+                      setState(() => _viewMode = s.first),
                 ),
               ],
             ),
@@ -460,17 +532,24 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.inventory_2_outlined, size: 64, color: colors.onSurfaceVariant),
+                        Icon(Icons.inventory_2_outlined,
+                            size: 64, color: colors.onSurfaceVariant),
                         const SizedBox(height: 12),
                         Text(
-                          _assets.isEmpty ? 'ยังไม่มีครุภัณฑ์\nกด "เพิ่มครุภัณฑ์" เพื่อเริ่มต้น' : 'ไม่พบรายการตามตัวกรองที่เลือก',
+                          _assets.isEmpty
+                              ? 'ยังไม่มีครุภัณฑ์\nกด "เพิ่มครุภัณฑ์" เพื่อเริ่มต้น'
+                              : 'ไม่พบรายการตามตัวกรองที่เลือก',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4),
+                          style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: AppTypography.heading4),
                         ),
                       ],
                     ),
                   )
-                : (_viewMode == _AssetViewMode.table ? _buildTable(context, colors) : _buildGrid(context, colors)),
+                : (_viewMode == _AssetViewMode.table
+                    ? _buildTable(context, colors)
+                    : _buildGrid(context, colors)),
           ),
         ],
       ),
@@ -492,7 +571,10 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Row(children: [chip('ทั้งหมด', null), for (final s in _assetStatuses) chip(s, s)]),
+      child: Row(children: [
+        chip('ทั้งหมด', null),
+        for (final s in _assetStatuses) chip(s, s)
+      ]),
     );
   }
 
@@ -511,14 +593,19 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String?>(
           value: _acquiredYearFilter,
-          isDense: true,
           icon: const Icon(Icons.expand_more, size: 18),
-          hint: Text('ปีที่ได้มา (ทั้งหมด)', style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
-          style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+          hint: Text('ปีที่ได้มา (ทั้งหมด)',
+              style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  color: colors.onSurfaceVariant)),
+          style: TextStyle(
+              fontSize: AppTypography.bodyMedium, color: colors.onSurface),
           dropdownColor: colors.surface,
           items: [
-            const DropdownMenuItem(value: null, child: Text('ปีที่ได้มา (ทั้งหมด)')),
-            for (final y in years) DropdownMenuItem(value: y, child: Text('ปี $y')),
+            const DropdownMenuItem(
+                value: null, child: Text('ปีที่ได้มา (ทั้งหมด)')),
+            for (final y in years)
+              DropdownMenuItem(value: y, child: Text('ปี $y')),
           ],
           onChanged: (v) => setState(() => _acquiredYearFilter = v),
         ),
@@ -530,7 +617,8 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 4),
       itemCount: _filtered.length,
-      separatorBuilder: (_, __) => Divider(height: 1, color: colors.outlineVariant),
+      separatorBuilder: (_, __) =>
+          Divider(height: 1, color: colors.outlineVariant),
       itemBuilder: (_, i) {
         final a = _filtered[i];
         final selected = a.id == _selectedId;
@@ -538,8 +626,19 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
           selected: selected,
           selectedTileColor: BrandAccent.teal(context).withValues(alpha: 0.1),
           leading: _thumbnail(a, colors, size: 40),
-          title: Text(a.name, style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text('${a.assetNumber ?? "-"} · ${a.location ?? "-"}', style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(a.name,
+              style: TextStyle(
+                  fontSize: AppTypography.body,
+                  fontWeight: AppTypography.weightSemiBold,
+                  color: colors.onSurface),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          subtitle: Text('${a.assetNumber ?? "-"} · ${a.location ?? "-"}',
+              style: TextStyle(
+                  fontSize: AppTypography.bodySmall,
+                  color: colors.onSurfaceVariant),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
           trailing: _statusBadge(a.status),
           onTap: () => setState(() => _selectedId = a.id),
         );
@@ -567,24 +666,38 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
             decoration: BoxDecoration(
               color: colors.surface,
               borderRadius: BorderRadius.circular(RadiusSize.card),
-              border: Border.all(color: selected ? BrandAccent.teal(context) : colors.outline, width: selected ? 2 : 1),
+              border: Border.all(
+                  color: selected ? BrandAccent.teal(context) : colors.outline,
+                  width: selected ? 2 : 1),
               boxShadow: AppShadows.light1,
             ),
             child: Column(
               children: [
-                Expanded(child: ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(9)), child: _thumbnail(a, colors, size: double.infinity))),
+                Expanded(
+                    child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(9)),
+                        child: _thumbnail(a, colors, size: double.infinity))),
                 Padding(
                   padding: const EdgeInsets.all(6),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface)),
+                      Text(a.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: AppTypography.bodyMedium,
+                              fontWeight: AppTypography.weightSemiBold,
+                              color: colors.onSurface)),
                       const SizedBox(height: 2),
                       Text(
                         '${a.assetNumber ?? "-"} · จำนวน ${a.quantity}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant),
+                        style: TextStyle(
+                            fontSize: AppTypography.caption,
+                            color: colors.onSurfaceVariant),
                       ),
                       const SizedBox(height: 3),
                       _statusBadge(a.status, small: true),
@@ -601,13 +714,18 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
 
   Widget _thumbnail(FixedAsset a, ColorScheme colors, {required double size}) {
     if (a.photoPath != null && File(a.photoPath!).existsSync()) {
-      return Image.file(File(a.photoPath!), width: size == double.infinity ? null : size, height: size == double.infinity ? null : size, fit: BoxFit.cover);
+      return Image.file(File(a.photoPath!),
+          width: size == double.infinity ? null : size,
+          height: size == double.infinity ? null : size,
+          fit: BoxFit.cover);
     }
     return Container(
       width: size == double.infinity ? null : size,
       height: size == double.infinity ? null : size,
       color: colors.surfaceContainerHighest,
-      child: Icon(Icons.inventory_2_outlined, color: colors.onSurfaceVariant, size: size == double.infinity ? 32 : size * 0.5),
+      child: Icon(Icons.inventory_2_outlined,
+          color: colors.onSurfaceVariant,
+          size: size == double.infinity ? 32 : size * 0.5),
     );
   }
 
@@ -620,8 +738,10 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     return StatusBadge(label: status, variant: variant, compact: true);
   }
 
-  Widget _buildDetailPane(BuildContext context, ColorScheme colors, FixedAsset a) {
-    final amberBg = Color.alphaBlend(BrandColors.amber.withValues(alpha: 0.12), colors.surface);
+  Widget _buildDetailPane(
+      BuildContext context, ColorScheme colors, FixedAsset a) {
+    final amberBg = Color.alphaBlend(
+        BrandColors.amber.withValues(alpha: 0.12), colors.surface);
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
@@ -637,27 +757,37 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(RadiusSize.card),
-                child: SizedBox(height: 140, width: double.infinity, child: _thumbnail(a, colors, size: double.infinity)),
+                child: SizedBox(
+                    height: 140,
+                    width: double.infinity,
+                    child: _thumbnail(a, colors, size: double.infinity)),
               ),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: Text(a.name, style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading3, color: colors.onSurface))),
+                Expanded(
+                    child: Text(a.name,
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.heading3,
+                            color: colors.onSurface))),
                 _statusBadge(a.status),
               ],
             ),
             const SizedBox(height: 8),
             _detailRow(colors, 'เลขครุภัณฑ์', a.assetNumber ?? '-'),
             _detailRow(colors, 'จำนวน', '${a.quantity}'),
-            _detailRow(colors, 'ราคาต่อหน่วย', '${a.unitPrice != null ? formatBaht(a.unitPrice) : "-"} บาท'),
+            _detailRow(colors, 'ราคาต่อหน่วย',
+                '${a.unitPrice != null ? formatBaht(a.unitPrice) : "-"} บาท'),
             _detailRow(colors, 'มูลค่ารวม', '${formatBaht(a.totalValue)} บาท'),
             _detailRow(colors, 'สถานที่จัดวาง', a.location ?? '-'),
             _detailRow(colors, 'วันที่ได้มา', a.acquiredDate ?? '-'),
             _detailRow(colors, 'ผู้ขาย/ผู้รับจ้าง', a.vendorName ?? '-'),
             _detailRow(colors, 'ประเภทเงิน', a.fundType ?? '-'),
             _detailRow(colors, 'วิธีการได้มา', a.procurementMethod ?? '-'),
-            _detailRow(colors, 'อายุการใช้งาน', a.usefulLifeYears != null ? '${a.usefulLifeYears} ปี' : '-'),
+            _detailRow(colors, 'อายุการใช้งาน',
+                a.usefulLifeYears != null ? '${a.usefulLifeYears} ปี' : '-'),
             Builder(builder: (context) {
               final dep = calcDepreciation(a, _parseThaiDate(a.acquiredDate));
               if (dep == null) return const SizedBox.shrink();
@@ -668,22 +798,32 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                   decoration: BoxDecoration(
                     color: amberBg,
                     borderRadius: BorderRadius.circular(RadiusSize.md),
-                    border: Border.all(color: BrandColors.amber.withValues(alpha: 0.4)),
+                    border: Border.all(
+                        color: BrandColors.amber.withValues(alpha: 0.4)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('ค่าเสื่อมราคา (ประมาณการ)',
-                        style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                          style: TextStyle(
+                              fontWeight: AppTypography.weightBold,
+                              fontSize: AppTypography.caption,
+                              color: colors.onSurfaceVariant)),
                       const SizedBox(height: 4),
-                      _detailRow(colors, 'อัตรา/ปี', '${dep.ratePercentPerYear.toStringAsFixed(2)} %'),
-                      _detailRow(colors, 'ค่าเสื่อมต่อปี', '${formatBaht(dep.annualDepreciation)} บาท'),
-                      _detailRow(colors, 'ค่าเสื่อมสะสม', '${formatBaht(dep.accumulatedDepreciation)} บาท'),
-                      _detailRow(colors, 'มูลค่าสุทธิ', '${formatBaht(dep.netBookValue)} บาท'),
+                      _detailRow(colors, 'อัตรา/ปี',
+                          '${dep.ratePercentPerYear.toStringAsFixed(2)} %'),
+                      _detailRow(colors, 'ค่าเสื่อมต่อปี',
+                          '${formatBaht(dep.annualDepreciation)} บาท'),
+                      _detailRow(colors, 'ค่าเสื่อมสะสม',
+                          '${formatBaht(dep.accumulatedDepreciation)} บาท'),
+                      _detailRow(colors, 'มูลค่าสุทธิ',
+                          '${formatBaht(dep.netBookValue)} บาท'),
                       const SizedBox(height: 4),
                       Text(
                         'คำนวณแบบเส้นตรงจากอายุการใช้งานที่กรอกไว้ เป็นค่าประมาณการเท่านั้น ไม่ใช่ตัวเลขทางบัญชีที่รับรองอย่างเป็นทางการ',
-                        style: TextStyle(fontSize: AppTypography.micro, color: colors.onSurfaceVariant),
+                        style: TextStyle(
+                            fontSize: AppTypography.micro,
+                            color: colors.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -696,27 +836,54 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _detailActionButton(colors, onTap: () => _openForm(existing: a), icon: Icons.edit_outlined, label: 'แก้ไข'),
-                _detailActionButton(colors, onTap: () => _logRepair(a), icon: Icons.build_outlined, label: 'บันทึกซ่อมแซม'),
-                _detailActionButton(colors, onTap: () => _transferLocation(a), icon: Icons.move_down_outlined, label: 'โอนย้าย'),
-                _detailActionButton(colors, onTap: () => _markForDisposal(a), icon: Icons.delete_forever_outlined, label: 'จำหน่ายพัสดุ', danger: true),
-                _detailActionButton(colors, onTap: () => _duplicateAsset(a), icon: Icons.copy_all_outlined, label: 'คัดลอก'),
+                _detailActionButton(colors,
+                    onTap: () => _openForm(existing: a),
+                    icon: Icons.edit_outlined,
+                    label: 'แก้ไข'),
+                _detailActionButton(colors,
+                    onTap: () => _logRepair(a),
+                    icon: Icons.build_outlined,
+                    label: 'บันทึกซ่อมแซม'),
+                _detailActionButton(colors,
+                    onTap: () => _transferLocation(a),
+                    icon: Icons.move_down_outlined,
+                    label: 'โอนย้าย'),
+                _detailActionButton(colors,
+                    onTap: () => _markForDisposal(a),
+                    icon: Icons.delete_forever_outlined,
+                    label: 'จำหน่ายพัสดุ',
+                    danger: true),
+                _detailActionButton(colors,
+                    onTap: () => _duplicateAsset(a),
+                    icon: Icons.copy_all_outlined,
+                    label: 'คัดลอก'),
                 DsActionIconButtons(
                   actions: [
-                    DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(a), danger: true),
+                    DsRowAction(
+                        icon: Icons.delete_outline,
+                        tooltip: 'ลบ',
+                        onTap: () => _confirmDelete(a),
+                        danger: true),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            Text('ประวัติ', style: TextStyle(fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant, fontSize: AppTypography.bodySmall)),
+            Text('ประวัติ',
+                style: TextStyle(
+                    fontWeight: AppTypography.weightBold,
+                    color: colors.onSurfaceVariant,
+                    fontSize: AppTypography.bodySmall)),
             const SizedBox(height: 6),
             FutureBuilder(
               future: _repo.getAssetEvents(a.id!),
               builder: (context, snapshot) {
                 final events = snapshot.data ?? [];
                 if (events.isEmpty) {
-                  return Text('ยังไม่มีประวัติ', style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodySmall));
+                  return Text('ยังไม่มีประวัติ',
+                      style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: AppTypography.bodySmall));
                 }
                 return Column(
                   children: [
@@ -726,14 +893,24 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.circle, size: 6, color: colors.onSurfaceVariant),
+                            Icon(Icons.circle,
+                                size: 6, color: colors.onSurfaceVariant),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('${e.eventType} · ${e.eventDate ?? "-"}', style: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface)),
-                                  if (e.description != null) Text(e.description!, style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                                  Text('${e.eventType} · ${e.eventDate ?? "-"}',
+                                      style: TextStyle(
+                                          fontSize: AppTypography.bodySmall,
+                                          fontWeight:
+                                              AppTypography.weightSemiBold,
+                                          color: colors.onSurface)),
+                                  if (e.description != null)
+                                    Text(e.description!,
+                                        style: TextStyle(
+                                            fontSize: AppTypography.caption,
+                                            color: colors.onSurfaceVariant)),
                                 ],
                               ),
                             ),
@@ -750,13 +927,21 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     );
   }
 
-  Widget _detailActionButton(ColorScheme colors, {required VoidCallback onTap, required IconData icon, required String label, bool danger = false}) {
+  Widget _detailActionButton(ColorScheme colors,
+      {required VoidCallback onTap,
+      required IconData icon,
+      required String label,
+      bool danger = false}) {
     return OutlinedButton.icon(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         foregroundColor: danger ? Colors.redAccent : colors.onSurface,
-        side: BorderSide(color: danger ? Colors.redAccent.withValues(alpha: 0.5) : colors.outline),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+        side: BorderSide(
+            color: danger
+                ? Colors.redAccent.withValues(alpha: 0.5)
+                : colors.outline),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(RadiusSize.md)),
         textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
       ),
       icon: Icon(icon, size: 16),
@@ -770,8 +955,17 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 100, child: Text(label, style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant))),
-          Expanded(child: Text(value, style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurface))),
+          SizedBox(
+              width: 100,
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: AppTypography.bodySmall,
+                      color: colors.onSurfaceVariant))),
+          Expanded(
+              child: Text(value,
+                  style: TextStyle(
+                      fontSize: AppTypography.bodySmall,
+                      color: colors.onSurface))),
         ],
       ),
     );
@@ -788,16 +982,21 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
           autofocus: true,
           maxLines: 3,
           style: _dialogFieldStyle,
-          decoration: _dialogFieldDecoration(ctx, label: 'รายละเอียดการซ่อม', hint: 'เช่น เปลี่ยนแบตเตอรี่'),
+          decoration: _dialogFieldDecoration(ctx,
+              label: 'รายละเอียดการซ่อม', hint: 'เช่น เปลี่ยนแบตเตอรี่'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, descCtrl.text.trim()),
             child: const Text('บันทึก'),
           ),
@@ -805,7 +1004,11 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       ),
     );
     if (desc == null || desc.isEmpty || a.id == null) return;
-    await _repo.insertAssetEvent(AssetEvent(assetId: a.id!, eventType: 'ซ่อมแซม', eventDate: _formatThai(DateTime.now()), description: desc));
+    await _repo.insertAssetEvent(AssetEvent(
+        assetId: a.id!,
+        eventType: 'ซ่อมแซม',
+        eventDate: _formatThai(DateTime.now()),
+        description: desc));
     if (!mounted) return;
     showAppToast('บันทึกประวัติซ่อมแซมแล้ว');
     setState(() {});
@@ -821,16 +1024,21 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
           controller: locCtrl,
           autofocus: true,
           style: _dialogFieldStyle,
-          decoration: _dialogFieldDecoration(ctx, label: 'สถานที่ใหม่', hint: 'เช่น ห้องพัสดุ ชั้น 2'),
+          decoration: _dialogFieldDecoration(ctx,
+              label: 'สถานที่ใหม่', hint: 'เช่น ห้องพัสดุ ชั้น 2'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, locCtrl.text.trim()),
             child: const Text('ยืนยัน'),
           ),
@@ -855,15 +1063,22 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('จำหน่ายพัสดุ', style: _dialogTitleStyle),
-        content: Text('ยืนยันเปลี่ยนสถานะ "${a.name}" เป็น "รอจำหน่าย" ใช่หรือไม่?', style: _dialogContentStyle),
+        content: Text(
+            'ยืนยันเปลี่ยนสถานะ "${a.name}" เป็น "รอจำหน่าย" ใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ยืนยัน'),
           ),
@@ -872,7 +1087,11 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
     );
     if (confirmed != true || a.id == null) return;
     await _repo.updateFixedAsset(a.copyWith(status: 'รอจำหน่าย'));
-    await _repo.insertAssetEvent(AssetEvent(assetId: a.id!, eventType: 'จำหน่าย', eventDate: _formatThai(DateTime.now()), description: 'ทำเครื่องหมายรอจำหน่าย'));
+    await _repo.insertAssetEvent(AssetEvent(
+        assetId: a.id!,
+        eventType: 'จำหน่าย',
+        eventDate: _formatThai(DateTime.now()),
+        description: 'ทำเครื่องหมายรอจำหน่าย'));
     if (!mounted) return;
     showAppToast('เปลี่ยนสถานะเป็น "รอจำหน่าย" แล้ว');
     _load(keepSelected: a.id);
@@ -884,7 +1103,11 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
 /// บนสุด + ไอคอนในกล่องสี่เหลี่ยมมุมมน + ตัวเลขใหญ่) ไม่งั้นจะดูไม่เข้าชุดกับ
 /// การ์ดข้างๆ ที่เป็น KpiCard จริง
 class _RedKpiCard extends StatelessWidget {
-  const _RedKpiCard({required this.label, required this.value, required this.unit, required this.icon});
+  const _RedKpiCard(
+      {required this.label,
+      required this.value,
+      required this.unit,
+      required this.icon});
   final String label;
   final String value;
   final String unit;
@@ -910,7 +1133,9 @@ class _RedKpiCard extends StatelessWidget {
             top: 0,
             child: Container(
               height: 3,
-              decoration: BoxDecoration(color: accent, boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.7), blurRadius: 14)]),
+              decoration: BoxDecoration(color: accent, boxShadow: [
+                BoxShadow(color: accent.withValues(alpha: 0.7), blurRadius: 14)
+              ]),
             ),
           ),
           Padding(
@@ -924,14 +1149,21 @@ class _RedKpiCard extends StatelessWidget {
                     Container(
                       width: Dimensions.kpiIconSize,
                       height: Dimensions.kpiIconSize,
-                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(RadiusSize.md)),
+                      decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(RadiusSize.md)),
                       child: Icon(icon, size: IconSizes.md, color: accent),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(label,
-                        style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant, height: 1.3),
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                          style: TextStyle(
+                              fontSize: AppTypography.caption,
+                              fontWeight: AppTypography.weightBold,
+                              color: colors.onSurfaceVariant,
+                              height: 1.3),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
                     ),
                   ],
                 ),
@@ -941,13 +1173,23 @@ class _RedKpiCard extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(value,
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: AppTypography.display1, fontWeight: AppTypography.weightExtraBold, letterSpacing: -1.1, height: 1, color: colors.onSurface)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: AppTypography.display1,
+                              fontWeight: AppTypography.weightExtraBold,
+                              letterSpacing: -1.1,
+                              height: 1,
+                              color: colors.onSurface)),
                     ),
                     const SizedBox(width: 4),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 2),
-                      child: Text(unit, style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+                      child: Text(unit,
+                          style: TextStyle(
+                              fontSize: AppTypography.caption,
+                              fontWeight: AppTypography.weightBold,
+                              color: colors.onSurfaceVariant)),
                     ),
                   ],
                 ),
@@ -980,6 +1222,7 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
   String? _acquiredDate;
   String? _photoPath;
   late String _status;
+  late String _assetCategory;
   String? _fundType;
   String? _procurementMethod;
   bool _saving = false;
@@ -991,16 +1234,23 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
     _assetNumberCtrl = TextEditingController(text: a?.assetNumber ?? '');
     _nameCtrl = TextEditingController(text: a?.name ?? '');
     _quantityCtrl = TextEditingController(text: a?.quantity.toString() ?? '1');
-    _unitPriceCtrl = TextEditingController(text: a?.unitPrice?.toStringAsFixed(2) ?? '');
+    _unitPriceCtrl =
+        TextEditingController(text: a?.unitPrice?.toStringAsFixed(2) ?? '');
     _locationCtrl = TextEditingController(text: a?.location ?? '');
     _vendorNameCtrl = TextEditingController(text: a?.vendorName ?? '');
-    _usefulLifeYearsCtrl = TextEditingController(text: a?.usefulLifeYears?.toString() ?? '');
+    _usefulLifeYearsCtrl =
+        TextEditingController(text: a?.usefulLifeYears?.toString() ?? '');
     _acquiredDate = a?.acquiredDate;
     _photoPath = a?.photoPath;
     _status = a?.status ?? 'ใช้งานปกติ';
+    _assetCategory = fixedAssetCategories.contains(a?.assetCategory)
+        ? a!.assetCategory
+        : 'ครุภัณฑ์';
     _fundType = fixedAssetFundTypes.contains(a?.fundType) ? a?.fundType : null;
     _procurementMethod =
-        fixedAssetProcurementMethods.contains(a?.procurementMethod) ? a?.procurementMethod : null;
+        fixedAssetProcurementMethods.contains(a?.procurementMethod)
+            ? a?.procurementMethod
+            : null;
   }
 
   @override
@@ -1056,15 +1306,21 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
     setState(() => _saving = true);
     final a = FixedAsset(
       id: widget.existing?.id,
-      assetNumber: _assetNumberCtrl.text.trim().isEmpty ? null : _assetNumberCtrl.text.trim(),
+      assetNumber: _assetNumberCtrl.text.trim().isEmpty
+          ? null
+          : _assetNumberCtrl.text.trim(),
       name: _nameCtrl.text.trim(),
       quantity: double.tryParse(_quantityCtrl.text.trim()) ?? 1,
       unitPrice: double.tryParse(_unitPriceCtrl.text.trim()),
-      location: _locationCtrl.text.trim().isEmpty ? null : _locationCtrl.text.trim(),
+      location:
+          _locationCtrl.text.trim().isEmpty ? null : _locationCtrl.text.trim(),
       acquiredDate: _acquiredDate,
       photoPath: _photoPath,
       status: _status,
-      vendorName: _vendorNameCtrl.text.trim().isEmpty ? null : _vendorNameCtrl.text.trim(),
+      assetCategory: _assetCategory,
+      vendorName: _vendorNameCtrl.text.trim().isEmpty
+          ? null
+          : _vendorNameCtrl.text.trim(),
       fundType: _fundType,
       procurementMethod: _procurementMethod,
       usefulLifeYears: int.tryParse(_usefulLifeYearsCtrl.text.trim()),
@@ -1083,9 +1339,10 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขครุภัณฑ์' : 'เพิ่มครุภัณฑ์', style: _dialogTitleStyle),
+      title: Text(isEdit ? 'แก้ไขครุภัณฑ์' : 'เพิ่มครุภัณฑ์',
+          style: _dialogTitleStyle),
       content: SizedBox(
-        width: 580,
+        width: 760,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -1104,15 +1361,23 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                         color: colors.surfaceContainerHighest,
                         border: Border.all(color: colors.outline),
                       ),
-                      child: _photoPath != null && File(_photoPath!).existsSync()
-                          ? ClipRRect(borderRadius: BorderRadius.circular(RadiusSize.card - 1), child: Image.file(File(_photoPath!), fit: BoxFit.cover))
-                          : Icon(Icons.add_a_photo_outlined, color: colors.onSurfaceVariant),
+                      child: _photoPath != null &&
+                              File(_photoPath!).existsSync()
+                          ? ClipRRect(
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.card - 1),
+                              child: Image.file(File(_photoPath!),
+                                  fit: BoxFit.cover))
+                          : Icon(Icons.add_a_photo_outlined,
+                              color: colors.onSurfaceVariant),
                     ),
                   ),
                 ),
                 const SizedBox(height: 18),
-                _field(_assetNumberCtrl, 'เลขครุภัณฑ์', hint: 'เช่น ครภ.001/2569'),
-                _field(_nameCtrl, 'รายการ *', required: true, hint: 'เช่น โต๊ะทำงาน'),
+                _field(_assetNumberCtrl, 'เลขครุภัณฑ์',
+                    hint: 'เช่น ครภ.001/2569'),
+                _field(_nameCtrl, 'รายการ *',
+                    required: true, hint: 'เช่น โต๊ะทำงาน'),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
@@ -1120,10 +1385,13 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                     child: OutlinedButton.icon(
                       onPressed: _pickStandardPrice,
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
                         side: BorderSide(color: colors.outline),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                        textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(RadiusSize.md)),
+                        textStyle: const TextStyle(
+                            fontSize: 13.5, fontWeight: FontWeight.w700),
                       ),
                       icon: const Icon(Icons.price_change_outlined, size: 16),
                       label: const Text('ค้นหาราคากลาง (สำนักงบประมาณ)'),
@@ -1132,48 +1400,87 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                 ),
                 Row(
                   children: [
-                    Expanded(child: _field(_quantityCtrl, 'จำนวน', keyboardType: TextInputType.number, hint: 'เช่น 1')),
+                    Expanded(
+                        child: _field(_quantityCtrl, 'จำนวน',
+                            keyboardType: TextInputType.number,
+                            hint: 'เช่น 1')),
                     const SizedBox(width: 12),
-                    Expanded(child: _field(_unitPriceCtrl, 'ราคาต่อหน่วย (บาท)', keyboardType: TextInputType.number, hint: 'เช่น 3500.00')),
+                    Expanded(
+                        child: _field(_unitPriceCtrl, 'ราคาต่อหน่วย (บาท)',
+                            keyboardType: TextInputType.number,
+                            hint: 'เช่น 3500.00')),
                   ],
                 ),
-                _field(_locationCtrl, 'สถานที่จัดวาง', hint: 'เช่น ห้องพัสดุ ชั้น 2'),
-                InkWell(
-                  onTap: _pickAcquiredDate,
-                  borderRadius: BorderRadius.circular(RadiusSize.md),
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 18),
+                _field(_locationCtrl, 'สถานที่จัดวาง',
+                    hint: 'เช่น ห้องพัสดุ ชั้น 2'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: InkWell(
+                    onTap: _pickAcquiredDate,
+                    borderRadius: BorderRadius.circular(RadiusSize.md),
                     child: InputDecorator(
-                      decoration: _dialogFieldDecoration(context, label: 'วันที่ได้มา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                      child: Text(_acquiredDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                      decoration:
+                          _dialogFieldDecoration(context, label: 'วันที่ได้มา')
+                              .copyWith(
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.auto),
+                      child: Text(_acquiredDate ?? 'เลือกวันที่',
+                          style: _dialogFieldStyle),
                     ),
                   ),
                 ),
                 DropdownButtonFormField<String>(
                   initialValue: _status,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'สถานะ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                  items: _assetStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  decoration: _dialogFieldDecoration(context, label: 'สถานะ')
+                      .copyWith(
+                          floatingLabelBehavior: FloatingLabelBehavior.auto),
+                  items: _assetStatuses
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
                   onChanged: (v) => setState(() => _status = v ?? 'ใช้งานปกติ'),
+                ),
+                const SizedBox(height: 18),
+                DropdownButtonFormField<String>(
+                  initialValue: _assetCategory,
+                  style: _dialogFieldStyle.copyWith(color: colors.onSurface),
+                  decoration: _dialogFieldDecoration(context,
+                          label: 'ประเภทรายการ')
+                      .copyWith(
+                          floatingLabelBehavior: FloatingLabelBehavior.auto),
+                  items: fixedAssetCategories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (v) =>
+                      setState(() => _assetCategory = v ?? 'ครุภัณฑ์'),
                 ),
                 const SizedBox(height: 18),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text('ข้อมูลสำหรับทะเบียนคุมครุภัณฑ์/ทรัพย์สิน',
-                    style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
+                      style: TextStyle(
+                          fontWeight: AppTypography.weightBold,
+                          fontSize: AppTypography.bodyMedium,
+                          color: colors.onSurfaceVariant)),
                 ),
                 const SizedBox(height: 10),
-                _field(_vendorNameCtrl, 'ผู้ขาย/ผู้รับจ้าง', hint: 'เช่น ร้านเจริญพาณิชย์'),
+                _field(_vendorNameCtrl, 'ผู้ขาย/ผู้รับจ้าง',
+                    hint: 'เช่น ร้านเจริญพาณิชย์'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: DropdownButtonFormField<String?>(
                     initialValue: _fundType,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ประเภทเงิน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    decoration: _dialogFieldDecoration(context,
+                            label: 'ประเภทเงิน')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
-                      ...fixedAssetFundTypes.map((f) => DropdownMenuItem(value: f, child: Text(f))),
+                      const DropdownMenuItem<String?>(
+                          value: null, child: Text('(ไม่ระบุ)')),
+                      ...fixedAssetFundTypes.map(
+                          (f) => DropdownMenuItem(value: f, child: Text(f))),
                     ],
                     onChanged: (v) => setState(() => _fundType = v),
                   ),
@@ -1184,18 +1491,28 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
                     initialValue: _procurementMethod,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'วิธีการได้มา').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    decoration: _dialogFieldDecoration(context,
+                            label: 'วิธีการได้มา')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
                     items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
-                      ...fixedAssetProcurementMethods.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
+                      const DropdownMenuItem<String?>(
+                          value: null, child: Text('(ไม่ระบุ)')),
+                      ...fixedAssetProcurementMethods.map((m) =>
+                          DropdownMenuItem(
+                              value: m,
+                              child: Text(m, overflow: TextOverflow.ellipsis))),
                     ],
                     onChanged: (v) => setState(() => _procurementMethod = v),
                   ),
                 ),
-                _field(_usefulLifeYearsCtrl, 'อายุการใช้งาน (ปี)', keyboardType: TextInputType.number, hint: 'เช่น 5'),
+                _field(_usefulLifeYearsCtrl, 'อายุการใช้งาน (ปี)',
+                    keyboardType: TextInputType.number, hint: 'เช่น 5'),
                 Text(
                   'กรอกอายุการใช้งานเพื่อให้ระบบคำนวณค่าเสื่อมราคาโดยประมาณให้อัตโนมัติ (ไม่บังคับ)',
-                  style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
+                  style: TextStyle(
+                      fontSize: AppTypography.bodySmall,
+                      color: colors.onSurfaceVariant),
                 ),
               ],
             ),
@@ -1205,21 +1522,30 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
-          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: TextButton.styleFrom(
+              padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              padding: _dialogButtonPadding,
+              textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
-              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: colors.onPrimary))
               : Text(isEdit ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],
     );
   }
 
-  Widget _field(TextEditingController ctrl, String label, {bool required = false, TextInputType? keyboardType, String? hint}) {
+  Widget _field(TextEditingController ctrl, String label,
+      {bool required = false, TextInputType? keyboardType, String? hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: ClearableTextField(
@@ -1227,7 +1553,9 @@ class _AssetFormDialogState extends State<_AssetFormDialog> {
         style: _dialogFieldStyle,
         keyboardType: keyboardType,
         decoration: _dialogFieldDecoration(context, label: label, hint: hint),
-        validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null : null,
+        validator: required
+            ? (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอก$label' : null
+            : null,
       ),
     );
   }
