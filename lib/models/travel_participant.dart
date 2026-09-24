@@ -44,14 +44,16 @@ class TravelParticipant {
         'sort_order': sortOrder,
       };
 
-  factory TravelParticipant.fromMap(Map<String, dynamic> m) => TravelParticipant(
+  factory TravelParticipant.fromMap(Map<String, dynamic> m) =>
+      TravelParticipant(
         id: m['id'] as int?,
         reimbursementId: m['reimbursement_id'] as int?,
         personnelId: m['personnel_id'] as int?,
         participantName: m['participant_name'] as String,
         position: m['position'] as String?,
         allowanceAmount: (m['allowance_amount'] as num?)?.toDouble() ?? 0,
-        accommodationAmount: (m['accommodation_amount'] as num?)?.toDouble() ?? 0,
+        accommodationAmount:
+            (m['accommodation_amount'] as num?)?.toDouble() ?? 0,
         transportAmount: (m['transport_amount'] as num?)?.toDouble() ?? 0,
         registrationFee: (m['registration_fee'] as num?)?.toDouble() ?? 0,
         sortOrder: m['sort_order'] as int? ?? 0,

@@ -569,7 +569,7 @@ class _DocMenuButtonState extends State<_DocMenuButton> {
               border: Border.all(color: _hover ? hoverColor : colors.outline),
             ),
             child: Icon(
-              Icons.description_outlined,
+              Icons.print_outlined,
               size: IconSizes.md,
               color: _hover ? Colors.white : colors.onSurfaceVariant,
             ),

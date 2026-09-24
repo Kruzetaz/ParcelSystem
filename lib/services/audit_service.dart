@@ -6,15 +6,29 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'current_user_service.dart';
 
 const _thaiMonths = [
-  '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  '',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ];
 
 class AuditService {
   AuditService._();
   static final AuditService instance = AuditService._();
 
-  Future<void> log(Database db, {required String action, required String tableLabel, required String description}) async {
+  Future<void> log(Database db,
+      {required String action,
+      required String tableLabel,
+      required String description}) async {
     final now = DateTime.now();
     final timestamp = '${now.day} ${_thaiMonths[now.month]} ${now.year + 543} '
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';

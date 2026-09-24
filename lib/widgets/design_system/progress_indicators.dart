@@ -29,7 +29,8 @@ class ProgressBar extends StatelessWidget {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: backgroundColor ?? BrandAccent.surface2(context).withValues(alpha: 0.5),
+          color: backgroundColor ??
+              BrandAccent.surface2(context).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(RadiusSize.tiny),
         ),
         child: FractionallySizedBox(
@@ -41,7 +42,10 @@ class ProgressBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: fillColor,
               borderRadius: BorderRadius.circular(RadiusSize.tiny),
-              boxShadow: [BoxShadow(color: fillColor.withValues(alpha: 0.6), blurRadius: 6)],
+              boxShadow: [
+                BoxShadow(
+                    color: fillColor.withValues(alpha: 0.6), blurRadius: 6)
+              ],
             ),
           ),
         ),
@@ -243,7 +247,8 @@ class StackedBar extends StatelessWidget {
             SizedBox(
               width: 112,
               child: Text(
-                _formatNumber(segments.fold<double>(0, (sum, s) => sum + s.value)),
+                _formatNumber(
+                    segments.fold<double>(0, (sum, s) => sum + s.value)),
                 style: TextStyle(
                   fontSize: AppTypography.caption,
                   fontWeight: AppTypography.weightBold,
@@ -295,4 +300,3 @@ class BarSegment {
 
   BarSegment({required this.value, required this.color, this.label});
 }
-

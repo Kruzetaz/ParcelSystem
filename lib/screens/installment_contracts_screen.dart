@@ -23,17 +23,20 @@ import '../widgets/thai_date_picker.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
-import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant;
 import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
-const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonTextStyle =
+    TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
 const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
 const _dialogLabelStyle = TextStyle(fontSize: 15);
 
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint, Widget? suffixIcon}) {
+InputDecoration _dialogFieldDecoration(BuildContext context,
+    {required String label, String? hint, Widget? suffixIcon}) {
   final colors = Theme.of(context).colorScheme;
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
   return InputDecoration(
@@ -41,7 +44,8 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
     hintText: hint,
     suffixIcon: suffixIcon,
     floatingLabelBehavior: FloatingLabelBehavior.always,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
+    labelStyle: _dialogLabelStyle.copyWith(
+        color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -63,10 +67,12 @@ class InstallmentContractsScreen extends StatefulWidget {
   const InstallmentContractsScreen({super.key});
 
   @override
-  State<InstallmentContractsScreen> createState() => _InstallmentContractsScreenState();
+  State<InstallmentContractsScreen> createState() =>
+      _InstallmentContractsScreenState();
 }
 
-class _InstallmentContractsScreenState extends State<InstallmentContractsScreen> {
+class _InstallmentContractsScreenState
+    extends State<InstallmentContractsScreen> {
   final _repo = ProcurementRepository();
   List<ProcurementOrder> _orders = [];
   Map<int, List<ProcurementInstallment>> _installmentsByOrder = {};
@@ -100,7 +106,8 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
     final allOrders = await _repo.getAllOrders();
     if (!mounted) return;
     final trackedIds = _orders.map((o) => o.id).toSet();
-    final candidates = allOrders.where((o) => !trackedIds.contains(o.id)).toList();
+    final candidates =
+        allOrders.where((o) => !trackedIds.contains(o.id)).toList();
 
     final picked = await showDialog<ProcurementOrder>(
       context: context,
@@ -147,14 +154,18 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.event_repeat_outlined, color: BrandAccent.tealOn(context), size: 22),
+                      Icon(Icons.event_repeat_outlined,
+                          color: BrandAccent.tealOn(context), size: 22),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'สัญญาต่อเนื่องหลายงวด',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface),
+                          style: TextStyle(
+                              fontSize: AppTypography.heading2,
+                              fontWeight: AppTypography.weightExtraBold,
+                              color: colors.onSurface),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -162,9 +173,13 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                         onPressed: _pickOrderToTrack,
                         style: FilledButton.styleFrom(
                           backgroundColor: colors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                          textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md)),
+                          textStyle: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w700),
                         ),
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('เพิ่มสัญญาต่อเนื่อง'),
@@ -181,11 +196,14 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                     decoration: BoxDecoration(
                       color: BrandAccent.teal(context).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(RadiusSize.card),
-                      border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color:
+                              BrandAccent.teal(context).withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, color: BrandAccent.tealOn(context)),
+                        Icon(Icons.info_outline,
+                            color: BrandAccent.tealOn(context)),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -194,7 +212,9 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                             'ที่ต้องสร้างเอกสารส่งมอบงาน/ตรวจรับ/เบิกจ่าย แยกทุกเดือน — สร้างโครงการหลัก'
                             'ผ่าน "สร้างใหม่" ตามปกติก่อน (กรอกผู้ขาย/คณะกรรมการ/รายการ) แล้วกด '
                             '"เพิ่มสัญญาต่อเนื่อง" ที่นี่เพื่อเริ่มติดตามงวด',
-                            style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                            style: TextStyle(
+                                fontSize: AppTypography.bodyMedium,
+                                color: colors.onSurface),
                           ),
                         ),
                       ],
@@ -209,8 +229,10 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                         ? _buildEmptyState(colors)
                         : ListView.separated(
                             itemCount: _orders.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (_, i) => _buildContractCard(context, colors, _orders[i]),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (_, i) =>
+                                _buildContractCard(context, colors, _orders[i]),
                           ),
                   ),
                 ],
@@ -222,16 +244,24 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
   /// นับจำนวนงวดที่จ่ายแล้ว/ทั้งหมดของโครงการหนึ่ง — ใช้ร่วมกันทั้งการ์ด
   /// สัญญารายตัวและสรุป KPI รวมด้านบน กันคำนวณซ้ำสองที่
   (int paid, int total) _installmentStats(ProcurementOrder o) {
-    final installments = o.id != null ? (_installmentsByOrder[o.id] ?? []) : <ProcurementInstallment>[];
-    final paid = installments.where((i) => (i.dateDisbursement ?? '').trim().isNotEmpty).length;
+    final installments = o.id != null
+        ? (_installmentsByOrder[o.id] ?? [])
+        : <ProcurementInstallment>[];
+    final paid = installments
+        .where((i) => (i.dateDisbursement ?? '').trim().isNotEmpty)
+        .length;
     return (paid, installments.length);
   }
 
   /// งวดถัดไปที่ยังไม่เบิกจ่าย (เรียงตามงวดที่) — ใช้โชว์บนการ์ดให้เห็นทันที
   /// ว่าสัญญาไหนใกล้ครบกำหนด โดยไม่ต้องกดเข้าไปดูรายละเอียดทีละใบ
   ProcurementInstallment? _nextDueInstallment(ProcurementOrder o) {
-    final installments = o.id != null ? (_installmentsByOrder[o.id] ?? []) : <ProcurementInstallment>[];
-    final pending = installments.where((i) => (i.dateDisbursement ?? '').trim().isEmpty).toList()
+    final installments = o.id != null
+        ? (_installmentsByOrder[o.id] ?? [])
+        : <ProcurementInstallment>[];
+    final pending = installments
+        .where((i) => (i.dateDisbursement ?? '').trim().isEmpty)
+        .toList()
       ..sort((a, b) => a.periodNo.compareTo(b.periodNo));
     return pending.isEmpty ? null : pending.first;
   }
@@ -306,16 +336,22 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
       ),
       child: Column(
         children: [
-          Icon(Icons.event_repeat_outlined, size: 40, color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
+          Icon(Icons.event_repeat_outlined,
+              size: 40, color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
           const SizedBox(height: 12),
           Text(
             'ยังไม่มีสัญญาต่อเนื่องที่ติดตามอยู่',
-            style: TextStyle(fontSize: AppTypography.heading4, fontWeight: AppTypography.weightSemiBold, color: colors.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: AppTypography.heading4,
+                fontWeight: AppTypography.weightSemiBold,
+                color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 4),
           Text(
             'กด "เพิ่มสัญญาต่อเนื่อง" มุมขวาบนเพื่อเริ่มติดตามงวดของโครงการที่มีอยู่แล้ว',
-            style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.8)),
+            style: TextStyle(
+                fontSize: AppTypography.bodyMedium,
+                color: colors.onSurfaceVariant.withValues(alpha: 0.8)),
           ),
         ],
       ),
@@ -331,25 +367,39 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
     final text = '${o.projectName ?? ''} ${o.procurementSubject ?? ''}';
     bool has(List<String> keywords) => keywords.any(text.contains);
 
-    if (has(['อาหาร', 'โภชนาการ', 'ประกอบอาหาร'])) return Icons.restaurant_outlined;
-    if (has(['ครู', 'บุคลากร', 'พี่เลี้ยง', 'นักการ', 'ภารโรง', 'จ้างเหมาบริการบุคคล'])) {
+    if (has(['อาหาร', 'โภชนาการ', 'ประกอบอาหาร']))
+      return Icons.restaurant_outlined;
+    if (has([
+      'ครู',
+      'บุคลากร',
+      'พี่เลี้ยง',
+      'นักการ',
+      'ภารโรง',
+      'จ้างเหมาบริการบุคคล'
+    ])) {
       return Icons.badge_outlined;
     }
-    if (has(['อินเทอร์เน็ต', 'อินเตอร์เน็ต', 'เน็ต', 'สัญญาณ'])) return Icons.wifi_outlined;
+    if (has(['อินเทอร์เน็ต', 'อินเตอร์เน็ต', 'เน็ต', 'สัญญาณ']))
+      return Icons.wifi_outlined;
     if (has(['ทำความสะอาด'])) return Icons.cleaning_services_outlined;
-    if (has(['รักษาความปลอดภัย', 'รปภ.', 'ยาม'])) return Icons.security_outlined;
+    if (has(['รักษาความปลอดภัย', 'รปภ.', 'ยาม']))
+      return Icons.security_outlined;
     return Icons.event_repeat_outlined;
   }
 
   // สไตล์การ์ดเดียวกับหน้าหลัก (Dashboard) — badge สถานะ, แถบความคืบหน้า,
   // ยอดเงิน, ปุ่มลัด — ให้หน้าตาคุ้นเคยกันทั้งระบบ ต่างกันแค่แถบความคืบหน้า
   // ที่นี่นับ "จำนวนงวดที่จ่ายแล้ว/ทั้งหมด" แทนความคืบหน้าเอกสารทั่วไป
-  Widget _buildContractCard(BuildContext context, ColorScheme colors, ProcurementOrder o) {
+  Widget _buildContractCard(
+      BuildContext context, ColorScheme colors, ProcurementOrder o) {
     final (paidCount, totalCount) = _installmentStats(o);
     final progress = totalCount == 0 ? 0.0 : paidCount / totalCount;
     final isCompleted = totalCount > 0 && paidCount == totalCount;
-    final statusVariant = isCompleted ? BadgeVariant.success : BadgeVariant.warning;
-    final progressColor = isCompleted ? BrandAccent.green(context) : BrandAccent.tertiary(context);
+    final statusVariant =
+        isCompleted ? BadgeVariant.success : BadgeVariant.warning;
+    final progressColor = isCompleted
+        ? BrandAccent.green(context)
+        : BrandAccent.tertiary(context);
     final statusLabel = totalCount == 0
         ? 'ยังไม่มีงวด'
         : isCompleted
@@ -378,7 +428,8 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                   children: [
                     CircleAvatar(
                       backgroundColor: BrandAccent.teal(context),
-                      child: Icon(_iconForContract(o), color: Colors.white, size: 20),
+                      child: Icon(_iconForContract(o),
+                          color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -388,18 +439,25 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                           Text(
                             o.projectName?.trim().isNotEmpty == true
                                 ? o.projectName!
-                                : (o.procurementSubject ?? '(ไม่มีชื่อโครงการ)'),
-                            style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface),
+                                : (o.procurementSubject ??
+                                    '(ไม่มีชื่อโครงการ)'),
+                            style: TextStyle(
+                                fontWeight: AppTypography.weightBold,
+                                fontSize: AppTypography.heading4,
+                                color: colors.onSurface),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 5),
                           Text(
                             [
-                              if (o.vendorName?.isNotEmpty == true) o.vendorName,
+                              if (o.vendorName?.isNotEmpty == true)
+                                o.vendorName,
                               '$totalCount งวด',
                             ].join('  •  '),
-                            style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium),
+                            style: TextStyle(
+                                color: colors.onSurfaceVariant,
+                                fontSize: AppTypography.bodyMedium),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -410,10 +468,16 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                       padding: const EdgeInsets.only(right: 10),
                       child: Text(
                         '${formatBaht(o.currentOrderPrice)} บาท',
-                        style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodyMedium, color: BrandAccent.tealOn(context)),
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.bodyMedium,
+                            color: BrandAccent.tealOn(context)),
                       ),
                     ),
-                    StatusBadge(label: statusLabel, variant: statusVariant, compact: true),
+                    StatusBadge(
+                        label: statusLabel,
+                        variant: statusVariant,
+                        compact: true),
                     const SizedBox(width: 4),
                     Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
                   ],
@@ -438,7 +502,10 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                       child: Text(
                         '$paidCount/$totalCount งวด',
                         textAlign: TextAlign.right,
-                        style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightSemiBold, color: colors.onSurfaceVariant),
+                        style: TextStyle(
+                            fontSize: AppTypography.caption,
+                            fontWeight: AppTypography.weightSemiBold,
+                            color: colors.onSurfaceVariant),
                       ),
                     ),
                   ],
@@ -447,7 +514,8 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(Icons.event_outlined, size: 14, color: colors.onSurfaceVariant),
+                      Icon(Icons.event_outlined,
+                          size: 14, color: colors.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -456,7 +524,10 @@ class _InstallmentContractsScreenState extends State<InstallmentContractsScreen>
                               : nextDue.periodLabel?.trim().isNotEmpty == true
                                   ? 'งวดถัดไป: งวดที่ ${nextDue.periodNo} (${nextDue.periodLabel})'
                                   : 'งวดถัดไป: งวดที่ ${nextDue.periodNo} • ยังไม่ระบุวันที่',
-                          style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightSemiBold, color: colors.onSurfaceVariant),
+                          style: TextStyle(
+                              fontSize: AppTypography.caption,
+                              fontWeight: AppTypography.weightSemiBold,
+                              color: colors.onSurfaceVariant),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -496,7 +567,8 @@ class _OrderPickerDialogState extends State<_OrderPickerDialog> {
 
     final colors = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: const Text('เลือกโครงการที่จะเริ่มติดตามงวด', style: _dialogTitleStyle),
+      title: const Text('เลือกโครงการที่จะเริ่มติดตามงวด',
+          style: _dialogTitleStyle),
       content: SizedBox(
         width: 520,
         height: 420,
@@ -504,7 +576,10 @@ class _OrderPickerDialogState extends State<_OrderPickerDialog> {
           children: [
             ClearableTextField(
               style: _dialogFieldStyle,
-              decoration: _dialogFieldDecoration(context, label: 'ค้นหาชื่อโครงการ/ผู้ขาย', suffixIcon: const Icon(Icons.search), hint: 'พิมพ์เพื่อค้นหา'),
+              decoration: _dialogFieldDecoration(context,
+                  label: 'ค้นหาชื่อโครงการ/ผู้ขาย',
+                  suffixIcon: const Icon(Icons.search),
+                  hint: 'พิมพ์เพื่อค้นหา'),
               onChanged: (v) => setState(() => _query = v),
             ),
             const SizedBox(height: 14),
@@ -515,7 +590,9 @@ class _OrderPickerDialogState extends State<_OrderPickerDialog> {
                         'ไม่พบโครงการ — สร้างโครงการหลักผ่าน "สร้างใหม่" ก่อน\n'
                         '(โครงการที่ติดตามงวดอยู่แล้วจะไม่แสดงซ้ำในนี้)',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: AppTypography.body, color: colors.onSurfaceVariant),
+                        style: TextStyle(
+                            fontSize: AppTypography.body,
+                            color: colors.onSurfaceVariant),
                       ),
                     )
                   : ListView.builder(
@@ -523,11 +600,20 @@ class _OrderPickerDialogState extends State<_OrderPickerDialog> {
                       itemBuilder: (_, i) {
                         final o = filtered[i];
                         return ListTile(
-                          title: Text(o.projectName?.trim().isNotEmpty == true
-                              ? o.projectName!
-                              : (o.procurementSubject ?? 'ไม่ระบุชื่อโครงการ'),
-                            style: TextStyle(fontSize: AppTypography.body, fontWeight: AppTypography.weightSemiBold, color: colors.onSurface)),
-                          subtitle: Text(o.vendorName ?? 'ไม่ระบุผู้ขาย/ผู้รับจ้าง', style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+                          title: Text(
+                              o.projectName?.trim().isNotEmpty == true
+                                  ? o.projectName!
+                                  : (o.procurementSubject ??
+                                      'ไม่ระบุชื่อโครงการ'),
+                              style: TextStyle(
+                                  fontSize: AppTypography.body,
+                                  fontWeight: AppTypography.weightSemiBold,
+                                  color: colors.onSurface)),
+                          subtitle: Text(
+                              o.vendorName ?? 'ไม่ระบุผู้ขาย/ผู้รับจ้าง',
+                              style: TextStyle(
+                                  fontSize: AppTypography.bodySmall,
+                                  color: colors.onSurfaceVariant)),
                           onTap: () => Navigator.pop(context, o),
                         );
                       },
@@ -539,7 +625,8 @@ class _OrderPickerDialogState extends State<_OrderPickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: TextButton.styleFrom(
+              padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
       ],
@@ -608,13 +695,16 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('จำนวนงวดทั้งหมด (ทั่วไปอาหารกลางวัน 1 ภาคเรียน = 10 งวด/100 วัน)', style: _dialogContentStyle),
+              const Text(
+                  'จำนวนงวดทั้งหมด (ทั่วไปอาหารกลางวัน 1 ภาคเรียน = 10 งวด/100 วัน)',
+                  style: _dialogContentStyle),
               const SizedBox(height: 14),
               ClearableTextField(
                 controller: ctrl,
                 style: _dialogFieldStyle,
                 keyboardType: TextInputType.number,
-                decoration: _dialogFieldDecoration(ctx, label: 'จำนวนงวด', hint: 'เช่น 10'),
+                decoration: _dialogFieldDecoration(ctx,
+                    label: 'จำนวนงวด', hint: 'เช่น 10'),
                 autofocus: true,
               ),
             ],
@@ -622,12 +712,17 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+              style: TextButton.styleFrom(
+                  padding: _dialogButtonPadding,
+                  textStyle: _dialogButtonTextStyle),
               child: const Text('ยกเลิก'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
-              onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text.trim())),
+              style: FilledButton.styleFrom(
+                  padding: _dialogButtonPadding,
+                  textStyle: _dialogButtonTextStyle),
+              onPressed: () =>
+                  Navigator.pop(ctx, int.tryParse(ctrl.text.trim())),
               child: const Text('สร้าง'),
             ),
           ],
@@ -639,19 +734,22 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     final existingNos = _installments.map((i) => i.periodNo).toSet();
     var nextNo = _installments.isEmpty
         ? 1
-        : _installments.map((i) => i.periodNo).reduce((a, b) => a > b ? a : b) + 1;
+        : _installments.map((i) => i.periodNo).reduce((a, b) => a > b ? a : b) +
+            1;
     var created = 0;
     for (var n = 0; n < countText; n++) {
       while (existingNos.contains(nextNo)) {
         nextNo++;
       }
-      await widget.repo.saveInstallment(ProcurementInstallment(orderId: widget.orderId, periodNo: nextNo));
+      await widget.repo.saveInstallment(
+          ProcurementInstallment(orderId: widget.orderId, periodNo: nextNo));
       existingNos.add(nextNo);
       created++;
       nextNo++;
     }
     if (!mounted) return;
-    showAppToast('สร้างงวดว่างเพิ่ม $created งวดแล้ว — กรอกวันที่/จำนวนเงินทีหลังตามจริงได้เลย');
+    showAppToast(
+        'สร้างงวดว่างเพิ่ม $created งวดแล้ว — กรอกวันที่/จำนวนเงินทีหลังตามจริงได้เลย');
     await _load();
   }
 
@@ -659,9 +757,11 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     if (_order == null) return;
     setState(() => _generatingCombined = true);
     try {
-      FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
+      FeatureAccessService.instance.requireModule(
+          FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
       final school = await widget.repo.getSchoolSettings();
-      await ProcurementDocumentGenerator.generateCombinedRecurringContractFileAndOpen(
+      await ProcurementDocumentGenerator
+          .generateCombinedRecurringContractFileAndOpen(
         order: _order!,
         school: school ?? const SchoolSettings(),
         items: _items,
@@ -685,7 +785,10 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
         nextPeriodNo: existing?.periodNo ??
             (_installments.isEmpty
                 ? 1
-                : _installments.map((i) => i.periodNo).reduce((a, b) => a > b ? a : b) + 1),
+                : _installments
+                        .map((i) => i.periodNo)
+                        .reduce((a, b) => a > b ? a : b) +
+                    1),
         existing: existing,
       ),
     );
@@ -699,15 +802,22 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
-        content: Text('ลบงวดที่ ${installment.periodNo} (${installment.periodLabel ?? "-"}) ใช่หรือไม่?', style: _dialogContentStyle),
+        content: Text(
+            'ลบงวดที่ ${installment.periodNo} (${installment.periodLabel ?? "-"}) ใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -719,19 +829,24 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     await _load();
   }
 
-  Future<void> _generate(ProcurementInstallment installment, ProcurementDocumentType type) async {
+  Future<void> _generate(
+      ProcurementInstallment installment, ProcurementDocumentType type) async {
     if (_order == null) return;
     setState(() => _generatingId = installment.id);
     try {
-      FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
+      FeatureAccessService.instance.requireModule(
+          FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
       final school = await widget.repo.getSchoolSettings();
       await ProcurementDocumentGenerator.generateAndOpen(
         type: type,
         order: _order!,
         school: school ?? const SchoolSettings(),
         items: _items,
-        overrideFields: ProcurementDocumentGenerator.buildInstallmentOverrides(_order!, installment),
-        extraConditionalFlags: ProcurementDocumentGenerator.buildInstallmentConditionalFlags(installment),
+        overrideFields: ProcurementDocumentGenerator.buildInstallmentOverrides(
+            _order!, installment),
+        extraConditionalFlags:
+            ProcurementDocumentGenerator.buildInstallmentConditionalFlags(
+                installment),
         outputSuffix: '_งวด${installment.periodNo}',
       );
       if (!mounted) return;
@@ -748,16 +863,19 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     if (_order == null) return;
     setState(() => _generatingId = installment.id);
     try {
-      FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
+      FeatureAccessService.instance.requireModule(
+          FeatureModules.contractManagement, 'สัญญาต่อเนื่องหลายงวด');
       final school = await widget.repo.getSchoolSettings();
-      await ProcurementDocumentGenerator.generateInstallmentDocumentSetFileAndOpen(
+      await ProcurementDocumentGenerator
+          .generateInstallmentDocumentSetFileAndOpen(
         order: _order!,
         school: school ?? const SchoolSettings(),
         items: _items,
         installment: installment,
       );
       if (!mounted) return;
-      showAppToast('สร้างเอกสารชุดงวด ${installment.periodNo} เป็นไฟล์เดียวแล้ว');
+      showAppToast(
+          'สร้างเอกสารชุดงวด ${installment.periodNo} เป็นไฟล์เดียวแล้ว');
     } catch (e) {
       if (!mounted) return;
       showAppToast('สร้างเอกสารไม่สำเร็จ: $e', isError: true);
@@ -777,7 +895,8 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         side: BorderSide(color: colors.outline),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(RadiusSize.md)),
         textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
       ),
       icon: icon,
@@ -803,19 +922,26 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
                 style: IconButton.styleFrom(
                   foregroundColor: colors.onSurfaceVariant,
                   side: BorderSide(color: colors.outline),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(RadiusSize.md)),
                   padding: const EdgeInsets.all(10),
                 ),
               ),
               const SizedBox(width: 12),
-              Icon(Icons.event_repeat_outlined, color: BrandAccent.tealOn(context), size: 22),
+              Icon(Icons.event_repeat_outlined,
+                  color: BrandAccent.tealOn(context), size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  order?.projectName?.trim().isNotEmpty == true ? order!.projectName! : 'สัญญาต่อเนื่อง',
+                  order?.projectName?.trim().isNotEmpty == true
+                      ? order!.projectName!
+                      : 'สัญญาต่อเนื่อง',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface),
+                  style: TextStyle(
+                      fontSize: AppTypography.heading2,
+                      fontWeight: AppTypography.weightExtraBold,
+                      color: colors.onSurface),
                 ),
               ),
               const SizedBox(width: 12),
@@ -827,9 +953,15 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
               ),
               const SizedBox(width: 8),
               _headerActionButton(
-                onPressed: (_installments.isEmpty || _generatingCombined) ? null : _generateCombinedFile,
+                onPressed: (_installments.isEmpty || _generatingCombined)
+                    ? null
+                    : _generateCombinedFile,
                 icon: _generatingCombined
-                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: colors.onSurfaceVariant))
                     : const Icon(Icons.merge_type, size: 18),
                 label: 'รวมเอกสารเป็นไฟล์เดียว',
                 colors: colors,
@@ -839,9 +971,12 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
                 onPressed: () => _openEditor(),
                 style: FilledButton.styleFrom(
                   backgroundColor: colors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                  textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(RadiusSize.md)),
+                  textStyle: const TextStyle(
+                      fontSize: 14.5, fontWeight: FontWeight.w700),
                 ),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('เพิ่มงวด'),
@@ -853,7 +988,8 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : order == null
-                    ? const Center(child: Text('ไม่พบโครงการนี้ (อาจถูกลบไปแล้ว)'))
+                    ? const Center(
+                        child: Text('ไม่พบโครงการนี้ (อาจถูกลบไปแล้ว)'))
                     : SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,11 +998,16 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
                             const SizedBox(height: 24),
                             Row(
                               children: [
-                                Icon(Icons.local_shipping_outlined, size: 18, color: BrandAccent.tealOn(context)),
+                                Icon(Icons.local_shipping_outlined,
+                                    size: 18,
+                                    color: BrandAccent.tealOn(context)),
                                 const SizedBox(width: 8),
                                 Text(
                                   'รายละเอียดงวดงาน (การส่งมอบ/ตรวจรับ)',
-                                  style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading3, color: colors.onSurface),
+                                  style: TextStyle(
+                                      fontWeight: AppTypography.weightExtraBold,
+                                      fontSize: AppTypography.heading3,
+                                      color: colors.onSurface),
                                 ),
                               ],
                             ),
@@ -875,11 +1016,16 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
                             const SizedBox(height: 24),
                             Row(
                               children: [
-                                Icon(Icons.payments_outlined, size: 18, color: BrandAccent.tealOn(context)),
+                                Icon(Icons.payments_outlined,
+                                    size: 18,
+                                    color: BrandAccent.tealOn(context)),
                                 const SizedBox(width: 8),
                                 Text(
                                   'รายละเอียดงวดเงิน (การเบิกจ่าย)',
-                                  style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading3, color: colors.onSurface),
+                                  style: TextStyle(
+                                      fontWeight: AppTypography.weightExtraBold,
+                                      fontSize: AppTypography.heading3,
+                                      color: colors.onSurface),
                                 ),
                               ],
                             ),
@@ -894,10 +1040,15 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     );
   }
 
-  Widget _buildContractHeader(BuildContext context, ColorScheme colors, ProcurementOrder order) {
-    final paidCount = _installments.where((i) => (i.dateDisbursement ?? '').trim().isNotEmpty).length;
-    final isCompleted = _installments.isNotEmpty && paidCount == _installments.length;
-    final statusVariant = isCompleted ? BadgeVariant.success : BadgeVariant.warning;
+  Widget _buildContractHeader(
+      BuildContext context, ColorScheme colors, ProcurementOrder order) {
+    final paidCount = _installments
+        .where((i) => (i.dateDisbursement ?? '').trim().isNotEmpty)
+        .length;
+    final isCompleted =
+        _installments.isNotEmpty && paidCount == _installments.length;
+    final statusVariant =
+        isCompleted ? BadgeVariant.success : BadgeVariant.warning;
     final statusLabel = _installments.isEmpty
         ? 'ยังไม่มีงวด'
         : isCompleted
@@ -911,9 +1062,16 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
             children: [
               SizedBox(
                 width: 160,
-                child: Text(label, style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium)),
+                child: Text(label,
+                    style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: AppTypography.bodyMedium)),
               ),
-              Expanded(child: Text(value, style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface))),
+              Expanded(
+                  child: Text(value,
+                      style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          color: colors.onSurface))),
             ],
           ),
         );
@@ -934,28 +1092,37 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
               children: [
                 Expanded(
                   child: Text('ข้อมูลสัญญา',
-                      style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
+                      style: TextStyle(
+                          fontWeight: AppTypography.weightExtraBold,
+                          fontSize: AppTypography.heading4,
+                          color: colors.onSurface)),
                 ),
-                StatusBadge(label: statusLabel, variant: statusVariant, compact: true),
+                StatusBadge(
+                    label: statusLabel, variant: statusVariant, compact: true),
               ],
             ),
             Divider(height: 20, color: colors.outlineVariant),
             row('ชื่อผู้ค้า/ผู้รับจ้าง', order.vendorName ?? '-'),
             row('เลขประจำตัวผู้เสียภาษี', order.vendorTaxId ?? '-'),
-            row('ประเภทสัญญา', order.orderType == 'จ้าง' ? 'ใบสั่งจ้าง' : 'ใบสั่งซื้อ'),
+            row('ประเภทสัญญา',
+                order.orderType == 'จ้าง' ? 'ใบสั่งจ้าง' : 'ใบสั่งซื้อ'),
             row('เลขที่สัญญา', order.procurementNumber ?? '-'),
             row('ลงวันที่', order.dateContractSigned ?? '-'),
             row('เลขคุมสัญญา', order.contractControlNumber ?? '-'),
-            row('จำนวนเงินตามสัญญา', '${formatBaht(order.currentOrderPrice)} บาท'),
+            row('จำนวนเงินตามสัญญา',
+                '${formatBaht(order.currentOrderPrice)} บาท'),
           ],
         ),
       ),
     );
   }
 
-  static const _headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall);
+  static const _headerStyle = TextStyle(
+      fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall);
 
-  Widget _tableContainer(BuildContext context, ColorScheme colors, Widget child) => Container(
+  Widget _tableContainer(
+          BuildContext context, ColorScheme colors, Widget child) =>
+      Container(
         decoration: BoxDecoration(
           color: colors.surface,
           border: Border.all(color: colors.outline),
@@ -974,13 +1141,21 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
         child: Center(
           child: Column(
             children: [
-              Icon(Icons.event_note_outlined, size: 32, color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
+              Icon(Icons.event_note_outlined,
+                  size: 32,
+                  color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
               const SizedBox(height: 8),
               Text('ยังไม่มีงวดการเบิกจ่าย',
-                  style: TextStyle(color: colors.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold, fontSize: AppTypography.body)),
+                  style: TextStyle(
+                      color: colors.onSurfaceVariant,
+                      fontWeight: AppTypography.weightSemiBold,
+                      fontSize: AppTypography.body)),
               const SizedBox(height: 2),
-              Text('กดปุ่ม "เพิ่มงวด" หรือ "สร้างงวดอัตโนมัติ" มุมขวาบนเพื่อเริ่มต้น',
-                  style: TextStyle(color: colors.onSurfaceVariant.withValues(alpha: 0.8), fontSize: AppTypography.caption)),
+              Text(
+                  'กดปุ่ม "เพิ่มงวด" หรือ "สร้างงวดอัตโนมัติ" มุมขวาบนเพื่อเริ่มต้น',
+                  style: TextStyle(
+                      color: colors.onSurfaceVariant.withValues(alpha: 0.8),
+                      fontSize: AppTypography.caption)),
             ],
           ),
         ),
@@ -991,7 +1166,10 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
     if (busy) {
       return const Padding(
         padding: EdgeInsets.all(8),
-        child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+        child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
     return PopupMenuButton<String>(
@@ -1025,10 +1203,13 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
         PopupMenuItem(value: 'edit', child: Text('แก้ไขงวดนี้')),
         PopupMenuItem(value: 'delete', child: Text('ลบงวดนี้')),
         PopupMenuDivider(),
-        PopupMenuItem(value: 'all', child: Text('สร้างชุดเอกสาร (รวมไฟล์เดียว)')),
+        PopupMenuItem(
+            value: 'all', child: Text('สร้างชุดเอกสาร (รวมไฟล์เดียว)')),
         PopupMenuItem(value: 'delivery', child: Text('ใบส่งมอบงาน')),
-        PopupMenuItem(value: 'inspection', child: Text('ใบตรวจรับการจัดซื้อ/จัดจ้าง')),
-        PopupMenuItem(value: 'disbursement', child: Text('บันทึกข้อความส่งเบิกเงิน')),
+        PopupMenuItem(
+            value: 'inspection', child: Text('ใบตรวจรับการจัดซื้อ/จัดจ้าง')),
+        PopupMenuItem(
+            value: 'disbursement', child: Text('บันทึกข้อความส่งเบิกเงิน')),
         PopupMenuItem(value: 'payment', child: Text('ใบสำคัญรับเงิน')),
       ],
       child: Icon(Icons.more_vert, color: colors.onSurfaceVariant),
@@ -1063,9 +1244,14 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
         rows: [
           for (final (idx, i) in _installments.indexed)
             DataRow(
-              color: idx.isOdd ? WidgetStateProperty.all(colors.surfaceContainerHighest.withValues(alpha: 0.25)) : null,
+              color: idx.isOdd
+                  ? WidgetStateProperty.all(
+                      colors.surfaceContainerHighest.withValues(alpha: 0.25))
+                  : null,
               cells: [
-                DataCell(Text(i.periodLabel?.trim().isNotEmpty == true ? '${i.periodNo} (${i.periodLabel})' : '${i.periodNo}')),
+                DataCell(Text(i.periodLabel?.trim().isNotEmpty == true
+                    ? '${i.periodNo} (${i.periodLabel})'
+                    : '${i.periodNo}')),
                 DataCell(Text(i.dateDelivery ?? '-')),
                 DataCell(Text(i.dateInspection ?? '-')),
                 DataCell(Text(i.controlNumberInspection ?? '-')),
@@ -1075,7 +1261,9 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
                       : (i.dateDelivery ?? '').trim().isNotEmpty
                           ? 'รอตรวจรับ'
                           : 'รอส่งมอบงาน',
-                  variant: (i.dateInspection ?? '').trim().isNotEmpty ? BadgeVariant.success : BadgeVariant.warning,
+                  variant: (i.dateInspection ?? '').trim().isNotEmpty
+                      ? BadgeVariant.success
+                      : BadgeVariant.warning,
                   compact: true,
                 )),
                 DataCell(_rowActionsMenu(i, colors)),
@@ -1106,7 +1294,9 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
         columns: const [
           DataColumn(label: Text('งวดเงิน', style: _headerStyle)),
           DataColumn(label: Text('วันที่จ่ายเงิน', style: _headerStyle)),
-          DataColumn(label: Text('จำนวนเงินงวดนี้', style: _headerStyle), numeric: true),
+          DataColumn(
+              label: Text('จำนวนเงินงวดนี้', style: _headerStyle),
+              numeric: true),
           DataColumn(label: Text('ค่าปรับ', style: _headerStyle)),
           DataColumn(label: Text('สถานะดำเนินการ', style: _headerStyle)),
           DataColumn(label: Text('จัดการ', style: _headerStyle)),
@@ -1114,15 +1304,23 @@ class _InstallmentDetailPageState extends State<_InstallmentDetailPage> {
         rows: [
           for (final (idx, i) in _installments.indexed)
             DataRow(
-              color: idx.isOdd ? WidgetStateProperty.all(colors.surfaceContainerHighest.withValues(alpha: 0.25)) : null,
+              color: idx.isOdd
+                  ? WidgetStateProperty.all(
+                      colors.surfaceContainerHighest.withValues(alpha: 0.25))
+                  : null,
               cells: [
                 DataCell(Text('${i.periodNo}')),
                 DataCell(Text(i.dateDisbursement ?? '-')),
                 DataCell(Text('${formatBaht(i.amount)} บาท')),
-                DataCell(Text(i.hasPenalty ? '${formatBaht(i.penaltyAmount)} บาท' : '-')),
+                DataCell(Text(
+                    i.hasPenalty ? '${formatBaht(i.penaltyAmount)} บาท' : '-')),
                 DataCell(StatusBadge(
-                  label: (i.dateDisbursement ?? '').trim().isNotEmpty ? 'จ่ายเงินเรียบร้อย' : 'รอเบิกจ่าย',
-                  variant: (i.dateDisbursement ?? '').trim().isNotEmpty ? BadgeVariant.success : BadgeVariant.warning,
+                  label: (i.dateDisbursement ?? '').trim().isNotEmpty
+                      ? 'จ่ายเงินเรียบร้อย'
+                      : 'รอเบิกจ่าย',
+                  variant: (i.dateDisbursement ?? '').trim().isNotEmpty
+                      ? BadgeVariant.success
+                      : BadgeVariant.warning,
                   compact: true,
                 )),
                 DataCell(_rowActionsMenu(i, colors)),
@@ -1146,7 +1344,8 @@ class _InstallmentEditorDialog extends StatefulWidget {
   });
 
   @override
-  State<_InstallmentEditorDialog> createState() => _InstallmentEditorDialogState();
+  State<_InstallmentEditorDialog> createState() =>
+      _InstallmentEditorDialogState();
 }
 
 class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
@@ -1171,12 +1370,16 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    _periodNoCtrl = TextEditingController(text: (e?.periodNo ?? widget.nextPeriodNo).toString());
+    _periodNoCtrl = TextEditingController(
+        text: (e?.periodNo ?? widget.nextPeriodNo).toString());
     _periodLabelCtrl = TextEditingController(text: e?.periodLabel ?? '');
-    _amountCtrl = TextEditingController(text: e?.amount != null ? e!.amount!.toStringAsFixed(2) : '');
-    _controlNumberCtrl = TextEditingController(text: e?.controlNumberInspection ?? '');
+    _amountCtrl = TextEditingController(
+        text: e?.amount != null ? e!.amount!.toStringAsFixed(2) : '');
+    _controlNumberCtrl =
+        TextEditingController(text: e?.controlNumberInspection ?? '');
     _penaltyAmountCtrl = TextEditingController(
-      text: e?.penaltyAmount != null ? e!.penaltyAmount!.toStringAsFixed(2) : '',
+      text:
+          e?.penaltyAmount != null ? e!.penaltyAmount!.toStringAsFixed(2) : '',
     );
     _dateDelivery = e?.dateDelivery;
     _dateInspection = e?.dateInspection;
@@ -1196,9 +1399,19 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
   }
 
   static const _thaiMonths = [
-    '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
-    'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
-    'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    '',
+    'มกราคม',
+    'กุมภาพันธ์',
+    'มีนาคม',
+    'เมษายน',
+    'พฤษภาคม',
+    'มิถุนายน',
+    'กรกฎาคม',
+    'สิงหาคม',
+    'กันยายน',
+    'ตุลาคม',
+    'พฤศจิกายน',
+    'ธันวาคม',
   ];
 
   DateTime? _parseThaiDate(String? text) {
@@ -1221,7 +1434,8 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
     return '${date.day} ${_thaiMonths[date.month]} $y';
   }
 
-  Future<void> _pickDate(String label, String? current, void Function(String) onPicked) async {
+  Future<void> _pickDate(
+      String label, String? current, void Function(String) onPicked) async {
     final colors = Theme.of(context).colorScheme;
     final initial = _parseThaiDate(current) ?? DateTime.now();
     final picked = await pickThaiDate(
@@ -1238,17 +1452,21 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
   }
 
   InputDecoration _dec(String label, {Widget? suffixIcon, String? hint}) =>
-      _dialogFieldDecoration(context, label: label, suffixIcon: suffixIcon, hint: hint);
+      _dialogFieldDecoration(context,
+          label: label, suffixIcon: suffixIcon, hint: hint);
 
   void _save() {
-    final periodNo = int.tryParse(_periodNoCtrl.text.trim()) ?? widget.nextPeriodNo;
+    final periodNo =
+        int.tryParse(_periodNoCtrl.text.trim()) ?? widget.nextPeriodNo;
     final amount = double.tryParse(_amountCtrl.text.trim());
     final penaltyAmount = double.tryParse(_penaltyAmountCtrl.text.trim());
     final installment = ProcurementInstallment(
       id: widget.existing?.id,
       orderId: widget.orderId,
       periodNo: periodNo,
-      periodLabel: _periodLabelCtrl.text.trim().isEmpty ? null : _periodLabelCtrl.text.trim(),
+      periodLabel: _periodLabelCtrl.text.trim().isEmpty
+          ? null
+          : _periodLabelCtrl.text.trim(),
       amount: amount,
       amountTh: amount != null ? CalcEngine.bahtText(amount) : null,
       dateDelivery: _dateDelivery,
@@ -1257,8 +1475,9 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
       inspectionResult: _inspectionResult,
       hasPenalty: _hasPenalty,
       penaltyAmount: _hasPenalty ? penaltyAmount : null,
-      controlNumberInspection:
-          _controlNumberCtrl.text.trim().isEmpty ? null : _controlNumberCtrl.text.trim(),
+      controlNumberInspection: _controlNumberCtrl.text.trim().isEmpty
+          ? null
+          : _controlNumberCtrl.text.trim(),
     );
     Navigator.pop(context, installment);
   }
@@ -1267,7 +1486,11 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: Text(widget.existing == null ? 'เพิ่มงวดการเบิกจ่าย' : 'แก้ไขงวดการเบิกจ่าย', style: _dialogTitleStyle),
+      title: Text(
+          widget.existing == null
+              ? 'เพิ่มงวดการเบิกจ่าย'
+              : 'แก้ไขงวดการเบิกจ่าย',
+          style: _dialogTitleStyle),
       content: SizedBox(
         width: 500,
         child: SingleChildScrollView(
@@ -1292,7 +1515,8 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                     child: ClearableTextField(
                       controller: _periodLabelCtrl,
                       style: _dialogFieldStyle,
-                      decoration: _dec('ป้ายกำกับงวด', hint: 'เช่น พฤษภาคม 2569'),
+                      decoration:
+                          _dec('ป้ายกำกับงวด', hint: 'เช่น พฤษภาคม 2569'),
                     ),
                   ),
                 ],
@@ -1302,53 +1526,71 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 controller: _amountCtrl,
                 style: _dialogFieldStyle,
                 decoration: _dec('จำนวนเงินงวดนี้ (บาท)', hint: 'เช่น 5000.00'),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
               ),
               const SizedBox(height: 18),
               ClearableTextField(
                 controller: _controlNumberCtrl,
                 style: _dialogFieldStyle,
-                decoration: _dec('เลขคุมตรวจรับ (ถ้ามี)', hint: 'เช่น ตรวจรับที่ 5/2569'),
+                decoration: _dec('เลขคุมตรวจรับ (ถ้ามี)',
+                    hint: 'เช่น ตรวจรับที่ 5/2569'),
               ),
               const SizedBox(height: 18),
               ClearableTextField(
                 readOnly: true,
                 controller: TextEditingController(text: _dateDelivery ?? ''),
                 style: _dialogFieldStyle,
-                decoration: _dec('วันที่ส่งมอบงาน', suffixIcon: const Icon(Icons.calendar_today, size: 18)).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                onTap: () => _pickDate('วันที่ส่งมอบงาน', _dateDelivery, (v) => _dateDelivery = v),
+                decoration: _dec('วันที่ส่งมอบงาน',
+                        suffixIcon: const Icon(Icons.calendar_today, size: 18))
+                    .copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.auto),
+                onTap: () => _pickDate(
+                    'วันที่ส่งมอบงาน', _dateDelivery, (v) => _dateDelivery = v),
               ),
               const SizedBox(height: 18),
               ClearableTextField(
                 readOnly: true,
                 controller: TextEditingController(text: _dateInspection ?? ''),
                 style: _dialogFieldStyle,
-                decoration: _dec('วันที่ตรวจรับ', suffixIcon: const Icon(Icons.calendar_today, size: 18)).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                onTap: () => _pickDate('วันที่ตรวจรับ', _dateInspection, (v) => _dateInspection = v),
+                decoration: _dec('วันที่ตรวจรับ',
+                        suffixIcon: const Icon(Icons.calendar_today, size: 18))
+                    .copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.auto),
+                onTap: () => _pickDate('วันที่ตรวจรับ', _dateInspection,
+                    (v) => _dateInspection = v),
               ),
               const SizedBox(height: 18),
               ClearableTextField(
                 readOnly: true,
-                controller: TextEditingController(text: _dateDisbursement ?? ''),
+                controller:
+                    TextEditingController(text: _dateDisbursement ?? ''),
                 style: _dialogFieldStyle,
-                decoration: _dec('วันที่อนุมัติเบิกจ่าย', suffixIcon: const Icon(Icons.calendar_today, size: 18)).copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                onTap: () =>
-                    _pickDate('วันที่อนุมัติเบิกจ่าย', _dateDisbursement, (v) => _dateDisbursement = v),
+                decoration: _dec('วันที่อนุมัติเบิกจ่าย',
+                        suffixIcon: const Icon(Icons.calendar_today, size: 18))
+                    .copyWith(
+                        floatingLabelBehavior: FloatingLabelBehavior.auto),
+                onTap: () => _pickDate('วันที่อนุมัติเบิกจ่าย',
+                    _dateDisbursement, (v) => _dateDisbursement = v),
               ),
               const SizedBox(height: 18),
               DropdownButtonFormField<String>(
                 initialValue: _inspectionResult,
                 style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                decoration: _dec('ผลการตรวจรับ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                decoration: _dec('ผลการตรวจรับ').copyWith(
+                    floatingLabelBehavior: FloatingLabelBehavior.auto),
                 items: _inspectionResultOptions
                     .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                     .toList(),
-                onChanged: (v) => setState(() => _inspectionResult = v ?? _inspectionResult),
+                onChanged: (v) =>
+                    setState(() => _inspectionResult = v ?? _inspectionResult),
               ),
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('มีค่าปรับ', style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface)),
+                title: Text('มีค่าปรับ',
+                    style: TextStyle(
+                        fontSize: AppTypography.body, color: colors.onSurface)),
                 value: _hasPenalty,
                 onChanged: (v) => setState(() => _hasPenalty = v),
               ),
@@ -1356,8 +1598,10 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
                 ClearableTextField(
                   controller: _penaltyAmountCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _dec('จำนวนเงินค่าปรับ (บาท)', hint: 'เช่น 500.00'),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration:
+                      _dec('จำนวนเงินค่าปรับ (บาท)', hint: 'เช่น 500.00'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                 ),
             ],
           ),
@@ -1366,11 +1610,13 @@ class _InstallmentEditorDialogState extends State<_InstallmentEditorDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: TextButton.styleFrom(
+              padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: FilledButton.styleFrom(
+              padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           onPressed: _save,
           child: const Text('บันทึก'),
         ),

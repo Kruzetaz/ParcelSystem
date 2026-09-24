@@ -35,6 +35,7 @@ import '../widgets/thai_date_picker.dart';
 import 'personnel_tab.dart';
 import 'settings_screen.dart';
 import '../widgets/design_system/clearable_text_field.dart';
+import '../widgets/design_system/searchable_dropdown_field.dart';
 
 // สไตล์ dialog มาตรฐานของทั้งแอป (เหมือนกับ guarantees_screen.dart /
 // disposals_screen.dart ฯลฯ) — ใช้กับ dialog "เพิ่มแผนงบประมาณแบบด่วน" ใน Tab 1
@@ -527,7 +528,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: colors.onPrimary),
                         )
-                      : const Icon(Icons.description),
+                      : const Icon(Icons.print_outlined),
                   label: Text(
                       _generatingDoc ? 'กำลังสร้าง...' : 'สร้างเอกสาร Word'),
                   style: FilledButton.styleFrom(
@@ -959,52 +960,46 @@ class _Tab1SchoolBudgetState extends State<_Tab1SchoolBudget> {
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: LinearProgressIndicator(),
                   )
-                : DropdownButtonFormField<Budget>(
-                    initialValue: selectedBudget,
+                : SearchableDropdownField<Budget>(
+                    value: selectedBudget,
+                    options: _budgets,
+                    // ใช้กรองตอนพิมพ์ค้นหา — รวมปี/ชื่อโครงการ/กิจกรรมไว้ในสตริง
+                    // เดียวกัน กันคนพิมพ์ชื่อกิจกรรมแล้วกรองไม่เจอเพราะ label
+                    // แสดงผลใช้แค่ชื่อโครงการ
+                    labelOf: (b) =>
+                        '${b.fiscalYear} ${b.projectName ?? ""} ${b.activityName ?? ""}',
                     decoration: _inputDecoration(
-                            'แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ)')
+                            'แผนงบประมาณ (ปี / กลุ่มงาน / โครงการ) — พิมพ์เพื่อค้นหา')
                         .copyWith(
                             floatingLabelBehavior: FloatingLabelBehavior.auto),
-                    isExpanded: true,
-                    items: _budgets
-                        .map((b) => DropdownMenuItem(
-                              value: b,
-                              // ชื่อโครงการ (ตัวหนา) vs กิจกรรมย่อย/เมทาดาต้าอื่น (ตัวบาง สี
-                              // อ่อนกว่า) — แยกน้ำหนักให้เห็นลำดับความสำคัญชัดขึ้น แทนที่จะ
-                              // เป็นตัวหนาเท่ากันหมดทั้งบรรทัดแบบเดิม
-                              child: Text.rich(
-                                TextSpan(
-                                  style: TextStyle(
-                                      fontWeight: AppTypography.weightSemiBold,
-                                      color: colors.onSurface),
-                                  children: [
-                                    TextSpan(
-                                        text:
-                                            '${b.fiscalYear} • ${b.projectName ?? "-"}'),
-                                    if (b.activityName?.trim().isNotEmpty ??
-                                        false)
-                                      TextSpan(
-                                        text: ' › ${b.activityName}',
-                                        style: TextStyle(
-                                            fontWeight:
-                                                AppTypography.weightRegular,
-                                            color: colors.onSurfaceVariant),
-                                      ),
-                                    TextSpan(
-                                      text:
-                                          '${b.budgetSource == budgetSourceDistrict ? " [งบเขต]" : ""} '
-                                          '(คงเหลือ ${b.remainingAmount?.toStringAsFixed(0) ?? "-"} บาท)',
-                                      style: TextStyle(
-                                          fontWeight:
-                                              AppTypography.weightRegular,
-                                          color: colors.onSurfaceVariant),
-                                    ),
-                                  ],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ))
-                        .toList(),
+                    itemBuilder: (context, b) => Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightSemiBold,
+                            color: colors.onSurface),
+                        children: [
+                          TextSpan(
+                              text:
+                                  '${b.fiscalYear} • ${b.projectName ?? "-"}'),
+                          if (b.activityName?.trim().isNotEmpty ?? false)
+                            TextSpan(
+                              text: ' › ${b.activityName}',
+                              style: TextStyle(
+                                  fontWeight: AppTypography.weightRegular,
+                                  color: colors.onSurfaceVariant),
+                            ),
+                          TextSpan(
+                            text:
+                                '${b.budgetSource == budgetSourceDistrict ? " [งบเขต]" : ""} '
+                                '(คงเหลือ ${b.remainingAmount?.toStringAsFixed(0) ?? "-"} บาท)',
+                            style: TextStyle(
+                                fontWeight: AppTypography.weightRegular,
+                                color: colors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     onChanged: _onBudgetSelected,
                   ),
             const SizedBox(height: 24),

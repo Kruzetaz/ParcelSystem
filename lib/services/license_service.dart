@@ -24,13 +24,13 @@ import 'license_token.dart';
 const _scriptUrl =
     'https://script.google.com/macros/s/AKfycbyXkspN6qK_K89YU3pLu3R6pBzGcBGdntyB4yBdrpUf8Ch0cDKmv6uzqYhswHyMjqj9bg/exec';
 
-const _prefHwId          = 'hw_id';
-const _prefSavedCode     = 'license_code';
-const _prefTokenRaw      = 'license_token_raw_v1';
+const _prefHwId = 'hw_id';
+const _prefSavedCode = 'license_code';
+const _prefTokenRaw = 'license_token_raw_v1';
 // เก็บไว้เผื่อ server ยังไม่ส่ง token มา (ช่วง migration) — พฤติกรรมเดิมทุกอย่าง
-const _prefCacheStatus   = 'cache_status';
-const _prefCacheTime     = 'cache_time';
-const _prefOrgName       = 'org_name';
+const _prefCacheStatus = 'cache_status';
+const _prefCacheTime = 'cache_time';
+const _prefOrgName = 'org_name';
 
 const _legacyCacheDays = 30;
 const _graceDays = 14;
@@ -91,7 +91,8 @@ class LicenseService {
         final id = match?.group(1)?.trim() ?? '';
         if (id.isNotEmpty) return 'MAC-$id';
       } else if (Platform.isWindows) {
-        final id = await _fetchWindowsHwIdViaWmic() ?? await _fetchWindowsHwIdViaPowerShell();
+        final id = await _fetchWindowsHwIdViaWmic() ??
+            await _fetchWindowsHwIdViaPowerShell();
         if (id != null && id.isNotEmpty) return 'WIN-$id';
       }
     } catch (_) {}
@@ -167,7 +168,8 @@ class LicenseService {
     final status = prefs.getString(_prefCacheStatus) ?? '';
     if (status != 'ok') return false;
     final saved = prefs.getInt(_prefCacheTime) ?? 0;
-    final days = (DateTime.now().millisecondsSinceEpoch - saved) / (1000 * 60 * 60 * 24);
+    final days =
+        (DateTime.now().millisecondsSinceEpoch - saved) / (1000 * 60 * 60 * 24);
     return days < _legacyCacheDays;
   }
 
@@ -252,28 +254,35 @@ class LicenseService {
       // ทุกโมดูลใช้ได้เหมือนเดิม (migration — กันฟีเจอร์ที่มีอยู่แล้วพังทันที)
       if (await _isLegacyCacheValid()) {
         final orgName = await getCachedOrgName();
-        return LicenseResult(status: LicenseStatus.valid, orgName: orgName, token: _migrationAllAccessToken(orgName ?? ''));
+        return LicenseResult(
+            status: LicenseStatus.valid,
+            orgName: orgName,
+            token: _migrationAllAccessToken(orgName ?? ''));
       }
-      return const LicenseResult(status: LicenseStatus.blocked, errorReason: 'network_error');
+      return const LicenseResult(
+          status: LicenseStatus.blocked, errorReason: 'network_error');
     }
 
     final LicenseToken token;
     try {
       token = await LicenseTokenVerifier.verifyAndParse(raw);
     } catch (_) {
-      return const LicenseResult(status: LicenseStatus.blocked, errorReason: 'invalid_token');
+      return const LicenseResult(
+          status: LicenseStatus.blocked, errorReason: 'invalid_token');
     }
 
     final hwId = await getHardwareId();
     if (token.hwid != hwId) {
-      return const LicenseResult(status: LicenseStatus.blocked, errorReason: 'hwid_mismatch');
+      return const LicenseResult(
+          status: LicenseStatus.blocked, errorReason: 'hwid_mismatch');
     }
 
     final now = DateTime.now().toUtc();
     final graceEnd = token.expiresAt.add(const Duration(days: _graceDays));
 
     if (now.isBefore(token.expiresAt)) {
-      return LicenseResult(status: LicenseStatus.valid, orgName: token.orgName, token: token);
+      return LicenseResult(
+          status: LicenseStatus.valid, orgName: token.orgName, token: token);
     }
     if (now.isBefore(graceEnd)) {
       final daysLeft = graceEnd.difference(now).inDays + 1;
@@ -284,7 +293,8 @@ class LicenseService {
         graceDaysLeft: daysLeft,
       );
     }
-    return const LicenseResult(status: LicenseStatus.blocked, errorReason: 'expired');
+    return const LicenseResult(
+        status: LicenseStatus.blocked, errorReason: 'expired');
   }
 
   // ── Check by HWID (ส่งไปถามว่าเครื่องนี้ลงทะเบียนไว้ไหม) ────────
@@ -329,17 +339,21 @@ class LicenseService {
   //   { ok: false, reason: "..." }
   Future<LicenseResult> _parseResponse(http.Response response) async {
     if (response.statusCode != 200) {
-      return const LicenseResult(status: LicenseStatus.blocked, errorReason: 'server_error');
+      return const LicenseResult(
+          status: LicenseStatus.blocked, errorReason: 'server_error');
     }
     final Map<String, dynamic> json;
     try {
       json = jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
-      return const LicenseResult(status: LicenseStatus.blocked, errorReason: 'server_error');
+      return const LicenseResult(
+          status: LicenseStatus.blocked, errorReason: 'server_error');
     }
     final ok = json['ok'] as bool? ?? false;
     if (!ok) {
-      return LicenseResult(status: LicenseStatus.blocked, errorReason: json['reason'] as String? ?? 'unknown');
+      return LicenseResult(
+          status: LicenseStatus.blocked,
+          errorReason: json['reason'] as String? ?? 'unknown');
     }
 
     final rawToken = json['token'] as String?;
@@ -348,7 +362,10 @@ class LicenseService {
       // ถือว่าทุกโมดูลใช้ได้เหมือนเดิม จนกว่า server จะเริ่มส่ง token ที่มี
       // modules list มาเอง (ค่อยเริ่ม gate เป็นรายโมดูลจริงจังตอนนั้น)
       final orgName = json['name'] as String?;
-      return LicenseResult(status: LicenseStatus.valid, orgName: orgName, token: _migrationAllAccessToken(orgName ?? ''));
+      return LicenseResult(
+          status: LicenseStatus.valid,
+          orgName: orgName,
+          token: _migrationAllAccessToken(orgName ?? ''));
     }
 
     try {
@@ -363,7 +380,8 @@ class LicenseService {
       // server ส่ง token มาแต่ลายเซ็นไม่ถูกต้อง/parse ไม่ได้ — ถือว่าใช้ไม่ได้
       // (อย่าเชื่อ ok:true เฉยๆ โดยไม่ตรวจลายเซ็น ไม่งั้นเสียจุดประสงค์การเซ็น
       // token ไปเลย)
-      return const LicenseResult(status: LicenseStatus.blocked, errorReason: 'invalid_token');
+      return const LicenseResult(
+          status: LicenseStatus.blocked, errorReason: 'invalid_token');
     }
   }
 
@@ -377,6 +395,9 @@ class LicenseService {
         orgName: orgName,
         issuedAt: DateTime.now(),
         expiresAt: DateTime.now().add(const Duration(days: 90)),
-        modules: const [FeatureModules.procurement, FeatureModules.travelExpense],
+        modules: const [
+          FeatureModules.procurement,
+          FeatureModules.travelExpense
+        ],
       );
 }

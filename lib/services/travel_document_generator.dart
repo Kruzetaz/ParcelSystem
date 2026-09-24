@@ -37,8 +37,10 @@ enum TravelDocumentType { memo, form1, form2 }
 class TravelDocumentGenerator {
   static const Map<TravelDocumentType, String> _templateAssetPaths = {
     TravelDocumentType.memo: 'assets/templates/travel_memo_template.docx',
-    TravelDocumentType.form1: 'assets/templates/travel_form8708_part1_template.docx',
-    TravelDocumentType.form2: 'assets/templates/travel_form8708_part2_template.docx',
+    TravelDocumentType.form1:
+        'assets/templates/travel_form8708_part1_template.docx',
+    TravelDocumentType.form2:
+        'assets/templates/travel_form8708_part2_template.docx',
   };
 
   static const Map<TravelDocumentType, String> _outputLabels = {
@@ -62,7 +64,10 @@ class TravelDocumentGenerator {
   static double _sumRegistration(List<TravelParticipant> p) =>
       p.fold(0, (sum, x) => sum + x.registrationFee);
   static double sumTotal(List<TravelParticipant> p) =>
-      _sumAllowance(p) + _sumAccommodation(p) + _sumTransport(p) + _sumRegistration(p);
+      _sumAllowance(p) +
+      _sumAccommodation(p) +
+      _sumTransport(p) +
+      _sumRegistration(p);
 
   static Map<String, bool> buildConditionalFlags(TravelReimbursement r) => {
         'has_advance_payer': r.isAdvancePayer,
@@ -82,11 +87,16 @@ class TravelDocumentGenerator {
     final totalAccommodation = _sumAccommodation(participants);
     final totalTransport = _sumTransport(participants);
     final totalRegistration = _sumRegistration(participants);
-    final total = totalAllowance + totalAccommodation + totalTransport + totalRegistration;
+    final total = totalAllowance +
+        totalAccommodation +
+        totalTransport +
+        totalRegistration;
 
     // ผู้รับเงิน = ผู้สำรองจ่าย (ถ้ามี) — ไม่งั้นเป็นผู้เดินทางคนแรกในลิสต์
-    final payeeName = payee?.name ?? (participants.isNotEmpty ? participants.first.participantName : '');
-    final payeePosition = payee?.position ?? (participants.isNotEmpty ? participants.first.position : null);
+    final payeeName = payee?.name ??
+        (participants.isNotEmpty ? participants.first.participantName : '');
+    final payeePosition = payee?.position ??
+        (participants.isNotEmpty ? participants.first.position : null);
 
     return {
       'school_name': _str(school.schoolName),
@@ -134,7 +144,8 @@ class TravelDocumentGenerator {
   }
 
   /// แถวตารางผู้เดินทาง (สำหรับ form2 — {{participant_name}} เป็น seed key)
-  static List<Map<String, String>> buildParticipantRows(List<TravelParticipant> participants) {
+  static List<Map<String, String>> buildParticipantRows(
+      List<TravelParticipant> participants) {
     return [
       for (var i = 0; i < participants.length; i++)
         {
@@ -142,7 +153,8 @@ class TravelDocumentGenerator {
           'participant_name': participants[i].participantName,
           'participant_position': _str(participants[i].position),
           'participant_allowance': _money(participants[i].allowanceAmount),
-          'participant_accommodation': _money(participants[i].accommodationAmount),
+          'participant_accommodation':
+              _money(participants[i].accommodationAmount),
           'participant_transport': _money(participants[i].transportAmount),
           'participant_other': _money(participants[i].registrationFee),
           'participant_subtotal': _money(participants[i].subtotal),
@@ -174,7 +186,8 @@ class TravelDocumentGenerator {
 
     return DocxTemplateService.processTemplate(
       templateBytes: templateBytes,
-      fieldValues: buildFieldMap(r, participants, school, payee: payee, checker: checker),
+      fieldValues: buildFieldMap(r, participants, school,
+          payee: payee, checker: checker),
       items: const [],
       conditionalFlags: buildConditionalFlags(r),
       participantRows: buildParticipantRows(participants),
@@ -208,7 +221,8 @@ class TravelDocumentGenerator {
   }) async {
     // Security level: กันซ้ำตรงนี้ด้วย ไม่ใช่เชื่อแค่ว่า UI ล็อกเมนูไว้แล้ว —
     // เผื่อมีการเรียก service นี้ตรงๆ ข้ามการเช็คที่ sidebar/routing มา
-    if (!FeatureAccessService.instance.hasModule(FeatureModules.travelExpense)) {
+    if (!FeatureAccessService.instance
+        .hasModule(FeatureModules.travelExpense)) {
       throw TravelDocumentGeneratorException(
         'โมดูลเบิกจ่ายเดินทางไปราชการยังไม่ได้ปลดล็อกในแพ็กเกจนี้',
       );

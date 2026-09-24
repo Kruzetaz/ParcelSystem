@@ -9,9 +9,12 @@ import '../data/procurement_repository.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
 import '../services/order_register_export_service.dart';
+import '../services/import_notification_helper.dart';
+import '../services/navigation_request_controller.dart';
 import '../services/pending_import_controller.dart';
 import '../services/procurement_import_service.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/money_format.dart';
 import '../utils/thai_date.dart';
 import '../utils/thai_numerals.dart';
@@ -49,7 +52,8 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
   List<ProcurementOrder> _orders = [];
   Map<int, Budget> _budgetsById = {};
   bool _loading = true;
-  String? _fiscalYearFilter;
+  String? _fiscalYearFilter =
+      UiSessionState.instance.read<String?>('order_register_fiscal_year', null);
 
   final _purchaseScrollCtrl = ScrollController();
   final _hireScrollCtrl = ScrollController();
@@ -142,7 +146,8 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
 
   bool _exporting = false;
   bool _importing = false;
-  Set<String> _visibleColumns = _orderRegisterOptionalColumns.toSet();
+  Set<String> _visibleColumns = UiSessionState.instance.read(
+      'order_register_visible_columns', _orderRegisterOptionalColumns.toSet());
 
   /// นำเข้าโครงการจัดซื้อจัดจ้างเก่า/นอกระบบ (ไฟล์ .docx/.pdf/.xlsx ที่เคยทำ
   /// ด้วยมือ) — เลือกได้หลายไฟล์พร้อมกัน แต่ละไฟล์ผ่าน AI อ่านแล้วต้องผ่านหน้า
@@ -163,7 +168,9 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
     // เห็นได้ต่อเนื่องไม่ว่าจะอยู่หน้าไหน
     final files = result.files.where((f) => f.path != null).toList();
     final toastId = showAppLoadingToast('กำลังนำเข้าโครงการเก่า',
-        message: 'ให้ AI อ่านไฟล์ 0/${files.length} ไฟล์...');
+        message: 'ให้ AI อ่านไฟล์ 0/${files.length} ไฟล์...',
+        onTap: () =>
+            NavigationRequestController.instance.requestMode('order_register'));
     final attempts = <ImportAttempt>[];
     try {
       // อ่านไฟล์พร้อมกันทีละชุด (ไม่ทีละไฟล์) — 28 ไฟล์แบบต่อคิวทีละไฟล์ผ่าน AI
@@ -178,10 +185,16 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
           try {
             final parsed =
                 await ProcurementImportService.instance.importFromFile(f.path!);
-            return (name: f.name, parsed: parsed, error: null as Object?);
+            return (
+              name: f.name,
+              path: f.path!,
+              parsed: parsed,
+              error: null as Object?
+            );
           } catch (e) {
             return (
               name: f.name,
+              path: f.path!,
               parsed: const <ImportedProject>[],
               error: e as Object?
             );
@@ -190,10 +203,11 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
         for (final r in results) {
           done++;
           if (r.error != null) {
-            attempts.add(ImportAttempt.failure(r.name, '${r.error}'));
+            attempts.add(ImportAttempt.failure(r.name, '${r.error}', r.path));
           } else {
             for (final p in r.parsed) {
-              attempts.add(ImportAttempt.success(r.name, p.order, p.items));
+              attempts
+                  .add(ImportAttempt.success(r.name, p.order, p.items, r.path));
             }
           }
         }
@@ -203,9 +217,21 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
 
       if (attempts.isEmpty) {
         completeAppToast(toastId,
-            success: false, message: 'ไม่พบข้อมูลที่นำเข้าได้');
+            success: false,
+            message: 'ไม่พบข้อมูลที่นำเข้าได้',
+            navigateMode: 'order_register');
         return;
       }
+
+      // ถ้ามีไฟล์อ่านไม่สำเร็จปนอยู่ (เช่น AI โดน rate limit ชั่วคราว) — บอกจำนวน
+      // สำเร็จ/ไม่สำเร็จให้เห็นชัดในข้อความสรุป แล้วแยกแจ้งเตือนไฟล์ที่พังออกมา
+      // เป็นอีกรายการต่างหากในกระดิ่ง (ไม่ใช่แค่ฝังรวมอยู่ในข้อความสำเร็จเฉยๆ)
+      // กันหลุดรอดไม่มีใครสังเกตว่ามีไฟล์ตกหล่นไป
+      notifyImportFailuresIfAny(attempts, navigateMode: 'order_register');
+      final failedCount = attempts.where((a) => !a.ok).length;
+      final summarySuffix = failedCount == 0
+          ? ''
+          : ' (สำเร็จ ${attempts.length - failedCount} ไฟล์ · ไม่สำเร็จ $failedCount ไฟล์)';
 
       if (!mounted) {
         // ผู้ใช้สลับออกจากหน้านี้ไปแล้วระหว่างรอ AI อ่านไฟล์ (ใช้เวลานาน) —
@@ -215,18 +241,23 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
         completeAppToast(toastId,
             title: 'อ่านไฟล์เสร็จแล้ว',
             success: true,
-            message: 'กลับมาหน้าทะเบียนคุมเพื่อตรวจสอบและบันทึกได้เลย');
+            message:
+                'กลับมาหน้าทะเบียนคุมเพื่อตรวจสอบและบันทึกได้เลย$summarySuffix',
+            navigateMode: 'order_register');
         return;
       }
       setState(() => _importing = false);
       completeAppToast(toastId,
           success: true,
           title: 'อ่านไฟล์เสร็จแล้ว',
-          message: 'กรุณาตรวจสอบข้อมูลก่อนบันทึก');
+          message: 'กรุณาตรวจสอบข้อมูลก่อนบันทึก$summarySuffix',
+          navigateMode: 'order_register');
       await _reviewAndSaveImportAttempts(attempts);
     } catch (e) {
       completeAppToast(toastId,
-          success: false, message: 'นำเข้าไฟล์ไม่สำเร็จ: $e');
+          success: false,
+          message: 'นำเข้าไฟล์ไม่สำเร็จ: $e',
+          navigateMode: 'order_register');
     } finally {
       if (mounted) setState(() => _importing = false);
     }
@@ -355,8 +386,11 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                             ..._fiscalYears.map((y) => DropdownMenuItem(
                                 value: y, child: Text('ปี $y'))),
                           ],
-                          onChanged: (v) =>
-                              setState(() => _fiscalYearFilter = v),
+                          onChanged: (v) {
+                            setState(() => _fiscalYearFilter = v);
+                            UiSessionState.instance
+                                .write('order_register_fiscal_year', v);
+                          },
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -418,7 +452,11 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                       ColumnVisibilityMenu(
                         allColumns: _orderRegisterOptionalColumns,
                         visibleColumns: _visibleColumns,
-                        onChanged: (v) => setState(() => _visibleColumns = v),
+                        onChanged: (v) {
+                          setState(() => _visibleColumns = v);
+                          UiSessionState.instance
+                              .write('order_register_visible_columns', v);
+                        },
                       ),
                     ],
                   ),

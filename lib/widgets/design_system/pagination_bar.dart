@@ -89,8 +89,12 @@ class _PaginationBarState extends State<PaginationBar> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final start = widget.totalItems == 0 ? 0 : (widget.currentPage - 1) * widget.pageSize + 1;
-    final end = widget.totalItems == 0 ? 0 : ((widget.currentPage * widget.pageSize).clamp(0, widget.totalItems));
+    final start = widget.totalItems == 0
+        ? 0
+        : (widget.currentPage - 1) * widget.pageSize + 1;
+    final end = widget.totalItems == 0
+        ? 0
+        : ((widget.currentPage * widget.pageSize).clamp(0, widget.totalItems));
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
       // Wrap แทน Row+Spacer — Spacer ใช้ไม่ได้ใน Wrap แต่ก็เพราะ Spacer เองคือ
@@ -133,11 +137,14 @@ class _PaginationBarState extends State<PaginationBar> {
                     focusNode: _customFocusNode,
                     autofocus: true,
                     keyboardType: TextInputType.number,
-                    style: TextStyle(fontSize: AppTypography.bodySmall, color: colorScheme.onSurface),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodySmall,
+                        color: colorScheme.onSurface),
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
                       hintText: 'จำนวน',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.lg),
@@ -145,7 +152,8 @@ class _PaginationBarState extends State<PaginationBar> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.lg),
-                        borderSide: BorderSide(color: BrandAccent.teal(context)),
+                        borderSide:
+                            BorderSide(color: BrandAccent.teal(context)),
                       ),
                     ),
                     onSubmitted: (_) => _submitCustom(),
@@ -161,15 +169,22 @@ class _PaginationBarState extends State<PaginationBar> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
-                    value: widget.pageSizeOptions.contains(widget.pageSize) ? widget.pageSize : _customSentinel,
+                    value: widget.pageSizeOptions.contains(widget.pageSize)
+                        ? widget.pageSize
+                        : _customSentinel,
                     isDense: true,
-                    icon: Icon(Icons.expand_more, size: 16, color: colorScheme.onSurfaceVariant),
+                    icon: Icon(Icons.expand_more,
+                        size: 16, color: colorScheme.onSurfaceVariant),
                     borderRadius: BorderRadius.circular(RadiusSize.card),
                     elevation: 6,
-                    style: TextStyle(fontSize: AppTypography.bodySmall, color: colorScheme.onSurface),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodySmall,
+                        color: colorScheme.onSurface),
                     items: [
-                      for (final n in widget.pageSizeOptions) DropdownMenuItem(value: n, child: Text('$n / หน้า')),
-                      const DropdownMenuItem(value: _customSentinel, child: Text('กำหนดเอง')),
+                      for (final n in widget.pageSizeOptions)
+                        DropdownMenuItem(value: n, child: Text('$n / หน้า')),
+                      const DropdownMenuItem(
+                          value: _customSentinel, child: Text('กำหนดเอง')),
                     ],
                     onChanged: (v) {
                       if (v == null) return;
@@ -195,7 +210,9 @@ class _PaginationBarState extends State<PaginationBar> {
                   _chevronButton(
                     context,
                     icon: Icons.chevron_left,
-                    onTap: widget.currentPage > 1 ? () => widget.onPageChanged(widget.currentPage - 1) : null,
+                    onTap: widget.currentPage > 1
+                        ? () => widget.onPageChanged(widget.currentPage - 1)
+                        : null,
                   ),
                   for (final p in _visiblePages())
                     Padding(
@@ -221,7 +238,8 @@ class _PaginationBarState extends State<PaginationBar> {
     );
   }
 
-  Widget _chevronButton(BuildContext context, {required IconData icon, required VoidCallback? onTap}) {
+  Widget _chevronButton(BuildContext context,
+      {required IconData icon, required VoidCallback? onTap}) {
     final colorScheme = Theme.of(context).colorScheme;
     final disabled = onTap == null;
     // SizedBox(30x30) บังคับขนาดตรงๆ ตรงนี้ — ของเดิมพึ่งแค่
@@ -243,7 +261,9 @@ class _PaginationBarState extends State<PaginationBar> {
             child: Icon(
               icon,
               size: 16,
-              color: disabled ? colorScheme.onSurfaceVariant.withValues(alpha: 0.35) : colorScheme.onSurfaceVariant,
+              color: disabled
+                  ? colorScheme.onSurfaceVariant.withValues(alpha: 0.35)
+                  : colorScheme.onSurfaceVariant,
             ),
           ),
         ),

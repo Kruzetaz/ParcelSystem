@@ -34,7 +34,8 @@ class ColumnVisibilityMenu extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colors.outline),
         ),
-        child: Icon(Icons.view_column_outlined, size: 18, color: colors.onSurface),
+        child:
+            Icon(Icons.view_column_outlined, size: 18, color: colors.onSurface),
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),

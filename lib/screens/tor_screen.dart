@@ -402,7 +402,7 @@ class _TorScreenState extends State<TorScreen> {
                 actions: [
                   if (doc.orderId != null && !isExportingThis)
                     DsRowAction(
-                        icon: Icons.description_outlined,
+                        icon: Icons.print_outlined,
                         tooltip: 'ออกเอกสาร Word',
                         onTap: () => _exportWord(doc)),
                   DsRowAction(

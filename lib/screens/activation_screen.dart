@@ -15,9 +15,9 @@ class ActivationScreen extends StatefulWidget {
 
 class _ActivationScreenState extends State<ActivationScreen> {
   final _codeCtrl = TextEditingController();
-  final _service  = LicenseService.instance;
+  final _service = LicenseService.instance;
 
-  bool    _loading = false;
+  bool _loading = false;
   String? _errorMsg;
   String? _hwId;
 
@@ -70,7 +70,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
       return;
     }
 
-    setState(() { _loading = true; _errorMsg = null; });
+    setState(() {
+      _loading = true;
+      _errorMsg = null;
+    });
 
     try {
       final result = await _service.activate(code);
@@ -83,8 +86,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() =>
-            _errorMsg = 'ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+        setState(
+            () => _errorMsg = 'ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต');
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -142,7 +145,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
                             ),
                             Text(
                               'v3.2 Retamp · พัฒนาโดย Acha Srangkannork',
-                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodySmall),
+                              style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                  fontSize: AppTypography.bodySmall),
                             ),
                           ],
                         ),
@@ -154,7 +159,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   // ── Input ────────────────────────────────────────
                   Text(
                     'กรุณากรอก License Key เพื่อเปิดใช้งาน',
-                    style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
+                    style: TextStyle(
+                        fontSize: AppTypography.body, color: colors.onSurface),
                   ),
                   const SizedBox(height: 12),
                   ClearableTextField(
@@ -166,19 +172,30 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       errorText: _errorMsg,
                       isDense: true,
                       floatingLabelBehavior: FloatingLabelBehavior.always,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                      labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurfaceVariant),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 16),
+                      labelStyle: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurfaceVariant),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                        borderSide: BorderSide(
+                            color:
+                                colors.onSurfaceVariant.withValues(alpha: 0.45),
+                            width: 1.3),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: colors.onSurfaceVariant.withValues(alpha: 0.45), width: 1.3),
+                        borderSide: BorderSide(
+                            color:
+                                colors.onSurfaceVariant.withValues(alpha: 0.45),
+                            width: 1.3),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.md),
-                        borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
+                        borderSide: BorderSide(
+                            color: BrandAccent.teal(context), width: 1.6),
                       ),
                     ),
                     onSubmitted: (_) => _activate(),
@@ -191,12 +208,15 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: colors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                        textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(RadiusSize.md)),
+                        textStyle: const TextStyle(
+                            fontSize: 15.5, fontWeight: FontWeight.w700),
                       ),
                       child: _loading
                           ? const SizedBox(
-                              width: 20, height: 20,
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white),
                             )
@@ -210,35 +230,51 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   // ── Hardware ID ──────────────────────────────────
                   Text(
                     'Hardware ID ของเครื่องนี้:',
-                    style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodySmall,
+                        color: colors.onSurfaceVariant,
+                        fontWeight: AppTypography.weightSemiBold),
                   ),
                   const SizedBox(height: 6),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
+                      color:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(RadiusSize.sm),
                       border: Border.all(color: colors.outline),
                     ),
                     child: SelectableText(
                       _hwId ?? 'กำลังโหลด...',
-                      style: TextStyle(fontFamily: 'monospace', fontSize: AppTypography.caption, color: colors.onSurface),
+                      style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: AppTypography.caption,
+                          color: colors.onSurface),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     'หากต้องการ License Key กรุณาติดต่อผู้พัฒนาพร้อมแจ้ง Hardware ID ข้างต้น',
-                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant),
+                    style: TextStyle(
+                        fontSize: AppTypography.caption,
+                        color: colors.onSurfaceVariant),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Line ID: @157vaipv',
-                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold),
+                    style: TextStyle(
+                        fontSize: AppTypography.caption,
+                        color: colors.onSurfaceVariant,
+                        fontWeight: AppTypography.weightSemiBold),
                   ),
                   Text(
                     'Facebook: Acha Sangkannork',
-                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant, fontWeight: AppTypography.weightSemiBold),
+                    style: TextStyle(
+                        fontSize: AppTypography.caption,
+                        color: colors.onSurfaceVariant,
+                        fontWeight: AppTypography.weightSemiBold),
                   ),
                 ],
               ),

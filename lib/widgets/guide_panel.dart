@@ -31,7 +31,10 @@ class GuidePanel extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(fontWeight: FontWeight.bold, color: colors.primary, fontSize: 15),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: colors.primary,
+                    fontSize: 15),
               ),
             ),
           ],
@@ -48,12 +51,16 @@ class GuidePanel extends StatelessWidget {
                   backgroundColor: colors.primary,
                   child: Text(
                     '${i + 1}',
-                    style: TextStyle(fontSize: 10, color: colors.onPrimary, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: colors.onPrimary,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(steps[i], style: const TextStyle(fontSize: 13, height: 1.4)),
+                  child: Text(steps[i],
+                      style: const TextStyle(fontSize: 13, height: 1.4)),
                 ),
               ],
             ),
@@ -157,7 +164,8 @@ class GuideFabOverlay extends StatelessWidget {
               child: SizedBox(
                 width: 44,
                 height: 44,
-                child: Icon(Icons.help_outline, color: colors.onPrimary, size: 22),
+                child:
+                    Icon(Icons.help_outline, color: colors.onPrimary, size: 22),
               ),
             ),
           ),

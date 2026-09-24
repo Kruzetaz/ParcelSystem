@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show OverflowBoxFit;
+import '../../services/ui_session_state.dart';
 import '../../theme/design_tokens.dart';
 
 /// Collapsible sidebar — แผงด้านข้างพับได้
@@ -20,11 +21,17 @@ class CollapsibleSidebar extends StatefulWidget {
     required this.children,
     this.initiallyExpanded = true,
     this.width = 190,
+    // ถ้าระบุไว้ จะจำสถานะพับ/กางไว้ตลอดอายุแอป (จนกว่าจะปิดแอปเปิดใหม่) ผ่าน
+    // UiSessionState แทนที่จะรีเซ็ตกลับ initiallyExpanded ทุกครั้งที่สลับหน้า
+    // ออกแล้วกลับมา (AppShell ทำลาย/สร้าง State ของหน้าใหม่ทุกครั้ง) — ไม่ระบุ
+    // ไว้ = พฤติกรรมเดิมเป๊ะ (ไม่จำอะไร)
+    this.sessionKey,
   });
 
   final List<Widget> children;
   final bool initiallyExpanded;
   final double width;
+  final String? sessionKey;
 
   @override
   State<CollapsibleSidebar> createState() => _CollapsibleSidebarState();
@@ -39,7 +46,10 @@ class _CollapsibleSidebarState extends State<CollapsibleSidebar>
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.initiallyExpanded;
+    _isExpanded = widget.sessionKey != null
+        ? UiSessionState.instance
+            .read(widget.sessionKey!, widget.initiallyExpanded)
+        : widget.initiallyExpanded;
     _controller = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -66,6 +76,9 @@ class _CollapsibleSidebarState extends State<CollapsibleSidebar>
   void _toggle() {
     setState(() {
       _isExpanded = !_isExpanded;
+      if (widget.sessionKey != null) {
+        UiSessionState.instance.write(widget.sessionKey!, _isExpanded);
+      }
       if (_isExpanded) {
         _controller.forward();
       } else {
@@ -157,7 +170,9 @@ class _CollapsibleSidebarState extends State<CollapsibleSidebar>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                for (var i = 0; i < widget.children.length; i++) ...[
+                                for (var i = 0;
+                                    i < widget.children.length;
+                                    i++) ...[
                                   if (i > 0) const SizedBox(height: 14),
                                   widget.children[i],
                                 ],
@@ -238,7 +253,8 @@ class SidebarSection extends StatelessWidget {
                 if (count != null) ...[
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color: BrandAccent.surface2(context),
                       borderRadius: BorderRadius.circular(RadiusSize.xxl),
@@ -260,7 +276,10 @@ class SidebarSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(RadiusSize.sm),
                     child: Padding(
                       padding: const EdgeInsets.all(2),
-                      child: Icon(trailingIcon, size: 14, color: trailingIconColor ?? colorScheme.onSurfaceVariant),
+                      child: Icon(trailingIcon,
+                          size: 14,
+                          color: trailingIconColor ??
+                              colorScheme.onSurfaceVariant),
                     ),
                   ),
               ],

@@ -76,7 +76,8 @@ class BackupService {
     final archive = ZipDecoder().decodeBytes(bytes);
     final dbEntry = archive.findFile('procurement.db');
     if (dbEntry == null) {
-      throw Exception('ไฟล์ .zip นี้ไม่ใช่ไฟล์ backup ของระบบ (ไม่พบ procurement.db)');
+      throw Exception(
+          'ไฟล์ .zip นี้ไม่ใช่ไฟล์ backup ของระบบ (ไม่พบ procurement.db)');
     }
 
     // 2. ปิด connection ก่อนเขียนทับ

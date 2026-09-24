@@ -11,7 +11,8 @@ class TimelineStep {
   final String label;
   final String? date;
   final TimelineStepState state;
-  const TimelineStep({required this.label, this.date, this.state = TimelineStepState.pending});
+  const TimelineStep(
+      {required this.label, this.date, this.state = TimelineStepState.pending});
 }
 
 /// Step tracker แนวนอน — จุดกลม + เส้นเชื่อม + ป้ายชื่อ/วันที่ใต้แต่ละจุด
@@ -56,7 +57,9 @@ class ProcurementTimeline extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final step in steps)
-                    Expanded(child: _StepWidget(step: step, colorScheme: colorScheme)),
+                    Expanded(
+                        child:
+                            _StepWidget(step: step, colorScheme: colorScheme)),
                 ],
               ),
             ],
@@ -110,10 +113,16 @@ class _StepWidget extends StatelessWidget {
               // ต่างกันแค่สีขอบ + วงแหวนเรืองแสงรอบขอบตอน "กำลังทำ" ตรงกับ
               // mockup (.tl-steps .s.now::before) ของเดิมเข้าใจผิดว่า "กำลังทำ"
               // ต้องทึบสีเหมือน "ทำแล้ว" เลยดูเหมือนไม่มีจุดขาวเป็นจุดเด่นเลย
-              color: step.state == TimelineStepState.done ? dotColor : colorScheme.surface,
+              color: step.state == TimelineStepState.done
+                  ? dotColor
+                  : colorScheme.surface,
               border: Border.all(color: dotColor, width: 2),
               boxShadow: step.state == TimelineStepState.current
-                  ? [BoxShadow(color: dotColor.withValues(alpha: 0.18), spreadRadius: 3)]
+                  ? [
+                      BoxShadow(
+                          color: dotColor.withValues(alpha: 0.18),
+                          spreadRadius: 3)
+                    ]
                   : null,
             ),
           ),

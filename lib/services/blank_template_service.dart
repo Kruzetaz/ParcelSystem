@@ -46,7 +46,8 @@ const blankTemplates = [
     subtitle: 'แบบฟอร์มเปล่าสำหรับกรอกด้วยตนเอง',
     fileName: 'แบบแจ้งข้อมูลการรับเงินโอนผ่านระบบKTBCorporate Online',
     assetPaths: {
-      BlankTemplateFormat.docx: 'assets/templates/ktb_corporate_online_form.docx',
+      BlankTemplateFormat.docx:
+          'assets/templates/ktb_corporate_online_form.docx',
       BlankTemplateFormat.pdf: 'assets/templates/ktb_corporate_online_form.pdf',
     },
   ),
@@ -62,10 +63,12 @@ class BlankTemplateException implements Exception {
 class BlankTemplateService {
   /// คัดลอกไฟล์เทมเพลตเปล่าไปไว้ที่โฟลเดอร์เอกสารของโรงเรียน (กันชื่อซ้ำแบบ
   /// เดียวกับ DocxTemplateService.saveOutput) แล้วเปิดด้วยโปรแกรมเริ่มต้นของระบบ
-  static Future<File> exportAndOpen(BlankTemplateInfo info, BlankTemplateFormat format) async {
+  static Future<File> exportAndOpen(
+      BlankTemplateInfo info, BlankTemplateFormat format) async {
     final assetPath = info.assetPaths[format];
     if (assetPath == null) {
-      throw BlankTemplateException('แบบฟอร์มนี้ไม่มีไฟล์รูปแบบ ${format.extension}');
+      throw BlankTemplateException(
+          'แบบฟอร์มนี้ไม่มีไฟล์รูปแบบ ${format.extension}');
     }
 
     late final ByteData data;
@@ -76,7 +79,8 @@ class BlankTemplateService {
         'ไม่พบไฟล์เทมเพลตที่ $assetPath\nรายละเอียด: $e',
       );
     }
-    final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    final bytes =
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
 
     final docsDir = await getApplicationDocumentsDirectory();
     final folderName = await getSchoolDocumentsFolderName();
@@ -86,7 +90,8 @@ class BlankTemplateService {
     var candidate = File('$outputDir/${info.fileName}${format.extension}');
     var counter = 1;
     while (await candidate.exists()) {
-      candidate = File('$outputDir/${info.fileName} ($counter)${format.extension}');
+      candidate =
+          File('$outputDir/${info.fileName} ($counter)${format.extension}');
       counter++;
     }
     await candidate.writeAsBytes(bytes, flush: true);

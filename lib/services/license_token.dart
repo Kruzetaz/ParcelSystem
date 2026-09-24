@@ -50,7 +50,9 @@ class LicenseToken {
         orgName: json['org_name'] as String? ?? '',
         issuedAt: DateTime.parse(json['issued_at'] as String),
         expiresAt: DateTime.parse(json['expires_at'] as String),
-        modules: (json['modules'] as List<dynamic>? ?? const []).map((e) => e.toString()).toList(),
+        modules: (json['modules'] as List<dynamic>? ?? const [])
+            .map((e) => e.toString())
+            .toList(),
         tier: json['tier'] as String?,
       );
 }
@@ -98,24 +100,29 @@ class LicenseTokenVerifier {
     late final Uint8List payloadBytes;
     late final Uint8List signatureBytes;
     try {
-      payloadBytes = Uint8List.fromList(base64Url.decode(base64Url.normalize(parts[0])));
-      signatureBytes = Uint8List.fromList(base64Url.decode(base64Url.normalize(parts[1])));
+      payloadBytes =
+          Uint8List.fromList(base64Url.decode(base64Url.normalize(parts[0])));
+      signatureBytes =
+          Uint8List.fromList(base64Url.decode(base64Url.normalize(parts[1])));
     } catch (e) {
       throw LicenseTokenException('ถอดรหัส token ไม่สำเร็จ: $e');
     }
 
-    final publicKey = RSAPublicKey(BigInt.parse(_rsaModulusHex, radix: 16), _rsaExponent);
+    final publicKey =
+        RSAPublicKey(BigInt.parse(_rsaModulusHex, radix: 16), _rsaExponent);
     final signer = RSASigner(SHA256Digest(), _sha256DigestOid)
       ..init(false, PublicKeyParameter<RSAPublicKey>(publicKey));
 
     bool isValid;
     try {
-      isValid = signer.verifySignature(payloadBytes, RSASignature(signatureBytes));
+      isValid =
+          signer.verifySignature(payloadBytes, RSASignature(signatureBytes));
     } catch (e) {
       throw LicenseTokenException('ตรวจลายเซ็นไม่สำเร็จ: $e');
     }
     if (!isValid) {
-      throw LicenseTokenException('ลายเซ็น token ไม่ถูกต้อง (อาจถูกแก้ไข/ปลอมแปลง)');
+      throw LicenseTokenException(
+          'ลายเซ็น token ไม่ถูกต้อง (อาจถูกแก้ไข/ปลอมแปลง)');
     }
 
     final Map<String, dynamic> json;

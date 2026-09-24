@@ -131,7 +131,9 @@ class HeroCard extends StatelessWidget {
                 Wrap(
                   spacing: 24,
                   runSpacing: 12,
-                  children: moneyItems.map((item) => _MoneyDisplay(item: item)).toList(),
+                  children: moneyItems
+                      .map((item) => _MoneyDisplay(item: item))
+                      .toList(),
                 ),
                 // Progress bar
                 if (progressLabel != null &&
@@ -156,7 +158,8 @@ class HeroCard extends StatelessWidget {
               children: [
                 DonutProgress(
                   percentage: progressPercentage!,
-                  centerValue: '${(donutCenterPercentage ?? progressPercentage!).toInt()}%',
+                  centerValue:
+                      '${(donutCenterPercentage ?? progressPercentage!).toInt()}%',
                   centerLabel: donutCenterLabel,
                   segments: donutSegments!,
                   size: 82,
@@ -222,7 +225,9 @@ class _LegendRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: item.color,
               borderRadius: BorderRadius.circular(2),
-              border: item.outlined ? Border.all(color: Colors.white.withValues(alpha: 0.3)) : null,
+              border: item.outlined
+                  ? Border.all(color: Colors.white.withValues(alpha: 0.3))
+                  : null,
             ),
           ),
           const SizedBox(width: 5),
@@ -231,7 +236,9 @@ class _LegendRow extends StatelessWidget {
               item.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: AppTypography.overline, color: Colors.white.withValues(alpha: 0.82)),
+              style: TextStyle(
+                  fontSize: AppTypography.overline,
+                  color: Colors.white.withValues(alpha: 0.82)),
             ),
           ),
           Text(

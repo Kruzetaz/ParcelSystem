@@ -60,7 +60,10 @@ class StatusBadge extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: colors.text,
-                boxShadow: [BoxShadow(color: colors.text.withValues(alpha: 0.6), blurRadius: 4)],
+                boxShadow: [
+                  BoxShadow(
+                      color: colors.text.withValues(alpha: 0.6), blurRadius: 4)
+                ],
               ),
             ),
             const SizedBox(width: 3),
@@ -90,7 +93,8 @@ class StatusBadge extends StatelessWidget {
     return content;
   }
 
-  _BadgeColors _getColors(BuildContext context, BadgeVariant variant, ColorScheme colorScheme) {
+  _BadgeColors _getColors(
+      BuildContext context, BadgeVariant variant, ColorScheme colorScheme) {
     switch (variant) {
       case BadgeVariant.neutral:
         return _BadgeColors(
@@ -292,17 +296,27 @@ class AlertTile extends StatelessWidget {
     );
   }
 
-  _BadgeColors _getColors(BuildContext context, BadgeVariant variant, ColorScheme colorScheme) {
+  _BadgeColors _getColors(
+      BuildContext context, BadgeVariant variant, ColorScheme colorScheme) {
     switch (variant) {
       case BadgeVariant.danger:
         final c = BrandAccent.red(context);
-        return _BadgeColors(background: c.withValues(alpha: 0.08), border: c.withValues(alpha: 0.3), text: c);
+        return _BadgeColors(
+            background: c.withValues(alpha: 0.08),
+            border: c.withValues(alpha: 0.3),
+            text: c);
       case BadgeVariant.warning:
         final c = BrandAccent.tertiary(context);
-        return _BadgeColors(background: c.withValues(alpha: 0.08), border: c.withValues(alpha: 0.28), text: c);
+        return _BadgeColors(
+            background: c.withValues(alpha: 0.08),
+            border: c.withValues(alpha: 0.28),
+            text: c);
       case BadgeVariant.info:
         final c = BrandAccent.blue(context);
-        return _BadgeColors(background: c.withValues(alpha: 0.08), border: c.withValues(alpha: 0.25), text: c);
+        return _BadgeColors(
+            background: c.withValues(alpha: 0.08),
+            border: c.withValues(alpha: 0.25),
+            text: c);
       default:
         return _BadgeColors(
           background: colorScheme.surface,

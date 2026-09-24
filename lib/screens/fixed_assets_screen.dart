@@ -14,6 +14,7 @@ import '../models/fixed_asset.dart';
 import '../services/asset_control_ledger_export_service.dart';
 import '../services/depreciation_schedule_export_service.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/app_folder_name.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
@@ -124,9 +125,13 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   final _repo = ProcurementRepository();
   List<FixedAsset> _assets = [];
   bool _loading = true;
-  _AssetViewMode _viewMode = _AssetViewMode.table;
+  // จำมุมมอง/ตัวกรองที่เลือกไว้ล่าสุดในเซสชันนี้ กันรีเซ็ตกลับค่าเริ่มต้นทุก
+  // ครั้งที่สลับหน้าออกแล้วกลับมา
+  _AssetViewMode _viewMode = UiSessionState.instance
+      .read('fixed_assets_view_mode', _AssetViewMode.table);
   int? _selectedId;
-  String? _statusFilter;
+  String? _statusFilter =
+      UiSessionState.instance.read<String?>('fixed_assets_status_filter', null);
   // ตัวกรอง "ปีที่ได้มา" — แยกต่างหากจากตัวสลับปีงบหลักที่ AppBar โดยตั้งใจ
   // (ครุภัณฑ์เป็นทะเบียนทรัพย์สินสะสม ไม่ได้ "หมดอายุ" ตามปีงบแบบโครงการจัดซื้อ
   // ทั่วไป — ของที่ซื้อปี 2568 ก็ยังเป็นทรัพย์สินโรงเรียนอยู่ปี 2569 ถ้าผูกกับ
@@ -519,8 +524,11 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                         icon: Icon(Icons.grid_view_outlined)),
                   ],
                   selected: {_viewMode},
-                  onSelectionChanged: (s) =>
-                      setState(() => _viewMode = s.first),
+                  onSelectionChanged: (s) => setState(() {
+                    _viewMode = s.first;
+                    UiSessionState.instance
+                        .write('fixed_assets_view_mode', _viewMode);
+                  }),
                 ),
               ],
             ),
@@ -564,7 +572,10 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
         child: DSFilterChip(
           label: label,
           isSelected: selected,
-          onTap: () => setState(() => _statusFilter = value),
+          onTap: () => setState(() {
+            _statusFilter = value;
+            UiSessionState.instance.write('fixed_assets_status_filter', value);
+          }),
         ),
       );
     }

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../data/procurement_repository.dart';
 import '../models/procurement_order.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/money_format.dart';
 import '../utils/thai_date.dart';
 import '../widgets/guide_panel.dart';
@@ -22,15 +23,20 @@ enum _ChecklistFilter { all, incomplete, complete }
 class DocumentChecklistScreen extends StatefulWidget {
   const DocumentChecklistScreen({super.key});
   @override
-  State<DocumentChecklistScreen> createState() => _DocumentChecklistScreenState();
+  State<DocumentChecklistScreen> createState() =>
+      _DocumentChecklistScreenState();
 }
 
 class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
   final _repo = ProcurementRepository();
   List<ProcurementOrder> _orders = [];
   bool _loading = true;
-  String? _fiscalYearFilter;
-  _ChecklistFilter _statusFilter = _ChecklistFilter.all;
+  // จำตัวกรองที่เลือกไว้ล่าสุดในเซสชันนี้ กันรีเซ็ตกลับค่าเริ่มต้นทุกครั้งที่
+  // สลับหน้าออกแล้วกลับมา
+  String? _fiscalYearFilter = UiSessionState.instance
+      .read<String?>('document_checklist_fiscal_year', null);
+  _ChecklistFilter _statusFilter = UiSessionState.instance
+      .read('document_checklist_status', _ChecklistFilter.all);
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
 
@@ -57,10 +63,16 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
     });
   }
 
-  List<String> get _fiscalYears =>
-      _orders.map((o) => o.fiscalYear).whereType<String>().where((s) => s.isNotEmpty).toSet().toList()..sort();
+  List<String> get _fiscalYears => _orders
+      .map((o) => o.fiscalYear)
+      .whereType<String>()
+      .where((s) => s.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
 
-  bool _isComplete(ProcurementOrder o) => o.docChecklistHasReceipt && o.docChecklistPrinted;
+  bool _isComplete(ProcurementOrder o) =>
+      o.docChecklistHasReceipt && o.docChecklistPrinted;
 
   List<ProcurementOrder> get _filtered {
     var list = _orders;
@@ -75,10 +87,13 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
     final q = _searchCtrl.text.trim();
     if (q.isNotEmpty) {
       list = list.where((o) {
-        final haystack = [o.orderNumber, o.procurementNumber, o.projectName, o.procurementSubject, o.vendorName]
-            .whereType<String>()
-            .join(' ')
-            .toLowerCase();
+        final haystack = [
+          o.orderNumber,
+          o.procurementNumber,
+          o.projectName,
+          o.procurementSubject,
+          o.vendorName
+        ].whereType<String>().join(' ').toLowerCase();
         return haystack.contains(q.toLowerCase());
       }).toList();
     }
@@ -98,8 +113,8 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
     }
   }
 
-  Future<void> _toggleReceipt(ProcurementOrder o) =>
-      _updateOrder(o.copyWith(docChecklistHasReceipt: !o.docChecklistHasReceipt));
+  Future<void> _toggleReceipt(ProcurementOrder o) => _updateOrder(
+      o.copyWith(docChecklistHasReceipt: !o.docChecklistHasReceipt));
 
   Future<void> _togglePrinted(ProcurementOrder o) =>
       _updateOrder(o.copyWith(docChecklistPrinted: !o.docChecklistPrinted));
@@ -120,8 +135,12 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(o.procurementSubject ?? o.projectName ?? '(ไม่มีชื่อรายการ)',
-                    maxLines: 2, overflow: TextOverflow.ellipsis,
+                Text(
+                    o.procurementSubject ??
+                        o.projectName ??
+                        '(ไม่มีชื่อรายการ)',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
                 InkWell(
@@ -138,19 +157,38 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                     );
                     if (picked == null) return;
                     final y = picked.year + 543;
-                    const months = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-                    setDialogState(() => paidDate = '${picked.day} ${months[picked.month]} $y');
+                    const months = [
+                      '',
+                      'มกราคม',
+                      'กุมภาพันธ์',
+                      'มีนาคม',
+                      'เมษายน',
+                      'พฤษภาคม',
+                      'มิถุนายน',
+                      'กรกฎาคม',
+                      'สิงหาคม',
+                      'กันยายน',
+                      'ตุลาคม',
+                      'พฤศจิกายน',
+                      'ธันวาคม'
+                    ];
+                    setDialogState(() =>
+                        paidDate = '${picked.day} ${months[picked.month]} $y');
                   },
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'วันที่จ่ายเงิน',
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      labelStyle: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700),
                       isDense: true,
                       prefixIcon: const Icon(Icons.event_outlined, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(RadiusSize.md)),
                     ),
-                    child: Text(paidDate?.isNotEmpty == true ? paidDate! : 'ยังไม่ระบุ'),
+                    child: Text(paidDate?.isNotEmpty == true
+                        ? paidDate!
+                        : 'ยังไม่ระบุ'),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -161,17 +199,23 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                     labelText: 'หมายเหตุ',
                     hintText: 'เช่น จ่ายล่าช้าเพราะรอใบเสร็จจากร้านค้า',
                     floatingLabelBehavior: FloatingLabelBehavior.always,
-                    labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    labelStyle: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700),
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md)),
                   ),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('บันทึก')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ยกเลิก')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('บันทึก')),
           ],
         ),
       ),
@@ -211,21 +255,32 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.fact_check_outlined, color: BrandAccent.tealOn(context), size: 22),
+                      Icon(Icons.fact_check_outlined,
+                          color: BrandAccent.tealOn(context), size: 22),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text('ทะเบียนตรวจสอบเอกสาร',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                            style: TextStyle(
+                                fontSize: AppTypography.heading2,
+                                fontWeight: AppTypography.weightExtraBold,
+                                color: colors.onSurface)),
                       ),
-                      Text('$completeCount / ${_orders.length} โครงการครบเอกสารแล้ว',
-                          style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+                      Text(
+                          '$completeCount / ${_orders.length} โครงการครบเอกสารแล้ว',
+                          style: TextStyle(
+                              fontSize: AppTypography.bodyMedium,
+                              fontWeight: AppTypography.weightBold,
+                              color: colors.onSurfaceVariant)),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('ติดตามว่าแต่ละโครงการมีใบเสร็จแล้วหรือยัง ปริ้นเอกสารออกมาเซ็นแล้วหรือยัง และวันที่จ่ายเงินจริง',
-                      style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
+                  Text(
+                      'ติดตามว่าแต่ละโครงการมีใบเสร็จแล้วหรือยัง ปริ้นเอกสารออกมาเซ็นแล้วหรือยัง และวันที่จ่ายเงินจริง',
+                      style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          color: colors.onSurfaceVariant)),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -237,9 +292,11 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                             hintText: 'ค้นหาเลขที่/ชื่อโครงการ/ผู้ขาย',
                             isDense: true,
                             prefixIcon: const Icon(Icons.search, size: 20),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(RadiusSize.md),
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md),
                               borderSide: BorderSide(color: colors.outline),
                             ),
                           ),
@@ -255,26 +312,46 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                             isDense: true,
                             labelText: 'ปีงบประมาณ',
                             floatingLabelBehavior: FloatingLabelBehavior.auto,
-                            labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                            labelStyle: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w700),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md)),
                           ),
                           items: [
-                            const DropdownMenuItem<String?>(value: null, child: Text('ทั้งหมด')),
-                            ..._fiscalYears.map((y) => DropdownMenuItem(value: y, child: Text('ปี $y'))),
+                            const DropdownMenuItem<String?>(
+                                value: null, child: Text('ทั้งหมด')),
+                            ..._fiscalYears.map((y) => DropdownMenuItem(
+                                value: y, child: Text('ปี $y'))),
                           ],
-                          onChanged: (v) => setState(() => _fiscalYearFilter = v),
+                          onChanged: (v) => setState(() {
+                            _fiscalYearFilter = v;
+                            UiSessionState.instance
+                                .write('document_checklist_fiscal_year', v);
+                          }),
                         ),
                       ),
                       const SizedBox(width: 10),
                       SegmentedButton<_ChecklistFilter>(
                         segments: const [
-                          ButtonSegment(value: _ChecklistFilter.all, label: Text('ทั้งหมด')),
-                          ButtonSegment(value: _ChecklistFilter.incomplete, label: Text('ยังไม่ครบ')),
-                          ButtonSegment(value: _ChecklistFilter.complete, label: Text('ครบแล้ว')),
+                          ButtonSegment(
+                              value: _ChecklistFilter.all,
+                              label: Text('ทั้งหมด')),
+                          ButtonSegment(
+                              value: _ChecklistFilter.incomplete,
+                              label: Text('ยังไม่ครบ')),
+                          ButtonSegment(
+                              value: _ChecklistFilter.complete,
+                              label: Text('ครบแล้ว')),
                         ],
                         selected: {_statusFilter},
-                        onSelectionChanged: (s) => setState(() => _statusFilter = s.first),
+                        onSelectionChanged: (s) => setState(() {
+                          _statusFilter = s.first;
+                          UiSessionState.instance.write(
+                              'document_checklist_status', _statusFilter);
+                        }),
                       ),
                     ],
                   ),
@@ -285,10 +362,16 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.fact_check_outlined, size: 64, color: colors.onSurfaceVariant),
+                                Icon(Icons.fact_check_outlined,
+                                    size: 64, color: colors.onSurfaceVariant),
                                 const SizedBox(height: 12),
-                                Text(_orders.isEmpty ? 'ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ' : 'ไม่พบรายการที่ตรงกับตัวกรอง',
-                                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
+                                Text(
+                                    _orders.isEmpty
+                                        ? 'ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ'
+                                        : 'ไม่พบรายการที่ตรงกับตัวกรอง',
+                                    style: TextStyle(
+                                        color: colors.onSurfaceVariant,
+                                        fontSize: AppTypography.heading4)),
                               ],
                             ),
                           )
@@ -296,7 +379,8 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                             decoration: BoxDecoration(
                               color: colors.surface,
                               border: Border.all(color: colors.outline),
-                              borderRadius: BorderRadius.circular(RadiusSize.card),
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.card),
                               boxShadow: AppShadows.light1,
                             ),
                             child: Scrollbar(
@@ -308,14 +392,17 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
                                 child: SizedBox(
                                   width: 1180,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       _buildHeaderRow(colors),
                                       Expanded(
                                         child: ListView.builder(
-                                          padding: const EdgeInsets.only(bottom: 6),
+                                          padding:
+                                              const EdgeInsets.only(bottom: 6),
                                           itemCount: filtered.length,
-                                          itemBuilder: (_, i) => _buildRow(colors, i + 1, filtered[i]),
+                                          itemBuilder: (_, i) => _buildRow(
+                                              colors, i + 1, filtered[i]),
                                         ),
                                       ),
                                     ],
@@ -332,10 +419,15 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
   }
 
   Widget _buildHeaderRow(ColorScheme colors) {
-    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant);
+    final headerStyle = TextStyle(
+        fontWeight: AppTypography.weightBold,
+        fontSize: AppTypography.bodySmall,
+        color: colors.onSurfaceVariant);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
+      decoration: BoxDecoration(
+          border: Border(
+              bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
       child: Row(
         children: [
           SizedBox(width: 32, child: Text('ที่', style: headerStyle)),
@@ -344,17 +436,30 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
           const SizedBox(width: 6),
           Expanded(flex: 3, child: Text('รายการ/โครงการ', style: headerStyle)),
           const SizedBox(width: 6),
-          SizedBox(width: 110, child: Text('งบที่ใช้', style: headerStyle, textAlign: TextAlign.right)),
+          SizedBox(
+              width: 110,
+              child: Text('งบที่ใช้',
+                  style: headerStyle, textAlign: TextAlign.right)),
           const SizedBox(width: 6),
-          SizedBox(width: 90, child: Text('ใบเสร็จ', style: headerStyle, textAlign: TextAlign.center)),
+          SizedBox(
+              width: 90,
+              child: Text('ใบเสร็จ',
+                  style: headerStyle, textAlign: TextAlign.center)),
           const SizedBox(width: 6),
-          SizedBox(width: 100, child: Text('ปริ้น/เซ็นแล้ว', style: headerStyle, textAlign: TextAlign.center)),
+          SizedBox(
+              width: 100,
+              child: Text('ปริ้น/เซ็นแล้ว',
+                  style: headerStyle, textAlign: TextAlign.center)),
           const SizedBox(width: 6),
-          SizedBox(width: 110, child: Text('วันที่จ่ายเงิน', style: headerStyle)),
+          SizedBox(
+              width: 110, child: Text('วันที่จ่ายเงิน', style: headerStyle)),
           const SizedBox(width: 6),
           SizedBox(width: 150, child: Text('หมายเหตุ', style: headerStyle)),
           const SizedBox(width: 6),
-          SizedBox(width: 80, child: Text('สถานะ', style: headerStyle, textAlign: TextAlign.center)),
+          SizedBox(
+              width: 80,
+              child: Text('สถานะ',
+                  style: headerStyle, textAlign: TextAlign.center)),
           const SizedBox(width: 40),
         ],
       ),
@@ -367,38 +472,80 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
     // (document_hub_screen.dart) — subject เป็นชื่อเฉพาะต่อรายการ (มักมีชื่อร้าน/
     // ผู้รับจ้างติดมาด้วย) ต่างจาก projectName ที่เป็นชื่อโครงการรวมๆ ใช้ซ้ำได้
     // หลายรายการ ทำให้แยกแยะแต่ละแถวในตารางนี้ยากถ้าใช้ projectName ก่อน
-    final itemLabel = o.procurementSubject ?? o.projectName ?? '(ไม่มีชื่อรายการ)';
+    final itemLabel =
+        o.procurementSubject ?? o.projectName ?? '(ไม่มีชื่อรายการ)';
     final complete = _isComplete(o);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colors.outlineVariant))),
       child: Row(
         children: [
-          SizedBox(width: 32, child: Text('$index', style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 32,
+              child: Text('$index',
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
           const SizedBox(width: 6),
-          SizedBox(width: 100, child: Text(docNumber, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          SizedBox(
+              width: 100,
+              child: Text(docNumber,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 6),
-          Expanded(flex: 3, child: Text(itemLabel, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(
+              flex: 3,
+              child: Text(itemLabel,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 6),
-          SizedBox(width: 110, child: Text(o.currentOrderPrice != null ? formatBaht(o.currentOrderPrice) : '-', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 110,
+              child: Text(
+                  o.currentOrderPrice != null
+                      ? formatBaht(o.currentOrderPrice)
+                      : '-',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
           const SizedBox(width: 6),
           SizedBox(
             width: 90,
             child: Center(
-              child: Checkbox(value: o.docChecklistHasReceipt, onChanged: (_) => _toggleReceipt(o)),
+              child: Checkbox(
+                  value: o.docChecklistHasReceipt,
+                  onChanged: (_) => _toggleReceipt(o)),
             ),
           ),
           const SizedBox(width: 6),
           SizedBox(
             width: 100,
             child: Center(
-              child: Checkbox(value: o.docChecklistPrinted, onChanged: (_) => _togglePrinted(o)),
+              child: Checkbox(
+                  value: o.docChecklistPrinted,
+                  onChanged: (_) => _togglePrinted(o)),
             ),
           ),
           const SizedBox(width: 6),
-          SizedBox(width: 110, child: Text(o.docChecklistPaidDate?.isNotEmpty == true ? formatThaiDateShort(o.docChecklistPaidDate) : '-', style: TextStyle(fontSize: AppTypography.caption))),
+          SizedBox(
+              width: 110,
+              child: Text(
+                  o.docChecklistPaidDate?.isNotEmpty == true
+                      ? formatThaiDateShort(o.docChecklistPaidDate)
+                      : '-',
+                  style: TextStyle(fontSize: AppTypography.caption))),
           const SizedBox(width: 6),
-          SizedBox(width: 150, child: Text(o.docChecklistNote?.isNotEmpty == true ? o.docChecklistNote! : '-', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant))),
+          SizedBox(
+              width: 150,
+              child: Text(
+                  o.docChecklistNote?.isNotEmpty == true
+                      ? o.docChecklistNote!
+                      : '-',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppTypography.caption,
+                      color: colors.onSurfaceVariant))),
           const SizedBox(width: 6),
           SizedBox(
             width: 80,
@@ -406,11 +553,17 @@ class _DocumentChecklistScreenState extends State<DocumentChecklistScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (complete ? BrandAccent.green(context) : Colors.orange).withValues(alpha: 0.12),
+                  color: (complete ? BrandAccent.green(context) : Colors.orange)
+                      .withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(RadiusSize.sm),
                 ),
                 child: Text(complete ? 'ครบ' : 'ไม่ครบ',
-                    style: TextStyle(fontSize: AppTypography.caption, fontWeight: FontWeight.w700, color: complete ? BrandAccent.green(context) : Colors.orange)),
+                    style: TextStyle(
+                        fontSize: AppTypography.caption,
+                        fontWeight: FontWeight.w700,
+                        color: complete
+                            ? BrandAccent.green(context)
+                            : Colors.orange)),
               ),
             ),
           ),

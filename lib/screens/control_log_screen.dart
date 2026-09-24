@@ -11,12 +11,14 @@ import '../models/school_settings.dart';
 import '../services/control_log_export_service.dart';
 import '../services/document_generator.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/money_format.dart';
 import '../utils/thai_date.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/column_visibility_menu.dart';
 import '../theme/design_tokens.dart';
-import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction;
 
 /// คอลัมน์ที่ซ่อน/แสดงได้ — "ที่" กับ "ชื่อรายการ" แสดงเสมอ ไม่อยู่ในนี้
 const _controlLogOptionalColumns = [
@@ -44,9 +46,14 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
   SchoolSettings? _school;
   bool _loading = true;
   bool _exporting = false;
-  String? _fiscalYearFilter;
-  String? _docTypeFilter;
-  Set<String> _visibleColumns = _controlLogOptionalColumns.toSet();
+  // จำตัวกรอง/คอลัมน์ที่เลือกไว้ล่าสุดในเซสชันนี้ กันรีเซ็ตกลับค่าเริ่มต้นทุก
+  // ครั้งที่สลับหน้าออกแล้วกลับมา
+  String? _fiscalYearFilter =
+      UiSessionState.instance.read<String?>('control_log_fiscal_year', null);
+  String? _docTypeFilter =
+      UiSessionState.instance.read<String?>('control_log_doc_type', null);
+  Set<String> _visibleColumns = UiSessionState.instance
+      .read('control_log_visible_columns', _controlLogOptionalColumns.toSet());
   final _scrollCtrl = ScrollController();
   final _vScrollCtrl = ScrollController();
   // กันกดปุ่ม "ดูตัวอย่าง" ซ้ำตอนกำลังสร้างไฟล์อยู่ — ใช้เลขที่ควบคุมของแถว
@@ -83,18 +90,21 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
     if (e.orderId == null) return;
     final school = _school;
     if (school == null) {
-      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน',
+          isError: true);
       return;
     }
     setState(() => _previewingKey = e.controlNumber);
     try {
       final order = await _repo.getOrder(e.orderId!);
       if (order == null) {
-        showAppToast('ไม่พบรายการอ้างอิงนี้แล้ว (อาจถูกลบไปแล้ว)', isError: true);
+        showAppToast('ไม่พบรายการอ้างอิงนี้แล้ว (อาจถูกลบไปแล้ว)',
+            isError: true);
         return;
       }
       final items = await _repo.getItems(order.id!);
-      await DocumentGenerator.generateAndOpen(order: order, school: school, items: items);
+      await DocumentGenerator.generateAndOpen(
+          order: order, school: school, items: items);
       if (!mounted) return;
       showAppToast('เปิดตัวอย่างเอกสารแล้ว');
     } catch (err) {
@@ -112,7 +122,8 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
       _entries.map((e) => e.docType).toSet().toList()..sort();
 
   List<ControlLogEntry> get _filtered => _entries.where((e) {
-        if (_fiscalYearFilter != null && e.fiscalYear != _fiscalYearFilter) return false;
+        if (_fiscalYearFilter != null && e.fiscalYear != _fiscalYearFilter)
+          return false;
         if (_docTypeFilter != null && e.docType != _docTypeFilter) return false;
         return true;
       }).toList();
@@ -156,12 +167,18 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.receipt_long_outlined, color: BrandAccent.tealOn(context), size: 22),
+                        Icon(Icons.receipt_long_outlined,
+                            color: BrandAccent.tealOn(context), size: 22),
                         const SizedBox(width: 10),
                         Flexible(
-                          child: Text('ทะเบียนคุมเลขที่บันทึกข้อความ/คำสั่ง/TOR',
-                            style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading2, color: colors.onSurface),
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                          child: Text(
+                              'ทะเบียนคุมเลขที่บันทึกข้อความ/คำสั่ง/TOR',
+                              style: TextStyle(
+                                  fontWeight: AppTypography.weightExtraBold,
+                                  fontSize: AppTypography.heading2,
+                                  color: colors.onSurface),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ),
                       ],
                     ),
@@ -177,31 +194,51 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                             initialValue: _docTypeFilter,
                             isDense: true,
                             isExpanded: true,
-                            style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                            style: TextStyle(
+                                fontSize: AppTypography.bodyMedium,
+                                color: colors.onSurface),
                             decoration: InputDecoration(
                               isDense: true,
                               hintText: 'ประเภทงาน (ทั้งหมด)',
-                              hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              hintStyle: TextStyle(
+                                  fontSize: AppTypography.bodyMedium,
+                                  color: colors.onSurfaceVariant),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(RadiusSize.md),
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md),
                                 borderSide: BorderSide(color: colors.outline),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(RadiusSize.md),
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md),
                                 borderSide: BorderSide(color: colors.outline),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(RadiusSize.md),
-                                borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md),
+                                borderSide: BorderSide(
+                                    color: BrandAccent.teal(context),
+                                    width: 1.5),
                               ),
                             ),
                             borderRadius: BorderRadius.circular(RadiusSize.md),
                             items: [
-                              const DropdownMenuItem<String?>(value: null, child: Text('ประเภทงาน (ทั้งหมด)', overflow: TextOverflow.ellipsis)),
-                              ..._docTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, overflow: TextOverflow.ellipsis))),
+                              const DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('ประเภทงาน (ทั้งหมด)',
+                                      overflow: TextOverflow.ellipsis)),
+                              ..._docTypes.map((t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t,
+                                      overflow: TextOverflow.ellipsis))),
                             ],
-                            onChanged: (v) => setState(() => _docTypeFilter = v),
+                            onChanged: (v) => setState(() {
+                              _docTypeFilter = v;
+                              UiSessionState.instance
+                                  .write('control_log_doc_type', v);
+                            }),
                           ),
                         ),
                         SizedBox(
@@ -210,51 +247,89 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                             initialValue: _fiscalYearFilter,
                             isDense: true,
                             isExpanded: true,
-                            style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                            style: TextStyle(
+                                fontSize: AppTypography.bodyMedium,
+                                color: colors.onSurface),
                             decoration: InputDecoration(
                               isDense: true,
                               hintText: 'ปีงบ (ทั้งหมด)',
-                              hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              hintStyle: TextStyle(
+                                  fontSize: AppTypography.bodyMedium,
+                                  color: colors.onSurfaceVariant),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(RadiusSize.md),
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md),
                                 borderSide: BorderSide(color: colors.outline),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(RadiusSize.md),
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md),
                                 borderSide: BorderSide(color: colors.outline),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(RadiusSize.md),
-                                borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md),
+                                borderSide: BorderSide(
+                                    color: BrandAccent.teal(context),
+                                    width: 1.5),
                               ),
                             ),
                             borderRadius: BorderRadius.circular(RadiusSize.md),
                             items: [
-                              const DropdownMenuItem<String?>(value: null, child: Text('ปีงบ (ทั้งหมด)', overflow: TextOverflow.ellipsis)),
-                              ..._fiscalYears.map((y) => DropdownMenuItem(value: y, child: Text('ปี $y', overflow: TextOverflow.ellipsis))),
+                              const DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('ปีงบ (ทั้งหมด)',
+                                      overflow: TextOverflow.ellipsis)),
+                              ..._fiscalYears.map((y) => DropdownMenuItem(
+                                  value: y,
+                                  child: Text('ปี $y',
+                                      overflow: TextOverflow.ellipsis))),
                             ],
-                            onChanged: (v) => setState(() => _fiscalYearFilter = v),
+                            onChanged: (v) => setState(() {
+                              _fiscalYearFilter = v;
+                              UiSessionState.instance
+                                  .write('control_log_fiscal_year', v);
+                            }),
                           ),
                         ),
                         OutlinedButton.icon(
-                          onPressed: _entries.isEmpty || _exporting ? null : _exportToExcel,
+                          onPressed: _entries.isEmpty || _exporting
+                              ? null
+                              : _exportToExcel,
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
                             side: BorderSide(color: colors.outline),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                            textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md)),
+                            textStyle: const TextStyle(
+                                fontSize: 14.5, fontWeight: FontWeight.w700),
                           ),
                           icon: _exporting
-                              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
-                              : const Icon(Icons.file_download_outlined, size: 18),
-                          label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: colors.onSurfaceVariant))
+                              : const Icon(Icons.file_download_outlined,
+                                  size: 18),
+                          label: Text(
+                              _exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
                         ),
-                        Container(width: 1, height: 28, color: colors.outlineVariant),
+                        Container(
+                            width: 1, height: 28, color: colors.outlineVariant),
                         ColumnVisibilityMenu(
                           allColumns: _controlLogOptionalColumns,
                           visibleColumns: _visibleColumns,
-                          onChanged: (v) => setState(() => _visibleColumns = v),
+                          onChanged: (v) => setState(() {
+                            _visibleColumns = v;
+                            UiSessionState.instance
+                                .write('control_log_visible_columns', v);
+                          }),
                         ),
                       ],
                     ),
@@ -267,14 +342,18 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.receipt_long_outlined, size: 64, color: colors.onSurfaceVariant),
+                                      Icon(Icons.receipt_long_outlined,
+                                          size: 64,
+                                          color: colors.onSurfaceVariant),
                                       const SizedBox(height: 12),
                                       Text(
                                         _entries.isEmpty
                                             ? 'ยังไม่มีเลขที่ควบคุมในระบบ\nกรอกเลขที่เอกสารในหน้า TOR/สัญญา/ตรวจรับ/wizard ก่อน'
                                             : 'ไม่พบรายการที่ตรงกับตัวกรอง',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4),
+                                        style: TextStyle(
+                                            color: colors.onSurfaceVariant,
+                                            fontSize: AppTypography.heading4),
                                       ),
                                     ],
                                   ),
@@ -292,7 +371,10 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
   }
 
   Widget _buildTable(ColorScheme colors) {
-    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant);
+    final headerStyle = TextStyle(
+        fontWeight: AppTypography.weightBold,
+        fontSize: AppTypography.bodySmall,
+        color: colors.onSurfaceVariant);
     // แนวนอนเป็นชั้นนอกสุด (ความสูงยึดตาม Expanded ของหน้า — bounded) แนวตั้ง
     // สกอลล์เฉพาะแถวข้อมูลอยู่ชั้นในสุด (หัวตารางเลยลอยนิ่งไม่เลื่อนตามไปด้วย)
     // — เดิมห่อด้วย SingleChildScrollView แนวตั้งชั้นนอกสุดก่อนเสมอ ทำให้ตาราง
@@ -318,44 +400,73 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(color: BrandAccent.surface2(context), border: Border(bottom: BorderSide(color: colors.outline))),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                      color: BrandAccent.surface2(context),
+                      border:
+                          Border(bottom: BorderSide(color: colors.outline))),
                   child: Row(
                     children: [
-                      SizedBox(width: 40, child: Text('ที่', style: headerStyle)),
+                      SizedBox(
+                          width: 40, child: Text('ที่', style: headerStyle)),
                       const SizedBox(width: 8),
                       if (_visibleColumns.contains('เลขที่บันทึก/คำสั่ง')) ...[
-                        SizedBox(width: 110, child: Text('เลขที่บันทึก/คำสั่ง', style: headerStyle)),
+                        SizedBox(
+                            width: 110,
+                            child: Text('เลขที่บันทึก/คำสั่ง',
+                                style: headerStyle)),
                         const SizedBox(width: 8),
                       ],
                       if (_visibleColumns.contains('ประเภทงาน')) ...[
-                        SizedBox(width: 160, child: Text('ประเภทงาน', style: headerStyle)),
+                        SizedBox(
+                            width: 160,
+                            child: Text('ประเภทงาน', style: headerStyle)),
                         const SizedBox(width: 8),
                       ],
                       if (_visibleColumns.contains('วันที่บันทึก')) ...[
-                        SizedBox(width: 110, child: Text('วันที่บันทึก', style: headerStyle)),
+                        SizedBox(
+                            width: 110,
+                            child: Text('วันที่บันทึก', style: headerStyle)),
                         const SizedBox(width: 8),
                       ],
-                      Expanded(child: Text('ชื่อรายการ/บันทึกข้อความ', style: headerStyle)),
+                      Expanded(
+                          child: Text('ชื่อรายการ/บันทึกข้อความ',
+                              style: headerStyle)),
                       if (_visibleColumns.contains('วงเงิน')) ...[
                         const SizedBox(width: 8),
-                        SizedBox(width: 110, child: Text('วงเงิน', style: headerStyle, textAlign: TextAlign.right)),
-                        if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน') || _visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
+                        SizedBox(
+                            width: 110,
+                            child: Text('วงเงิน',
+                                style: headerStyle,
+                                textAlign: TextAlign.right)),
+                        if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน') ||
+                            _visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
                           const SizedBox(width: 10),
-                          Container(width: 1, height: 16, color: colors.outlineVariant),
+                          Container(
+                              width: 1,
+                              height: 16,
+                              color: colors.outlineVariant),
                           const SizedBox(width: 2),
                         ],
                       ],
                       if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน')) ...[
                         const SizedBox(width: 8),
-                        SizedBox(width: 150, child: Text('หน่วยงาน/กลุ่มงาน', style: headerStyle)),
+                        SizedBox(
+                            width: 150,
+                            child:
+                                Text('หน่วยงาน/กลุ่มงาน', style: headerStyle)),
                       ],
                       if (_visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
                         const SizedBox(width: 8),
-                        SizedBox(width: 140, child: Text('ผู้รับผิดชอบหลัก', style: headerStyle)),
+                        SizedBox(
+                            width: 140,
+                            child:
+                                Text('ผู้รับผิดชอบหลัก', style: headerStyle)),
                       ],
                       const SizedBox(width: 8),
-                      SizedBox(width: 80, child: Text('จัดการ', style: headerStyle)),
+                      SizedBox(
+                          width: 80, child: Text('จัดการ', style: headerStyle)),
                     ],
                   ),
                 ),
@@ -382,28 +493,55 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
   Widget _buildRow(ColorScheme colors, int index, ControlLogEntry e) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colors.outlineVariant))),
       child: Row(
         children: [
-          SizedBox(width: 40, child: Text('${index + 1}', style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 40,
+              child: Text('${index + 1}',
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
           const SizedBox(width: 8),
           if (_visibleColumns.contains('เลขที่บันทึก/คำสั่ง')) ...[
-            SizedBox(width: 110, child: Text(e.controlNumber, style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: AppTypography.weightSemiBold))),
+            SizedBox(
+                width: 110,
+                child: Text(e.controlNumber,
+                    style: TextStyle(
+                        fontSize: AppTypography.bodyMedium,
+                        fontWeight: AppTypography.weightSemiBold))),
             const SizedBox(width: 8),
           ],
           if (_visibleColumns.contains('ประเภทงาน')) ...[
-            SizedBox(width: 160, child: Text(e.docType, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(
+                width: 160,
+                child: Text(e.docType,
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
             const SizedBox(width: 8),
           ],
           if (_visibleColumns.contains('วันที่บันทึก')) ...[
-            SizedBox(width: 110, child: Text(e.dateText != null ? formatThaiDateShort(e.dateText) : '-', style: TextStyle(fontSize: AppTypography.bodyMedium))),
+            SizedBox(
+                width: 110,
+                child: Text(
+                    e.dateText != null ? formatThaiDateShort(e.dateText) : '-',
+                    style: TextStyle(fontSize: AppTypography.bodyMedium))),
             const SizedBox(width: 8),
           ],
-          Expanded(child: Text(e.description, style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 2, overflow: TextOverflow.ellipsis)),
+          Expanded(
+              child: Text(e.description,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis)),
           if (_visibleColumns.contains('วงเงิน')) ...[
             const SizedBox(width: 8),
-            SizedBox(width: 110, child: Text(e.amount != null ? formatBaht(e.amount!) : '-', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
-            if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน') || _visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
+            SizedBox(
+                width: 110,
+                child: Text(e.amount != null ? formatBaht(e.amount!) : '-',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: AppTypography.bodyMedium))),
+            if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน') ||
+                _visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
               const SizedBox(width: 10),
               Container(width: 1, height: 16, color: colors.outlineVariant),
               const SizedBox(width: 2),
@@ -411,11 +549,21 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
           ],
           if (_visibleColumns.contains('หน่วยงาน/กลุ่มงาน')) ...[
             const SizedBox(width: 8),
-            SizedBox(width: 150, child: Text(e.department ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(
+                width: 150,
+                child: Text(e.department ?? '-',
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
           if (_visibleColumns.contains('ผู้รับผิดชอบหลัก')) ...[
             const SizedBox(width: 8),
-            SizedBox(width: 140, child: Text(e.responsiblePerson ?? '-', style: TextStyle(fontSize: AppTypography.bodyMedium), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            SizedBox(
+                width: 140,
+                child: Text(e.responsiblePerson ?? '-',
+                    style: TextStyle(fontSize: AppTypography.bodyMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
           const SizedBox(width: 8),
           // ปุ่มลัด "ดูตัวอย่าง"/"สร้างเอกสาร" — ใช้ได้เฉพาะแถวที่ผูกกับรายการ
@@ -428,32 +576,44 @@ class _ControlLogScreenState extends State<ControlLogScreen> {
                 : Align(
                     alignment: Alignment.centerRight,
                     child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _previewingKey == e.controlNumber
-                          ? Container(
-                              width: 28,
-                              height: 28,
-                              margin: const EdgeInsets.only(right: 3),
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(RadiusSize.sm),
-                                border: Border.all(color: colors.outline),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _previewingKey == e.controlNumber
+                            ? Container(
+                                width: 28,
+                                height: 28,
+                                margin: const EdgeInsets.only(right: 3),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius:
+                                      BorderRadius.circular(RadiusSize.sm),
+                                  border: Border.all(color: colors.outline),
+                                ),
+                                child: const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2)),
+                              )
+                            : DsActionIconButtons(
+                                actions: [
+                                  DsRowAction(
+                                      icon: Icons.visibility_outlined,
+                                      tooltip: 'ดูตัวอย่างเอกสาร',
+                                      onTap: () => _previewEntry(e)),
+                                ],
                               ),
-                              child: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
-                            )
-                          : DsActionIconButtons(
-                              actions: [
-                                DsRowAction(icon: Icons.visibility_outlined, tooltip: 'ดูตัวอย่างเอกสาร', onTap: () => _previewEntry(e)),
-                              ],
-                            ),
-                      DsActionIconButtons(
-                        actions: [
-                          DsRowAction(icon: Icons.description_outlined, tooltip: 'สร้างเอกสาร', onTap: () => widget.onGenerateDocument(e.orderId!)),
-                        ],
-                      ),
-                    ],
-                  ),
+                        DsActionIconButtons(
+                          actions: [
+                            DsRowAction(
+                                icon: Icons.print_outlined,
+                                tooltip: 'สร้างเอกสาร',
+                                onTap: () =>
+                                    widget.onGenerateDocument(e.orderId!)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
           ),
         ],

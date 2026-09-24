@@ -81,7 +81,8 @@ class ProcurementDocumentGenerator {
     ProcurementDocumentType.inspectionReceipt: 'ใบตรวจรับการจัดซื้อจัดจ้าง',
     ProcurementDocumentType.paymentReceipt: 'ใบสำคัญรับเงิน',
     ProcurementDocumentType.installmentDeliveryNote: 'ใบส่งมอบงาน',
-    ProcurementDocumentType.installmentDisbursementMemo: 'บันทึกข้อความส่งเบิกเงิน',
+    ProcurementDocumentType.installmentDisbursementMemo:
+        'บันทึกข้อความส่งเบิกเงิน',
   };
 
   /// ประมวลผลเทมเพลตของเอกสารย่อยเป็น bytes ล้วนๆ (ไม่เขียนไฟล์) — แยกออกมา
@@ -205,7 +206,8 @@ class ProcurementDocumentGenerator {
   /// 2 ธง (…_on / …_off) เพราะเทมเพลตฝัง <w:sym> ของทั้งสองสถานะไว้คู่กัน
   /// ต้องส่งมาครบคู่เสมอ (ไม่งั้นเทมเพลตเก่าที่ยังไม่มี marker คู่นี้จะเงียบ
   /// ไม่ตัดอะไรออกเลย — ปลอดภัยแต่ไม่มีผล)
-  static Map<String, bool> buildInstallmentConditionalFlags(ProcurementInstallment i) {
+  static Map<String, bool> buildInstallmentConditionalFlags(
+      ProcurementInstallment i) {
     final result = i.inspectionResult ?? 'ถูกต้อง ครบถ้วนตามสัญญา';
     final isCorrect = result.startsWith('ถูกต้อง');
     final isComplete = result == 'ถูกต้อง ครบถ้วนตามสัญญา';
@@ -275,7 +277,8 @@ class ProcurementDocumentGenerator {
       'period_no': i.periodNo.toString(),
       'period_label': i.periodLabel ?? '',
       'period_amount_baht': formatBaht(bahtPart).split('.').first,
-      'period_amount_satang': satangPart == 0 ? '-' : satangPart.toString().padLeft(2, '0'),
+      'period_amount_satang':
+          satangPart == 0 ? '-' : satangPart.toString().padLeft(2, '0'),
     };
   }
 
@@ -296,12 +299,14 @@ class ProcurementDocumentGenerator {
       // — ดู buildConditionalFlags ใน document_generator.dart) จึง "ไม่" ต้อง
       // แทรก ProcurementDocumentType.purchaseOrder (เทมเพลตธรรมดา ไม่มีตราครุฑ)
       // ซ้ำอีกที มิเช่นนั้นจะได้ใบสั่งจ้างซ้ำกัน 2 ใบในไฟล์เดียว
-      await DocumentGenerator.generateBytes(order: order, school: school, items: items),
+      await DocumentGenerator.generateBytes(
+          order: order, school: school, items: items),
     ];
 
     // ส่วนที่ 3 เป็นต้นไป: ชุดเอกสารรายงวด (ใบส่งมอบงาน → ใบตรวจรับการจัดซื้อ/
     // จัดจ้าง → บันทึกข้อความส่งเบิกเงิน → ใบสำคัญรับเงิน) เรียงตามงวดที่ 1, 2, 3, ...
-    final sortedInstallments = [...installments]..sort((a, b) => a.periodNo.compareTo(b.periodNo));
+    final sortedInstallments = [...installments]
+      ..sort((a, b) => a.periodNo.compareTo(b.periodNo));
     for (final installment in sortedInstallments) {
       final overrides = buildInstallmentOverrides(order, installment);
       final checkFlags = buildInstallmentConditionalFlags(installment);
@@ -332,7 +337,8 @@ class ProcurementDocumentGenerator {
     return DocxTemplateService.saveOutput(
       docxBytes: mergedBytes,
       outputDir: outputDir,
-      procurementNumber: 'เอกสารรวม_${order.procurementNumber ?? "ไม่ระบุเลขที่"}',
+      procurementNumber:
+          'เอกสารรวม_${order.procurementNumber ?? "ไม่ระบุเลขที่"}',
       projectName: order.procurementSubject ?? 'ไม่ระบุหัวเรื่อง',
     );
   }

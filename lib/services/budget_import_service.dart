@@ -149,20 +149,25 @@ class BudgetImportService {
     String? currentGroup;
     for (var r = headerRowIndex + 1; r < sheet.rows.length; r++) {
       final row = sheet.rows[r];
-      String cellText(int? col) =>
-          col != null && col < row.length ? (row[col]?.value?.toString().trim() ?? '') : '';
+      String cellText(int? col) => col != null && col < row.length
+          ? (row[col]?.value?.toString().trim() ?? '')
+          : '';
       final fiscalYear = columnIndex.containsKey('fiscalYear')
           ? cellText(columnIndex['fiscalYear'])
           : (fallbackFiscalYear ?? '');
       final projectName = cellText(columnIndex['projectName']);
-      final amountText = cellText(columnIndex['allocatedAmount']).replaceAll(',', '');
+      final amountText =
+          cellText(columnIndex['allocatedAmount']).replaceAll(',', '');
 
       // แถวหัวข้อกลุ่มงาน (เช่น "งบกลุ่มบริหารงานวิชาการ") มักไม่มีกิจกรรมย่อยในแถว
       // เดียวกัน แค่ชื่อกลุ่ม + ยอดรวม — เก็บไว้เป็น "กลุ่มปัจจุบัน" ให้แถวถัดๆ ไป
-      final matchedGroup = budgetDepartmentGroups.where((g) => projectName.contains(g) || g.contains(projectName)).firstOrNull;
+      final matchedGroup = budgetDepartmentGroups
+          .where((g) => projectName.contains(g) || g.contains(projectName))
+          .firstOrNull;
       if (matchedGroup != null && projectName.isNotEmpty) {
         currentGroup = matchedGroup;
-        if (cellText(columnIndex['activityName']).isEmpty) continue; // แถวหัวข้อล้วนๆ ไม่ใช่รายการ
+        if (cellText(columnIndex['activityName']).isEmpty)
+          continue; // แถวหัวข้อล้วนๆ ไม่ใช่รายการ
       }
       // ข้ามแถว "รวมงบกลุ่ม..." ท้ายแต่ละหมวด
       if (projectName.startsWith('รวม')) continue;
@@ -171,12 +176,15 @@ class BudgetImportService {
       budgets.add(Budget(
         fiscalYear: fiscalYear,
         groupName: columnIndex.containsKey('groupName')
-            ? cellText(columnIndex['groupName']).let((s) => s.isEmpty ? currentGroup : s)
+            ? cellText(columnIndex['groupName'])
+                .let((s) => s.isEmpty ? currentGroup : s)
             : currentGroup,
         projectName: projectName.isEmpty ? null : projectName,
-        activityName: cellText(columnIndex['activityName']).let((s) => s.isEmpty ? null : s),
+        activityName: cellText(columnIndex['activityName'])
+            .let((s) => s.isEmpty ? null : s),
         allocatedAmount: double.tryParse(amountText),
-        responsiblePerson: cellText(columnIndex['responsiblePerson']).let((s) => s.isEmpty ? null : s),
+        responsiblePerson: cellText(columnIndex['responsiblePerson'])
+            .let((s) => s.isEmpty ? null : s),
       ));
     }
     return budgets;
@@ -192,7 +200,8 @@ class BudgetImportService {
   }) async {
     final apiKey = await GeminiService.instance.getApiKey();
     if (apiKey == null) {
-      throw BudgetImportException('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน');
+      throw BudgetImportException(
+          'กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน');
     }
     final responseText = await GeminiService.instance.generateFromFile(
       prompt: _budgetImportPrompt,
@@ -211,17 +220,21 @@ class BudgetImportService {
   Future<List<Budget>> _parseViaGeminiText(String text) async {
     final apiKey = await GeminiService.instance.getApiKey();
     if (apiKey == null) {
-      throw BudgetImportException('กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน');
+      throw BudgetImportException(
+          'กรุณาตั้งค่า Gemini API Key ในหน้า "ตั้งค่า AI" ก่อน');
     }
-    final responseText = await GeminiService.instance.generateText('$_budgetImportPrompt\n\nเนื้อหาเอกสาร:\n$text');
+    final responseText = await GeminiService.instance
+        .generateText('$_budgetImportPrompt\n\nเนื้อหาเอกสาร:\n$text');
     return _parseGeminiJson(responseText);
   }
 
   String _extractDocxText(List<int> bytes) {
     final archive = ZipDecoder().decodeBytes(bytes);
-    final docXml = archive.files.where((f) => f.name == 'word/document.xml').firstOrNull;
+    final docXml =
+        archive.files.where((f) => f.name == 'word/document.xml').firstOrNull;
     if (docXml == null) {
-      throw BudgetImportException('ไฟล์ Word นี้เสียหายหรือไม่ใช่ไฟล์ .docx ที่ถูกต้อง');
+      throw BudgetImportException(
+          'ไฟล์ Word นี้เสียหายหรือไม่ใช่ไฟล์ .docx ที่ถูกต้อง');
     }
     final xmlStr = utf8.decode(docXml.content as List<int>);
     final buffer = StringBuffer();
@@ -258,23 +271,31 @@ class BudgetImportService {
     }
     final decoded = jsonDecode(text.trim());
     if (decoded is! List) return [];
-    return decoded.whereType<Map<String, dynamic>>().map((json) {
-      final amount = json['allocated_amount'];
-      return Budget(
-        fiscalYear: (json['fiscal_year'] ?? '').toString(),
-        groupName: _normalizeGroupName(json['group_name'] as String?),
-        projectName: (json['project_name'] as String?)?.trim().isEmpty == true
-            ? null
-            : json['project_name'] as String?,
-        activityName: (json['activity_name'] as String?)?.trim().isEmpty == true
-            ? null
-            : json['activity_name'] as String?,
-        allocatedAmount: amount is num ? amount.toDouble() : double.tryParse('$amount'),
-        responsiblePerson: (json['responsible_person'] as String?)?.trim().isEmpty == true
-            ? null
-            : json['responsible_person'] as String?,
-      );
-    }).where((b) => b.fiscalYear.isNotEmpty || b.projectName != null).toList();
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map((json) {
+          final amount = json['allocated_amount'];
+          return Budget(
+            fiscalYear: (json['fiscal_year'] ?? '').toString(),
+            groupName: _normalizeGroupName(json['group_name'] as String?),
+            projectName:
+                (json['project_name'] as String?)?.trim().isEmpty == true
+                    ? null
+                    : json['project_name'] as String?,
+            activityName:
+                (json['activity_name'] as String?)?.trim().isEmpty == true
+                    ? null
+                    : json['activity_name'] as String?,
+            allocatedAmount:
+                amount is num ? amount.toDouble() : double.tryParse('$amount'),
+            responsiblePerson:
+                (json['responsible_person'] as String?)?.trim().isEmpty == true
+                    ? null
+                    : json['responsible_person'] as String?,
+          );
+        })
+        .where((b) => b.fiscalYear.isNotEmpty || b.projectName != null)
+        .toList();
   }
 
   /// กัน Gemini ตอบกลับมาไม่ตรงเป๊ะกับ 5 กลุ่มมาตรฐาน (เช่น เว้นวรรคเกิน/เติมคำ)

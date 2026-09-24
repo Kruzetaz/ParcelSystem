@@ -22,7 +22,8 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProviderStateMixin {
+class _SettingsScreenState extends State<SettingsScreen>
+    with SingleTickerProviderStateMixin {
   final _repo = ProcurementRepository();
   late final TabController _tabController;
 
@@ -138,12 +139,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       labelText: label,
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
-      labelStyle: const TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
-      hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
+      labelStyle: const TextStyle(
+          fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(
+          fontSize: AppTypography.bodyMedium,
+          color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: colors.outline)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: colors.outline)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.md),
+          borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
     );
   }
 
@@ -176,9 +186,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     indicatorColor: colors.onPrimary,
                     indicatorWeight: 3,
                     labelColor: colors.onPrimary,
-                    unselectedLabelColor: colors.onPrimary.withValues(alpha: 0.7),
-                    labelStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
-                    unselectedLabelStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                    unselectedLabelColor:
+                        colors.onPrimary.withValues(alpha: 0.7),
+                    labelStyle: const TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w700),
+                    unselectedLabelStyle: const TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w600),
                     tabs: const [
                       Tab(text: 'ข้อมูลโรงเรียน'),
                       Tab(text: 'บุคลากร'),
@@ -218,7 +231,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   children: [
                     Text(
                       'ใช้ประทับชื่อในบันทึกประวัติการใช้งาน (Audit Trail) เท่านั้น ไม่ใช่รหัสผ่าน',
-                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium),
+                      style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: AppTypography.bodyMedium),
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -228,16 +243,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: ClearableTextField(
                             controller: _currentUserCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('ชื่อผู้ใช้งาน', hint: 'เช่น นายสมชาย ใจดี'),
+                            decoration: _inputDecoration('ชื่อผู้ใช้งาน',
+                                hint: 'เช่น นายสมชาย ใจดี'),
                           ),
                         ),
                         const SizedBox(width: 10),
                         FilledButton(
                           style: FilledButton.styleFrom(
                             backgroundColor: BrandAccent.teal(context),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                            textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 18),
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(RadiusSize.md)),
+                            textStyle: const TextStyle(
+                                fontSize: 15.5, fontWeight: FontWeight.w700),
                           ),
                           onPressed: _saveCurrentUser,
                           child: const Text('บันทึก'),
@@ -255,25 +275,32 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   children: [
                     Text(
                       'ข้อมูลนี้จะถูกใช้เติมในเอกสารทุกใบที่สร้าง (กรอกครั้งเดียว ไม่ต้องกรอกซ้ำทุกครั้ง)',
-                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium, height: 1.4),
+                      style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: AppTypography.bodyMedium,
+                          height: 1.4),
                     ),
                     const SizedBox(height: 20),
                     ClearableTextField(
                       controller: _schoolNameCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('ชื่อโรงเรียน', hint: 'เช่น โรงเรียนบ้านป่าเลา'),
+                      decoration: _inputDecoration('ชื่อโรงเรียน',
+                          hint: 'เช่น โรงเรียนบ้านป่าเลา'),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(
                       controller: _educationServiceAreaCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('ส่วนราชการ (ต้นสังกัด)', hint: 'เช่น สำนักงานเขตพื้นที่การศึกษาประถมศึกษาลำพูน เขต 1'),
+                      decoration: _inputDecoration('ส่วนราชการ (ต้นสังกัด)',
+                          hint:
+                              'เช่น สำนักงานเขตพื้นที่การศึกษาประถมศึกษาลำพูน เขต 1'),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(
                       controller: _schoolAddressNoCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่', hint: 'เช่น 123 หมู่ 4'),
+                      decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่',
+                          hint: 'เช่น 123 หมู่ 4'),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -282,7 +309,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: ClearableTextField(
                             controller: _schoolSubdistrictCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('ตำบล/แขวง', hint: 'เช่น ในเมือง'),
+                            decoration: _inputDecoration('ตำบล/แขวง',
+                                hint: 'เช่น ในเมือง'),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -290,7 +318,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: ClearableTextField(
                             controller: _schoolAmphoeCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('อำเภอ/เขต', hint: 'เช่น เมืองลำพูน'),
+                            decoration: _inputDecoration('อำเภอ/เขต',
+                                hint: 'เช่น เมืองลำพูน'),
                           ),
                         ),
                       ],
@@ -299,13 +328,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ClearableTextField(
                       controller: _schoolChangwatCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
+                      decoration:
+                          _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(
                       controller: _schoolPhoneCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('เบอร์โทรโรงเรียน', hint: 'เช่น 053-511111'),
+                      decoration: _inputDecoration('เบอร์โทรโรงเรียน',
+                          hint: 'เช่น 053-511111'),
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 28),
@@ -322,13 +353,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     const SizedBox(height: 4),
                     Text(
                       'ใช้เป็นค่าเริ่มต้นในทุกเอกสารที่สร้าง ไม่ต้องกรอกซ้ำในแต่ละใบ',
-                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium),
+                      style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: AppTypography.bodyMedium),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(
                       controller: _directorNameCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('ผู้อำนวยการโรงเรียน', hint: 'เช่น นายสมชาย ใจดี'),
+                      decoration: _inputDecoration('ผู้อำนวยการโรงเรียน',
+                          hint: 'เช่น นายสมชาย ใจดี'),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -337,7 +371,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: ClearableTextField(
                             controller: _procurementOfficerCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('เจ้าหน้าที่พัสดุ', hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
+                            decoration: _inputDecoration('เจ้าหน้าที่พัสดุ',
+                                hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -345,7 +380,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: ClearableTextField(
                             controller: _procurementHeadCtrl,
                             style: const TextStyle(fontSize: 17),
-                            decoration: _inputDecoration('หัวหน้าเจ้าหน้าที่พัสดุ', hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
+                            decoration: _inputDecoration(
+                                'หัวหน้าเจ้าหน้าที่พัสดุ',
+                                hint: 'เช่น นางสาวสมหญิง ตั้งใจ'),
                           ),
                         ),
                       ],
@@ -354,7 +391,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ClearableTextField(
                       controller: _financeOfficerCtrl,
                       style: const TextStyle(fontSize: 17),
-                      decoration: _inputDecoration('เจ้าหน้าที่การเงิน', hint: 'เช่น นางสมศรี มีทรัพย์'),
+                      decoration: _inputDecoration('เจ้าหน้าที่การเงิน',
+                          hint: 'เช่น นางสมศรี มีทรัพย์'),
                     ),
                     const SizedBox(height: 28),
                     SizedBox(
@@ -375,8 +413,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         style: FilledButton.styleFrom(
                           backgroundColor: BrandAccent.teal(context),
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(RadiusSize.md)),
+                          textStyle: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -390,4 +431,3 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 }
-

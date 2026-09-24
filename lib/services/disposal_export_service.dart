@@ -13,7 +13,8 @@ class DisposalExportService {
   /// [assetsById] ใช้แปลง assetId ที่ผูกไว้ (ถ้ามี) เป็นเลขครุภัณฑ์/ชื่อรายการ
   /// จริง — ตรงกับที่หน้าจำหน่ายพัสดุแสดงผล (ผูกกับทะเบียนครุภัณฑ์แบบไม่บังคับ
   /// ถ้าไม่ได้ผูกจะใช้ itemName ที่กรอกเองแทน)
-  static Future<File> export(List<Disposal> disposals, Map<int, FixedAsset> assetsById) async {
+  static Future<File> export(
+      List<Disposal> disposals, Map<int, FixedAsset> assetsById) async {
     final excel = xls.Excel.createExcel();
     final sheet = excel[excel.getDefaultSheet() ?? 'Sheet1'];
 
@@ -58,8 +59,10 @@ class DisposalExportService {
     return file;
   }
 
-  static Future<void> exportAndOpen(List<Disposal> disposals, Map<int, FixedAsset> assetsById) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'จำหน่ายพัสดุ');
+  static Future<void> exportAndOpen(
+      List<Disposal> disposals, Map<int, FixedAsset> assetsById) async {
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.assetManagement, 'จำหน่ายพัสดุ');
     final file = await export(disposals, assetsById);
     await _openFile(file.path);
   }

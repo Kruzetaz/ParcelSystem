@@ -29,14 +29,28 @@ class DocumentHubScreen extends StatefulWidget {
 
 /// เอกสารแต่ละใบที่ hub นี้ทำได้ — แยกจาก ProcurementDocumentType ของ service
 /// เพราะรวม TOR/master ที่ใช้ generator คนละตัวเข้าไว้ในลิสต์เดียวกันด้วย
-enum _DocKind { masterFull, tor, contractOrderReport, purchaseOrder, contractAnnouncement, quotation, requisition, deliveryNote, disbursementMemo }
+enum _DocKind {
+  masterFull,
+  tor,
+  contractOrderReport,
+  purchaseOrder,
+  contractAnnouncement,
+  quotation,
+  requisition,
+  deliveryNote,
+  disbursementMemo
+}
 
 class _DocCardInfo {
   final _DocKind kind;
   final String title;
   final String subtitle;
   final IconData icon;
-  const _DocCardInfo({required this.kind, required this.title, required this.subtitle, required this.icon});
+  const _DocCardInfo(
+      {required this.kind,
+      required this.title,
+      required this.subtitle,
+      required this.icon});
 }
 
 const _docCards = [
@@ -141,7 +155,8 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     }
     final school = _school;
     if (school == null) {
-      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน',
+          isError: true);
       return;
     }
     setState(() => _generatingKind = kind);
@@ -149,30 +164,53 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
       final items = await _repo.getItems(order.id!);
       switch (kind) {
         case _DocKind.masterFull:
-          await DocumentGenerator.generateAndOpen(order: order, school: school, items: items);
+          await DocumentGenerator.generateAndOpen(
+              order: order, school: school, items: items);
         case _DocKind.tor:
-          await TorDocumentGenerator.generateAndOpen(order: order, school: school, items: items);
+          await TorDocumentGenerator.generateAndOpen(
+              order: order, school: school, items: items);
         case _DocKind.contractOrderReport:
           await ProcurementDocumentGenerator.generateAndOpen(
-              type: ProcurementDocumentType.contractOrderReport, order: order, school: school, items: items);
+              type: ProcurementDocumentType.contractOrderReport,
+              order: order,
+              school: school,
+              items: items);
         case _DocKind.purchaseOrder:
           await ProcurementDocumentGenerator.generateAndOpen(
-              type: ProcurementDocumentType.purchaseOrder, order: order, school: school, items: items);
+              type: ProcurementDocumentType.purchaseOrder,
+              order: order,
+              school: school,
+              items: items);
         case _DocKind.contractAnnouncement:
           await ProcurementDocumentGenerator.generateAndOpen(
-              type: ProcurementDocumentType.contractAnnouncement, order: order, school: school, items: items);
+              type: ProcurementDocumentType.contractAnnouncement,
+              order: order,
+              school: school,
+              items: items);
         case _DocKind.quotation:
           await ProcurementDocumentGenerator.generateAndOpen(
-              type: ProcurementDocumentType.quotation, order: order, school: school, items: items);
+              type: ProcurementDocumentType.quotation,
+              order: order,
+              school: school,
+              items: items);
         case _DocKind.requisition:
           await ProcurementDocumentGenerator.generateAndOpen(
-              type: ProcurementDocumentType.requisition, order: order, school: school, items: items);
+              type: ProcurementDocumentType.requisition,
+              order: order,
+              school: school,
+              items: items);
         case _DocKind.deliveryNote:
           await ProcurementDocumentGenerator.generateAndOpen(
-              type: ProcurementDocumentType.deliveryNote, order: order, school: school, items: items);
+              type: ProcurementDocumentType.deliveryNote,
+              order: order,
+              school: school,
+              items: items);
         case _DocKind.disbursementMemo:
           await ProcurementDocumentGenerator.generateAndOpen(
-              type: ProcurementDocumentType.disbursementMemo, order: order, school: school, items: items);
+              type: ProcurementDocumentType.disbursementMemo,
+              order: order,
+              school: school,
+              items: items);
       }
       if (!mounted) return;
       showAppToast('สร้างเอกสารแล้ว');
@@ -184,7 +222,8 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     }
   }
 
-  Future<void> _downloadBlank(BlankTemplateInfo info, BlankTemplateFormat format) async {
+  Future<void> _downloadBlank(
+      BlankTemplateInfo info, BlankTemplateFormat format) async {
     setState(() => _downloadingBlank = info.kind);
     try {
       await BlankTemplateService.exportAndOpen(info, format);
@@ -218,118 +257,137 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),
           child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.description_outlined, color: BrandAccent.tealOn(context), size: 22),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text('สร้างเอกสารราชการ',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'เลือกรายการจัดซื้อจัดจ้างที่ต้องการอ้างอิงครั้งเดียว แล้วออกเอกสารที่ต้องการด้านล่างได้เลย',
-                style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
-              ),
-              const SizedBox(height: 16),
-              _buildOrderPicker(context, colors),
-              const SizedBox(height: 20),
-              Expanded(
-                child: _orders.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.file_copy_outlined, size: 64, color: colors.onSurfaceVariant),
-                            const SizedBox(height: 12),
-                            Text(
-                              'ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ\nไปสร้างรายการก่อนที่หน้า "สร้างใหม่" หรือ "Easy Wizard"',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4),
-                            ),
-                          ],
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 300,
-                                mainAxisExtent: 170,
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 14,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.description_outlined,
+                        color: BrandAccent.tealOn(context), size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text('สร้างเอกสารราชการ',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: AppTypography.heading2,
+                              fontWeight: AppTypography.weightExtraBold,
+                              color: colors.onSurface)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'เลือกรายการจัดซื้อจัดจ้างที่ต้องการอ้างอิงครั้งเดียว แล้วออกเอกสารที่ต้องการด้านล่างได้เลย',
+                  style: TextStyle(
+                      fontSize: AppTypography.bodyMedium,
+                      color: colors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 16),
+                _buildOrderPicker(context, colors),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: _orders.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.file_copy_outlined,
+                                  size: 64, color: colors.onSurfaceVariant),
+                              const SizedBox(height: 12),
+                              Text(
+                                'ยังไม่มีรายการจัดซื้อจัดจ้างในระบบ\nไปสร้างรายการก่อนที่หน้า "สร้างใหม่" หรือ "Easy Wizard"',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                    fontSize: AppTypography.heading4),
                               ),
-                              itemCount: _docCards.length,
-                              itemBuilder: (_, i) => _buildDocCard(context, colors, _docCards[i]),
-                            ),
-                            const SizedBox(height: 20),
-                            _buildBlankTemplatesSection(context, colors),
-                          ],
+                            ],
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 300,
+                                  mainAxisExtent: 170,
+                                  crossAxisSpacing: 14,
+                                  mainAxisSpacing: 14,
+                                ),
+                                itemCount: _docCards.length,
+                                itemBuilder: (_, i) => _buildDocCard(
+                                    context, colors, _docCards[i]),
+                              ),
+                              const SizedBox(height: 20),
+                              _buildBlankTemplatesSection(context, colors),
+                            ],
+                          ),
                         ),
-                      ),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
   Widget _buildOrderPicker(BuildContext context, ColorScheme colors) {
     return HoverBuilder(
-      builder: (context, hovering) => DropdownButtonFormField<ProcurementOrder?>(
-      initialValue: _selectedOrder,
-      isExpanded: true,
-      style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
-      decoration: InputDecoration(
-        labelText: 'รายการจัดซื้อจัดจ้างที่อ้างอิง',
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
-        labelStyle: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700, color: colors.onSurfaceVariant),
-        isDense: true,
-        prefixIcon: const Icon(Icons.link),
-        suffixIcon: hovering && _selectedOrder != null
-            ? clearIconButton(context, () => setState(() => _selectedOrder = null))
-            : null,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(RadiusSize.md),
-          borderSide: BorderSide(color: colors.outline),
+      builder: (context, hovering) =>
+          DropdownButtonFormField<ProcurementOrder?>(
+        initialValue: _selectedOrder,
+        isExpanded: true,
+        style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
+        decoration: InputDecoration(
+          labelText: 'รายการจัดซื้อจัดจ้างที่อ้างอิง',
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+          labelStyle: TextStyle(
+              fontSize: AppTypography.bodyMedium,
+              fontWeight: FontWeight.w700,
+              color: colors.onSurfaceVariant),
+          isDense: true,
+          prefixIcon: const Icon(Icons.link),
+          suffixIcon: hovering && _selectedOrder != null
+              ? clearIconButton(
+                  context, () => setState(() => _selectedOrder = null))
+              : null,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(RadiusSize.md),
+            borderSide: BorderSide(color: colors.outline),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(RadiusSize.md),
+            borderSide: BorderSide(color: colors.outline),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(RadiusSize.md),
+            borderSide:
+                BorderSide(color: BrandAccent.teal(context), width: 1.5),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(RadiusSize.md),
-          borderSide: BorderSide(color: colors.outline),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(RadiusSize.md),
-          borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
-        ),
-      ),
-      borderRadius: BorderRadius.circular(RadiusSize.md),
-      items: [
-        const DropdownMenuItem<ProcurementOrder?>(value: null, child: Text('(ยังไม่เลือก)')),
-        ..._orders.map((o) => DropdownMenuItem<ProcurementOrder?>(
-              value: o,
-              child: Text(
-                '${o.procurementNumber ?? "(ไม่มีเลขที่)"} — ${o.procurementSubject ?? o.projectName ?? "เอกสาร #${o.id}"}',
-                overflow: TextOverflow.ellipsis,
-              ),
-            )),
-      ],
-      onChanged: (v) => setState(() => _selectedOrder = v),
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        items: [
+          const DropdownMenuItem<ProcurementOrder?>(
+              value: null, child: Text('(ยังไม่เลือก)')),
+          ..._orders.map((o) => DropdownMenuItem<ProcurementOrder?>(
+                value: o,
+                child: Text(
+                  '${o.procurementNumber ?? "(ไม่มีเลขที่)"} — ${o.procurementSubject ?? o.projectName ?? "เอกสาร #${o.id}"}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              )),
+        ],
+        onChanged: (v) => setState(() => _selectedOrder = v),
       ),
     );
   }
@@ -349,15 +407,21 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.download_outlined, size: 18, color: BrandAccent.tealOn(context)),
+              Icon(Icons.download_outlined,
+                  size: 18, color: BrandAccent.tealOn(context)),
               const SizedBox(width: 8),
               Text('แบบฟอร์มเปล่า',
-                  style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, color: colors.onSurface)),
+                  style: TextStyle(
+                      fontWeight: AppTypography.weightBold,
+                      fontSize: AppTypography.body,
+                      color: colors.onSurface)),
             ],
           ),
           const SizedBox(height: 4),
           Text('ดาวน์โหลดไฟล์แบบฟอร์มต้นฉบับ (ยังไม่กรอกข้อมูล) มากรอกเอง',
-              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+              style: TextStyle(
+                  fontSize: AppTypography.bodySmall,
+                  color: colors.onSurfaceVariant)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 10,
@@ -368,28 +432,44 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
                 enabled: _downloadingBlank == null,
                 onSelected: (format) => _downloadBlank(info, format),
                 itemBuilder: (_) => info.assetPaths.keys.map((format) {
-                  final label = format == BlankTemplateFormat.docx ? 'ไฟล์ Word (.docx)' : 'ไฟล์ PDF (.pdf)';
-                  final icon = format == BlankTemplateFormat.docx ? Icons.description_outlined : Icons.picture_as_pdf_outlined;
+                  final label = format == BlankTemplateFormat.docx
+                      ? 'ไฟล์ Word (.docx)'
+                      : 'ไฟล์ PDF (.pdf)';
+                  final icon = format == BlankTemplateFormat.docx
+                      ? Icons.description_outlined
+                      : Icons.picture_as_pdf_outlined;
                   return PopupMenuItem(
                     value: format,
-                    child: Row(children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)]),
+                    child: Row(children: [
+                      Icon(icon, size: 18),
+                      const SizedBox(width: 8),
+                      Text(label)
+                    ]),
                   );
                 }).toList(),
                 child: IgnorePointer(
                   child: OutlinedButton.icon(
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
                       side: BorderSide(color: colors.outline),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(RadiusSize.md)),
                     ),
                     icon: isDownloading
-                        ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: colors.primary))
                         : const Icon(Icons.file_download_outlined, size: 16),
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(info.title, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                        Text(info.title,
+                            style: const TextStyle(
+                                fontSize: 13.5, fontWeight: FontWeight.w600)),
                         const SizedBox(width: 4),
                         const Icon(Icons.arrow_drop_down, size: 18),
                       ],
@@ -404,7 +484,8 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
     );
   }
 
-  Widget _buildDocCard(BuildContext context, ColorScheme colors, _DocCardInfo info) {
+  Widget _buildDocCard(
+      BuildContext context, ColorScheme colors, _DocCardInfo info) {
     final isGenerating = _generatingKind == info.kind;
     final ready = _selectedOrder != null && _school != null;
 
@@ -423,7 +504,11 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
             children: [
               Icon(info.icon, size: 20, color: BrandAccent.tealOn(context)),
               const Spacer(),
-              Icon(Icons.circle, size: 9, color: ready ? BrandAccent.green(context) : colors.outlineVariant),
+              Icon(Icons.circle,
+                  size: 9,
+                  color: ready
+                      ? BrandAccent.green(context)
+                      : colors.outlineVariant),
             ],
           ),
           const SizedBox(height: 6),
@@ -434,29 +519,45 @@ class _DocumentHubScreenState extends State<DocumentHubScreen> {
           SizedBox(
             height: 36,
             child: Text(info.title,
-              style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, height: 1.25, color: colors.onSurface),
-              maxLines: 2, overflow: TextOverflow.ellipsis),
+                style: TextStyle(
+                    fontWeight: AppTypography.weightBold,
+                    fontSize: AppTypography.body,
+                    height: 1.25,
+                    color: colors.onSurface),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
           ),
           const SizedBox(height: 3),
           SizedBox(
             height: 28,
             child: Text(info.subtitle,
-              style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant, height: 1.25),
-              maxLines: 2, overflow: TextOverflow.ellipsis),
+                style: TextStyle(
+                    fontSize: AppTypography.bodySmall,
+                    color: colors.onSurfaceVariant,
+                    height: 1.25),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
           ),
           const Spacer(),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: (_generatingKind != null) ? null : () => _generate(info.kind),
+              onPressed:
+                  (_generatingKind != null) ? null : () => _generate(info.kind),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 side: BorderSide(color: colors.outline),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(RadiusSize.md)),
+                textStyle: const TextStyle(
+                    fontSize: 13.5, fontWeight: FontWeight.w700),
               ),
               child: isGenerating
-                  ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: colors.primary))
                   : const Text('สร้างเอกสาร →'),
             ),
           ),

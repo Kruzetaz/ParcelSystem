@@ -20,6 +20,9 @@ import 'travel_reimbursement_screen.dart';
 import 'order_register_screen.dart';
 import 'control_log_screen.dart';
 import 'delivery_note_register_screen.dart';
+import '../services/navigation_request_controller.dart';
+import '../services/notification_history_controller.dart';
+import '../utils/relative_time.dart';
 import 'expenditure_register_screen.dart';
 import 'document_checklist_screen.dart';
 import 'learning_materials_screen.dart';
@@ -47,7 +50,7 @@ import '../data/procurement_repository.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/backup_service.dart';
 import '../services/theme_controller.dart';
-import '../theme/design_tokens.dart' show BrandColors, RadiusSize;
+import '../theme/design_tokens.dart' show BrandAccent, BrandColors, RadiusSize;
 import '../services/font_scale_controller.dart';
 import '../services/fiscal_year_controller.dart';
 import '../utils/thai_date.dart';
@@ -110,6 +113,7 @@ class _AppShellState extends State<AppShell> {
     _loadFiscalYears();
     _loadNotifData();
     FiscalYearController.instance.addListener(_loadNotifData);
+    NavigationRequestController.instance.addListener(_onNavigationRequested);
   }
 
   @override
@@ -117,7 +121,16 @@ class _AppShellState extends State<AppShell> {
     _omniSearchCtrl.dispose();
     _omniSearchFocusNode.dispose();
     FiscalYearController.instance.removeListener(_loadNotifData);
+    NavigationRequestController.instance.removeListener(_onNavigationRequested);
     super.dispose();
+  }
+
+  // กด toast ลอย (เช่น "กำลังนำเข้าโครงการเก่า") ที่วางอยู่นอก AppShell ใน
+  // main.dart — พาไปหน้าที่เกี่ยวข้องผ่านช่องทางเดียวกับที่ DashboardScreenV2
+  // ใช้อยู่แล้ว (mode string เดียวกัน)
+  void _onNavigationRequested() {
+    final mode = NavigationRequestController.instance.consume();
+    if (mode != null) _onDashboardNavigateV2(mode);
   }
 
   Future<void> _loadNotifData() async {
@@ -993,11 +1006,22 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  /// ปุ่มระฆังแจ้งเตือน — รวม 4 หมวดจากข้อมูลที่ _loadNotifData โหลดไว้ (ไม่ขาด
-  /// เลข e-GP, ยังไม่เสร็จ, รอตรวจรับ, ใกล้/เกินกำหนด) กดแต่ละหมวดพาไปหน้าที่
-  /// เกี่ยวข้องเลย (ตรวจรับ → หน้าตรวจรับพัสดุ, ที่เหลือ → แดชบอร์ด)
+  /// ปุ่มระฆังแจ้งเตือน — รวม 4 หมวดสรุปด่วนจากข้อมูลที่ _loadNotifData โหลดไว้
+  /// (ไม่ขาดเลข e-GP, ยังไม่เสร็จ, รอตรวจรับ, ใกล้/เกินกำหนด) ต่อด้วยประวัติ
+  /// แจ้งเตือนรายรายการ (งานเบื้องหลังที่ทำเสร็จแล้ว เช่น นำเข้าโครงการเก่า) —
+  /// ต่างจาก toast ลอยที่หายเองใน 4-8 วินาที รายการนี้ค้างอยู่ให้กลับมาดู/กด
+  /// ย้อนหลังได้เสมอ กดแต่ละรายการพาไปหน้าที่เกี่ยวข้องเลย
   Widget _notifBellButton(ColorScheme colors) {
-    return PopupMenuButton<VoidCallback>(
+    return ListenableBuilder(
+      listenable: NotificationHistoryController.instance,
+      builder: (context, _) => _notifBellButtonBody(colors),
+    );
+  }
+
+  Widget _notifBellButtonBody(ColorScheme colors) {
+    final history = NotificationHistoryController.instance.items;
+    final hasUnreadHistory = history.any((n) => !n.read);
+    return PopupMenuButton<void>(
       tooltip: 'แจ้งเตือน',
       offset: const Offset(0, 40),
       shape: RoundedRectangleBorder(
@@ -1005,7 +1029,6 @@ class _AppShellState extends State<AppShell> {
         side: BorderSide(color: colors.outline),
       ),
       elevation: 6,
-      onSelected: (action) => action(),
       itemBuilder: (context) {
         final items = <_NotifItem>[
           _NotifItem(
@@ -1040,44 +1063,121 @@ class _AppShellState extends State<AppShell> {
                 dashboardFilter: 'deadline'),
           ),
         ];
-        if (_notifTotalCount == 0) {
+        final hasQuickItems = _notifTotalCount > 0;
+        if (!hasQuickItems && history.isEmpty) {
           return [
-            PopupMenuItem<VoidCallback>(
+            PopupMenuItem<void>(
               enabled: false,
               child: Text('ไม่มีรายการแจ้งเตือน',
                   style: TextStyle(color: colors.onSurfaceVariant)),
             ),
           ];
         }
+        // รวมทุกอย่างไว้ใน PopupMenuItem เดียว (enabled: false กันตัว item เอง
+        // ปิดเมนูตอนแตะ) แล้วจัดการปิดเมนูเองแบบ manual (Navigator.pop) ในแต่ละ
+        // แถวย่อยแทน — ต้องทำแบบนี้เพราะอยากได้พื้นที่ประวัติแจ้งเตือนที่สูง
+        // "คงที่" (ไม่ยืดตามจำนวนรายการ) แล้วเลื่อนดูข้างในแทน ถ้าใช้
+        // PopupMenuItem แยกทีละแถวแบบเดิม ความสูงทั้งเมนูจะยืดตามจำนวนรายการ
+        // ไปเรื่อยๆ จนพันจอตอนมีประวัติสะสมเยอะ
         return [
-          for (final item in items)
-            if (item.count > 0)
-              PopupMenuItem<VoidCallback>(
-                value: item.onTap,
-                child: Row(
-                  children: [
-                    Icon(item.icon, size: 17, color: item.color),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(item.label)),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: item.color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(RadiusSize.xxl),
+          PopupMenuItem<void>(
+            enabled: false,
+            padding: EdgeInsets.zero,
+            child: SizedBox(
+              width: 340,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (hasQuickItems)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final item in items)
+                            if (item.count > 0)
+                              InkWell(
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  item.onTap();
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      Icon(item.icon,
+                                          size: 17, color: item.color),
+                                      const SizedBox(width: 10),
+                                      Expanded(child: Text(item.label)),
+                                      const SizedBox(width: 10),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: item.color
+                                              .withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(
+                                              RadiusSize.xxl),
+                                        ),
+                                        child: Text(
+                                          '${item.count}',
+                                          style: TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: item.color),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                        ],
                       ),
-                      child: Text(
-                        '${item.count}',
-                        style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: item.color),
+                    ),
+                  if (hasQuickItems && history.isNotEmpty)
+                    const Divider(height: 1),
+                  if (history.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                      child: Text('การแจ้งเตือนล่าสุด',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: colors.onSurfaceVariant)),
+                    ),
+                    ConstrainedBox(
+                      // สูงคงที่ประมาณ 4-5 รายการ เกินนี้เลื่อนดูข้างในแทน
+                      // ไม่ยืดเมนูทั้งกล่องไปเรื่อยๆ ตามจำนวนประวัติที่สะสมไว้
+                      constraints: const BoxConstraints(maxHeight: 420),
+                      child: Scrollbar(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: history.length,
+                          itemBuilder: (context, i) {
+                            final n = history[i];
+                            return InkWell(
+                              onTap: () {
+                                NotificationHistoryController.instance
+                                    .markRead(n.id);
+                                if (n.navigateMode != null) {
+                                  NavigationRequestController.instance
+                                      .requestMode(n.navigateMode!);
+                                }
+                                Navigator.of(context).pop();
+                              },
+                              child: _notifHistoryRow(colors, n),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
+            ),
+          ),
         ];
       },
       // ไม่ใช้ _topbarIconButton (มี InkWell/GestureDetector ของตัวเอง) เป็น
@@ -1095,7 +1195,7 @@ class _AppShellState extends State<AppShell> {
           children: [
             Icon(Icons.notifications_outlined,
                 size: 18, color: Colors.white.withValues(alpha: 0.85)),
-            if (_notifTotalCount > 0)
+            if (_notifTotalCount > 0 || hasUnreadHistory)
               Positioned(
                 top: 5,
                 right: 5,
@@ -1111,6 +1211,68 @@ class _AppShellState extends State<AppShell> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// การ์ดแจ้งเตือนรายรายการ — ทรงคล้ายแจ้งเตือนของเฟซบุ๊ก (ไอคอนวงกลม + หัวข้อ
+  /// + ข้อความ + เวลาแบบสัมพัทธ์ + จุดฟ้าถ้ายังไม่ได้อ่าน) พื้นหลังฟ้าอ่อนถ้า
+  /// ยังไม่อ่าน ให้เห็นชัดว่ารายการไหนใหม่/ยังไม่ได้ดู
+  Widget _notifHistoryRow(ColorScheme colors, AppNotification n) {
+    return Container(
+      width: 340,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: n.read
+          ? Colors.transparent
+          : BrandAccent.teal(context).withValues(alpha: 0.06),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: n.color, shape: BoxShape.circle),
+            child: Icon(n.icon, color: Colors.white, size: 17),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(n.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontWeight: n.read ? FontWeight.w600 : FontWeight.w700,
+                        fontSize: 13.5,
+                        color: colors.onSurface)),
+                const SizedBox(height: 2),
+                Text(n.message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12.5, color: colors.onSurfaceVariant)),
+                const SizedBox(height: 3),
+                Text(relativeTimeLabel(n.time),
+                    style: TextStyle(
+                        fontSize: 11, color: colors.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          if (!n.read) ...[
+            const SizedBox(width: 6),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: const BoxDecoration(
+                    shape: BoxShape.circle, color: Color(0xFF2563EB)),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

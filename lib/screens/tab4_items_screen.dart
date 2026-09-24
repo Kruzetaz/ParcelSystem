@@ -71,7 +71,8 @@ class _Tab4TestScreenState extends State<Tab4TestScreen> {
                             '• ${item.itemName}: ${item.quantityDisplay} × '
                             '${item.unitPrice.toStringAsFixed(2)} = '
                             '${item.computedTotal.toStringAsFixed(2)} บาท',
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                            style: const TextStyle(
+                                fontFamily: 'monospace', fontSize: 13),
                           ),
                       ],
                     ),

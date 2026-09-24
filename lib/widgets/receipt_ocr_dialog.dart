@@ -43,7 +43,8 @@ class OcrParsedItem {
   factory OcrParsedItem.fromJson(Map<String, dynamic> json) {
     String numToStr(dynamic v) {
       if (v == null) return '';
-      if (v is num) return v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+      if (v is num)
+        return v == v.roundToDouble() ? v.toInt().toString() : v.toString();
       return v.toString();
     }
 
@@ -74,7 +75,8 @@ class _ReceiptOcrPreviewDialog extends StatefulWidget {
   const _ReceiptOcrPreviewDialog({required this.parsedItems});
 
   @override
-  State<_ReceiptOcrPreviewDialog> createState() => _ReceiptOcrPreviewDialogState();
+  State<_ReceiptOcrPreviewDialog> createState() =>
+      _ReceiptOcrPreviewDialogState();
 }
 
 class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
@@ -128,7 +130,8 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
               const SizedBox(height: 4),
               Text(
                 'ตรวจสอบและแก้ไขตัวเลข/ชื่อที่ผิดได้ก่อนนำเข้า',
-                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12.5),
+                style:
+                    TextStyle(color: colors.onSurfaceVariant, fontSize: 12.5),
               ),
               if (hasMultiProjectHint) ...[
                 const SizedBox(height: 12),
@@ -141,13 +144,15 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800, size: 18),
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.amber.shade800, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'พบว่าอาจมีพัสดุจากหลายโครงการปนกันในใบเสร็จนี้ (ทำเครื่องหมาย ⚠ ไว้ให้) '
                           'กรุณาตรวจสอบและลบรายการที่ไม่เกี่ยวข้องกับโครงการนี้ก่อนยืนยัน',
-                          style: TextStyle(color: Colors.amber.shade900, fontSize: 12.5),
+                          style: TextStyle(
+                              color: Colors.amber.shade900, fontSize: 12.5),
                         ),
                       ),
                     ],
@@ -159,7 +164,8 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
-                    child: Text('ไม่พบรายการ', style: TextStyle(color: colors.onSurfaceVariant)),
+                    child: Text('ไม่พบรายการ',
+                        style: TextStyle(color: colors.onSurfaceVariant)),
                   ),
                 )
               else
@@ -167,7 +173,8 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        for (var i = 0; i < _items.length; i++) _buildRow(colors, i),
+                        for (var i = 0; i < _items.length; i++)
+                          _buildRow(colors, i),
                       ],
                     ),
                   ),
@@ -190,7 +197,8 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
                             ),
                     icon: const Icon(Icons.check),
                     label: Text('ยืนยันนำเข้าข้อมูล (${_items.length} รายการ)'),
-                    style: FilledButton.styleFrom(backgroundColor: colors.primary),
+                    style:
+                        FilledButton.styleFrom(backgroundColor: colors.primary),
                   ),
                 ],
               ),
@@ -211,7 +219,8 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
           if (item.multiProjectHint)
             const Padding(
               padding: EdgeInsets.only(right: 4),
-              child: Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 18),
+              child: Icon(Icons.warning_amber_rounded,
+                  color: Colors.amber, size: 18),
             ),
           Expanded(
             flex: 4,
@@ -219,7 +228,8 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ClearableTextField(
                 controller: item.itemName,
-                decoration: const InputDecoration(isDense: true, hintText: 'ชื่อรายการ'),
+                decoration: const InputDecoration(
+                    isDense: true, hintText: 'ชื่อรายการ'),
               ),
             ),
           ),
@@ -230,8 +240,10 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
               child: ClearableTextField(
                 controller: item.quantity,
                 textAlign: TextAlign.right,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(isDense: true, hintText: 'จำนวน'),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration:
+                    const InputDecoration(isDense: true, hintText: 'จำนวน'),
               ),
             ),
           ),
@@ -241,7 +253,8 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ClearableTextField(
                 controller: item.unit,
-                decoration: const InputDecoration(isDense: true, hintText: 'หน่วย'),
+                decoration:
+                    const InputDecoration(isDense: true, hintText: 'หน่วย'),
               ),
             ),
           ),
@@ -252,13 +265,16 @@ class _ReceiptOcrPreviewDialogState extends State<_ReceiptOcrPreviewDialog> {
               child: ClearableTextField(
                 controller: item.unitPrice,
                 textAlign: TextAlign.right,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(isDense: true, hintText: 'ราคา/หน่วย'),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    isDense: true, hintText: 'ราคา/หน่วย'),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+            icon: const Icon(Icons.delete_outline,
+                color: Colors.redAccent, size: 20),
             onPressed: () => _removeAt(index),
           ),
         ],

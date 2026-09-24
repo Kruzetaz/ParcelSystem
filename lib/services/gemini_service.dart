@@ -55,7 +55,8 @@ class GeminiService {
   /// ไล่ลองทีละโมเดลตาม _geminiModels จนกว่าจะสำเร็จ
   Future<GeminiTestResult> testConnection(String apiKey) async {
     if (apiKey.trim().isEmpty) {
-      return const GeminiTestResult(ok: false, message: 'กรุณากรอก API Key ก่อน');
+      return const GeminiTestResult(
+          ok: false, message: 'กรุณากรอก API Key ก่อน');
     }
     String lastError = '';
     for (final model in _geminiModels) {
@@ -77,25 +78,29 @@ class GeminiService {
             .timeout(const Duration(seconds: 15));
 
         if (response.statusCode == 200) {
-          return GeminiTestResult(ok: true, message: 'เชื่อมต่อสำเร็จ ใช้งานได้ ($model)');
+          return GeminiTestResult(
+              ok: true, message: 'เชื่อมต่อสำเร็จ ใช้งานได้ ($model)');
         }
         lastError = _errorMessage(response);
         // 429 (rate limit) / 503 (overload) → ลองโมเดลถัดไป, ค่า error อื่น (เช่น
         // API key ผิด) ไม่มีประโยชน์จะลองซ้ำ หยุดแจ้งผลทันที
         if (response.statusCode != 429 && response.statusCode != 503) {
-          return GeminiTestResult(ok: false, message: 'เชื่อมต่อไม่สำเร็จ: $lastError');
+          return GeminiTestResult(
+              ok: false, message: 'เชื่อมต่อไม่สำเร็จ: $lastError');
         }
       } catch (e) {
         lastError = '$e';
       }
     }
-    return GeminiTestResult(ok: false, message: 'เชื่อมต่อไม่สำเร็จ: $lastError');
+    return GeminiTestResult(
+        ok: false, message: 'เชื่อมต่อไม่สำเร็จ: $lastError');
   }
 
   /// เรียก Gemini แบบข้อความล้วน — ใช้ต่อกับ Feature C (ช่วยเขียนเหตุผล)
   /// และ Feature B ส่วนอ่านไฟล์ .docx/.pdf
   Future<String> generateText(String prompt) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.aiFeatures, 'ตั้งค่า AI');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.aiFeatures, 'ตั้งค่า AI');
     final apiKey = await getApiKey();
     if (apiKey == null) {
       throw Exception('ยังไม่ได้ตั้งค่า Gemini API Key ในหน้าตั้งค่า');
@@ -120,7 +125,8 @@ class GeminiService {
     required List<int> fileBytes,
     required String mimeType,
   }) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.aiFeatures, 'ตั้งค่า AI');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.aiFeatures, 'ตั้งค่า AI');
     final apiKey = await getApiKey();
     if (apiKey == null) {
       throw Exception('ยังไม่ได้ตั้งค่า Gemini API Key ในหน้าตั้งค่า');
@@ -176,7 +182,8 @@ class GeminiService {
   String _errorMessage(http.Response response) {
     try {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
-      return body['error']?['message'] as String? ?? 'HTTP ${response.statusCode}';
+      return body['error']?['message'] as String? ??
+          'HTTP ${response.statusCode}';
     } catch (_) {
       return 'HTTP ${response.statusCode}';
     }
@@ -188,7 +195,8 @@ class GeminiService {
     if (candidates == null || candidates.isEmpty) {
       throw Exception('AI ไม่ตอบกลับข้อมูล');
     }
-    final parts = (candidates.first as Map<String, dynamic>)['content']?['parts'] as List?;
+    final parts = (candidates.first as Map<String, dynamic>)['content']
+        ?['parts'] as List?;
     if (parts == null || parts.isEmpty) {
       throw Exception('AI ไม่ตอบกลับข้อมูล');
     }

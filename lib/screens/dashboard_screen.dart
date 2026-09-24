@@ -29,33 +29,116 @@ class _OptionalQuickAction {
   final IconData icon;
   final String label;
   final AppMode mode;
-  const _OptionalQuickAction({required this.id, required this.icon, required this.label, required this.mode});
+  const _OptionalQuickAction(
+      {required this.id,
+      required this.icon,
+      required this.label,
+      required this.mode});
 }
 
 const _optionalQuickActionsCatalog = [
-  _OptionalQuickAction(id: 'easy_wizard', icon: Icons.auto_awesome_outlined, label: 'Easy Wizard', mode: AppMode.easyWizard),
-  _OptionalQuickAction(id: 'procurement_calendar', icon: Icons.event_note_outlined, label: 'ปฏิทินงานพัสดุ', mode: AppMode.procurementCalendar),
-  _OptionalQuickAction(id: 'tor', icon: Icons.description_outlined, label: 'TOR/คุณลักษณะ', mode: AppMode.tor),
-  _OptionalQuickAction(id: 'contracts', icon: Icons.article_outlined, label: 'บริหารสัญญา', mode: AppMode.contracts),
-  _OptionalQuickAction(id: 'guarantees', icon: Icons.shield_outlined, label: 'หลักประกัน', mode: AppMode.guarantees),
-  _OptionalQuickAction(id: 'inspections', icon: Icons.fact_check_outlined, label: 'ตรวจรับพัสดุ', mode: AppMode.inspections),
-  _OptionalQuickAction(id: 'installment_contracts', icon: Icons.event_repeat_outlined, label: 'สัญญาต่อเนื่องหลายงวด', mode: AppMode.installmentContracts),
-  _OptionalQuickAction(id: 'document_hub', icon: Icons.file_copy_outlined, label: 'สร้างเอกสารราชการ', mode: AppMode.documentHub),
-  _OptionalQuickAction(id: 'order_register', icon: Icons.numbers_outlined, label: 'ทะเบียนคุมเลขที่', mode: AppMode.orderRegister),
-  _OptionalQuickAction(id: 'control_log', icon: Icons.receipt_long_outlined, label: 'ทะเบียนคุมเลขบันทึก/TOR', mode: AppMode.controlLog),
-  _OptionalQuickAction(id: 'document_checklist', icon: Icons.fact_check_outlined, label: 'ทะเบียนตรวจสอบเอกสาร', mode: AppMode.documentChecklist),
-  _OptionalQuickAction(id: 'learning_materials', icon: Icons.menu_book_outlined, label: 'หนังสือเรียน/อุปกรณ์การเรียน', mode: AppMode.learningMaterials),
-  _OptionalQuickAction(id: 'fixed_assets', icon: Icons.inventory_2_outlined, label: 'ทะเบียนครุภัณฑ์', mode: AppMode.fixedAssets),
-  _OptionalQuickAction(id: 'repair_history', icon: Icons.build_outlined, label: 'ประวัติซ่อมครุภัณฑ์', mode: AppMode.repairHistory),
-  _OptionalQuickAction(id: 'materials', icon: Icons.inventory_outlined, label: 'วัสดุ/คลังพัสดุ', mode: AppMode.materials),
-  _OptionalQuickAction(id: 'annual_count', icon: Icons.checklist_outlined, label: 'ตรวจนับประจำปี', mode: AppMode.annualCount),
-  _OptionalQuickAction(id: 'disposals', icon: Icons.delete_sweep_outlined, label: 'จำหน่ายพัสดุ', mode: AppMode.disposals),
-  _OptionalQuickAction(id: 'reports', icon: Icons.bar_chart_outlined, label: 'รายงาน/สตง.', mode: AppMode.reports),
+  _OptionalQuickAction(
+      id: 'easy_wizard',
+      icon: Icons.auto_awesome_outlined,
+      label: 'Easy Wizard',
+      mode: AppMode.easyWizard),
+  _OptionalQuickAction(
+      id: 'procurement_calendar',
+      icon: Icons.event_note_outlined,
+      label: 'ปฏิทินงานพัสดุ',
+      mode: AppMode.procurementCalendar),
+  _OptionalQuickAction(
+      id: 'tor',
+      icon: Icons.description_outlined,
+      label: 'TOR/คุณลักษณะ',
+      mode: AppMode.tor),
+  _OptionalQuickAction(
+      id: 'contracts',
+      icon: Icons.article_outlined,
+      label: 'บริหารสัญญา',
+      mode: AppMode.contracts),
+  _OptionalQuickAction(
+      id: 'guarantees',
+      icon: Icons.shield_outlined,
+      label: 'หลักประกัน',
+      mode: AppMode.guarantees),
+  _OptionalQuickAction(
+      id: 'inspections',
+      icon: Icons.fact_check_outlined,
+      label: 'ตรวจรับพัสดุ',
+      mode: AppMode.inspections),
+  _OptionalQuickAction(
+      id: 'installment_contracts',
+      icon: Icons.event_repeat_outlined,
+      label: 'สัญญาต่อเนื่องหลายงวด',
+      mode: AppMode.installmentContracts),
+  _OptionalQuickAction(
+      id: 'document_hub',
+      icon: Icons.file_copy_outlined,
+      label: 'สร้างเอกสารราชการ',
+      mode: AppMode.documentHub),
+  _OptionalQuickAction(
+      id: 'order_register',
+      icon: Icons.numbers_outlined,
+      label: 'ทะเบียนคุมเลขที่',
+      mode: AppMode.orderRegister),
+  _OptionalQuickAction(
+      id: 'control_log',
+      icon: Icons.receipt_long_outlined,
+      label: 'ทะเบียนคุมเลขบันทึก/TOR',
+      mode: AppMode.controlLog),
+  _OptionalQuickAction(
+      id: 'document_checklist',
+      icon: Icons.fact_check_outlined,
+      label: 'ทะเบียนตรวจสอบเอกสาร',
+      mode: AppMode.documentChecklist),
+  _OptionalQuickAction(
+      id: 'learning_materials',
+      icon: Icons.menu_book_outlined,
+      label: 'หนังสือเรียน/อุปกรณ์การเรียน',
+      mode: AppMode.learningMaterials),
+  _OptionalQuickAction(
+      id: 'fixed_assets',
+      icon: Icons.inventory_2_outlined,
+      label: 'ทะเบียนครุภัณฑ์',
+      mode: AppMode.fixedAssets),
+  _OptionalQuickAction(
+      id: 'repair_history',
+      icon: Icons.build_outlined,
+      label: 'ประวัติซ่อมครุภัณฑ์',
+      mode: AppMode.repairHistory),
+  _OptionalQuickAction(
+      id: 'materials',
+      icon: Icons.inventory_outlined,
+      label: 'วัสดุ/คลังพัสดุ',
+      mode: AppMode.materials),
+  _OptionalQuickAction(
+      id: 'annual_count',
+      icon: Icons.checklist_outlined,
+      label: 'ตรวจนับประจำปี',
+      mode: AppMode.annualCount),
+  _OptionalQuickAction(
+      id: 'disposals',
+      icon: Icons.delete_sweep_outlined,
+      label: 'จำหน่ายพัสดุ',
+      mode: AppMode.disposals),
+  _OptionalQuickAction(
+      id: 'reports',
+      icon: Icons.bar_chart_outlined,
+      label: 'รายงาน/สตง.',
+      mode: AppMode.reports),
 ];
 
 const _quickActionsPrefsKey = 'dashboard_quick_actions_v1';
 
-enum _OrderFilter { all, draft, completed, underFiveK, w804UnderFiftyK, missingEgp }
+enum _OrderFilter {
+  all,
+  draft,
+  completed,
+  underFiveK,
+  w804UnderFiftyK,
+  missingEgp
+}
 
 /// แจ้งเตือนแบบคลิกนำทางได้บน Dashboard — เก็บแค่ข้อความ + ตัวกรองที่จะสลับไป
 class _DashboardAlert {
@@ -132,7 +215,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadQuickActionPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => _enabledQuickActionIds = (prefs.getStringList(_quickActionsPrefsKey) ?? []).toSet());
+    setState(() => _enabledQuickActionIds =
+        (prefs.getStringList(_quickActionsPrefsKey) ?? []).toSet());
   }
 
   Future<void> _saveQuickActionPrefs(Set<String> ids) async {
@@ -158,8 +242,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('5 ปุ่มพื้นฐาน (บังคับแสดงเสมอ)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  for (final label in const ['สร้างใหม่', 'แผนงบ', 'ตั้งค่า', 'ตั้งค่า AI', 'รีเฟรช'])
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  for (final label in const [
+                    'สร้างใหม่',
+                    'แผนงบ',
+                    'ตั้งค่า',
+                    'ตั้งค่า AI',
+                    'รีเฟรช'
+                  ])
                     CheckboxListTile(
                       value: true,
                       onChanged: null,
@@ -169,13 +260,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   const Divider(height: 20),
                   const Text('ปุ่มเสริม (เลือกเพิ่ม/ลดได้ตามต้องการ)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   for (final a in _optionalQuickActionsCatalog)
                     CheckboxListTile(
                       value: draft.contains(a.id),
                       dense: true,
                       controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(a.label, style: const TextStyle(fontSize: 13)),
+                      title:
+                          Text(a.label, style: const TextStyle(fontSize: 13)),
                       secondary: Icon(a.icon, size: 18),
                       onChanged: (v) => setDialogState(() {
                         if (v == true) {
@@ -190,8 +283,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('บันทึก')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ยกเลิก')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('บันทึก')),
           ],
         ),
       ),
@@ -226,7 +323,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           '${order.projectName ?? ''}" ใช่หรือไม่?\nรายการพัสดุทั้งหมดในเอกสารนี้จะถูกลบไปด้วย',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
@@ -253,13 +352,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (order.id == null) return;
     final school = _school;
     if (school == null) {
-      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน',
+          isError: true);
       return;
     }
     setState(() => _previewingOrderId = order.id);
     try {
       final items = await _repo.getItems(order.id!);
-      await DocumentGenerator.generateAndOpen(order: order, school: school, items: items);
+      await DocumentGenerator.generateAndOpen(
+          order: order, school: school, items: items);
       if (!mounted) return;
       showAppToast('เปิดตัวอย่างเอกสารแล้ว');
     } catch (e) {
@@ -362,7 +463,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       await _repo.saveOrderWithItems(duplicateOrder, duplicateItems);
       if (!mounted) return;
-      showAppToast('คัดลอกโครงการไปปีงบ $currentYear แล้ว — กรอกเลขที่/วันที่ใหม่ได้เลย');
+      showAppToast(
+          'คัดลอกโครงการไปปีงบ $currentYear แล้ว — กรอกเลขที่/วันที่ใหม่ได้เลย');
       FiscalYearController.instance.resetToCurrentYear();
     } catch (e) {
       if (!mounted) return;
@@ -392,7 +494,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// เลือกทั้งหมด/ยกเลิกทั้งหมดเฉพาะรายการที่กรองอยู่ตอนนี้ (สลับกันไปมา)
   void _toggleSelectAllFiltered() {
-    final ids = _filteredOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
+    final ids =
+        _filteredOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
     setState(() {
       if (_selectedOrderIds.containsAll(ids) && ids.isNotEmpty) {
         _selectedOrderIds.removeAll(ids);
@@ -408,10 +511,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _bulkGenerateSelected() async {
     final school = _school;
     if (school == null) {
-      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน',
+          isError: true);
       return;
     }
-    final selectedOrders = _orders.where((o) => _selectedOrderIds.contains(o.id)).toList();
+    final selectedOrders =
+        _orders.where((o) => _selectedOrderIds.contains(o.id)).toList();
     if (selectedOrders.isEmpty) return;
 
     setState(() => _bulkGenerating = true);
@@ -420,7 +525,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (final order in selectedOrders) {
       try {
         final items = await _repo.getItems(order.id!);
-        final file = await DocumentGenerator.generate(order: order, school: school, items: items);
+        final file = await DocumentGenerator.generate(
+            order: order, school: school, items: items);
         lastFolderPath = file.parent.path;
         successCount++;
       } catch (_) {
@@ -437,7 +543,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           : 'สร้างเอกสารสำเร็จ $successCount ฉบับ (ไม่สำเร็จ $failCount รายการ)',
       isError: failCount > 0 && successCount == 0,
     );
-    if (lastFolderPath != null) await DocumentGenerator.openFolder(lastFolderPath);
+    if (lastFolderPath != null)
+      await DocumentGenerator.openFolder(lastFolderPath);
     setState(() {
       _selectionMode = false;
       _selectedOrderIds.clear();
@@ -448,9 +555,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // KPI คำนวณจาก _orders + _budgets ที่โหลดไว้แล้ว (ไม่ query ใหม่)
   // ─────────────────────────────────────────
 
-  int get _draftCount => _orders.where((o) => o.currentStatus != 'COMPLETED').length;
+  int get _draftCount =>
+      _orders.where((o) => o.currentStatus != 'COMPLETED').length;
 
-  int get _completedCount => _orders.where((o) => o.currentStatus == 'COMPLETED').length;
+  int get _completedCount =>
+      _orders.where((o) => o.currentStatus == 'COMPLETED').length;
 
   double get _totalSpent => _orders
       .where((o) => o.currentStatus == 'COMPLETED')
@@ -468,13 +577,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<MapEntry<String, double>> get _budgetByDepartment {
     final totals = <String, double>{};
     for (final b in _budgets) {
-      final dept = (b.groupName?.trim().isNotEmpty ?? false) ? b.groupName! : 'ไม่ระบุฝ่าย/แผนงาน';
+      final dept = (b.groupName?.trim().isNotEmpty ?? false)
+          ? b.groupName!
+          : 'ไม่ระบุฝ่าย/แผนงาน';
       totals[dept] = (totals[dept] ?? 0) + (b.allocatedAmount ?? 0);
     }
     int sortRank(String name) {
       final idx = budgetDepartmentGroups.indexOf(name);
       return idx == -1 ? budgetDepartmentGroups.length + 1 : idx;
     }
+
     final entries = totals.entries.toList()
       ..sort((a, b) {
         final rankCompare = sortRank(a.key).compareTo(sortRank(b.key));
@@ -488,12 +600,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// ออร์เดอร์กับฝ่ายผ่าน budgetId ของออร์เดอร์ที่ผูกกับแผนงบ ใช้วาดซ้อนบนแท่ง
   /// "วงเงินทั้งหมด" ในกราฟ Dashboard เพื่อเทียบใช้ไปเท่าไหร่จากที่ได้รับจัดสรร
   Map<String, double> get _spentByDepartment {
-    final budgetsById = {for (final b in _budgets) if (b.id != null) b.id!: b};
+    final budgetsById = {
+      for (final b in _budgets)
+        if (b.id != null) b.id!: b
+    };
     final spent = <String, double>{};
     for (final o in _orders) {
       if (o.currentStatus != 'COMPLETED') continue;
       final budget = o.budgetId != null ? budgetsById[o.budgetId] : null;
-      final dept = (budget?.groupName?.trim().isNotEmpty ?? false) ? budget!.groupName! : 'ไม่ระบุฝ่าย/แผนงาน';
+      final dept = (budget?.groupName?.trim().isNotEmpty ?? false)
+          ? budget!.groupName!
+          : 'ไม่ระบุฝ่าย/แผนงาน';
       spent[dept] = (spent[dept] ?? 0) + (o.currentOrderPrice ?? 0);
     }
     return spent;
@@ -510,7 +627,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     if (counts.isEmpty) return null;
     final maxCount = counts.values.reduce((a, b) => a > b ? a : b);
-    final topYears = counts.entries.where((e) => e.value == maxCount).map((e) => e.key).toList()
+    final topYears = counts.entries
+        .where((e) => e.value == maxCount)
+        .map((e) => e.key)
+        .toList()
       ..sort();
     return topYears.last;
   }
@@ -529,21 +649,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return _orders.where((o) => o.currentStatus == 'COMPLETED').toList();
       // วิธีเฉพาะเจาะจง วงเงินไม่เกิน 5,000 บาท — ขั้นตอนแบบย่อที่สุดตามระเบียบ
       case _OrderFilter.underFiveK:
-        return _orders.where((o) => (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000).toList();
+        return _orders
+            .where((o) =>
+                (o.currentOrderPrice ?? 0) > 0 && o.currentOrderPrice! <= 5000)
+            .toList();
       // หนังสือเวียน ว.804 — วงเงินเกิน 5,000 แต่ไม่เกิน 50,000 บาท
       case _OrderFilter.w804UnderFiftyK:
         return _orders
-            .where((o) => (o.currentOrderPrice ?? 0) > 5000 && o.currentOrderPrice! <= 50000)
+            .where((o) =>
+                (o.currentOrderPrice ?? 0) > 5000 &&
+                o.currentOrderPrice! <= 50000)
             .toList();
       case _OrderFilter.missingEgp:
-        return _orders.where((o) => o.egpProjectId == null || o.egpProjectId!.trim().isEmpty).toList();
+        return _orders
+            .where(
+                (o) => o.egpProjectId == null || o.egpProjectId!.trim().isEmpty)
+            .toList();
       case _OrderFilter.all:
         return _orders;
     }
   }
 
-  int get _missingEgpCount =>
-      _orders.where((o) => o.egpProjectId == null || o.egpProjectId!.trim().isEmpty).length;
+  int get _missingEgpCount => _orders
+      .where((o) => o.egpProjectId == null || o.egpProjectId!.trim().isEmpty)
+      .length;
 
   /// รายการแจ้งเตือนแบบคลิกนำทางได้ทั้งหมด — แยกออกมาเป็นลิสต์เพื่อจัดวางเป็น
   /// กริด 3 คอลัมน์ต่อแถวได้ (ถ้ามีมากกว่า 3 รายการจะขึ้นแถวใหม่ต่อด้านล่าง)
@@ -551,7 +680,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final list = <_DashboardAlert>[];
     if (_missingEgpCount > 0) {
       list.add(_DashboardAlert(
-        message: 'พบรายการไม่มีเลขที่ e-GP $_missingEgpCount รายการ — ต้องกรอกตาม ม.23 พ.ร.บ.จัดซื้อจัดจ้างฯ 2560',
+        message:
+            'พบรายการไม่มีเลขที่ e-GP $_missingEgpCount รายการ — ต้องกรอกตาม ม.23 พ.ร.บ.จัดซื้อจัดจ้างฯ 2560',
         filter: _OrderFilter.missingEgp,
       ));
     }
@@ -581,7 +711,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (!FiscalYearController.instance.isViewingCurrentYear) ...[
+                      if (!FiscalYearController
+                          .instance.isViewingCurrentYear) ...[
                         _buildOldYearBanner(colors),
                         const SizedBox(height: 14),
                       ],
@@ -616,7 +747,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                           const SizedBox(width: 20),
-                          SizedBox(width: 190, child: _buildQuickActionsPanel(colors)),
+                          SizedBox(
+                              width: 190,
+                              child: _buildQuickActionsPanel(colors)),
                         ],
                       ),
                       // เผื่อพื้นที่ด้านล่างไม่ให้ FAB ลอยทับรายการสุดท้าย
@@ -636,7 +769,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             backgroundColor: colors.tertiary,
             foregroundColor: colors.onTertiary,
             icon: const Icon(Icons.add),
-            label: const Text('สร้างใหม่', style: TextStyle(fontWeight: FontWeight.w600)),
+            label: const Text('สร้างใหม่',
+                style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ),
       ],
@@ -666,7 +800,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Row(
         children: [
-          Icon(fy.isViewingFutureYear ? Icons.event_note_outlined : Icons.history_outlined, color: Colors.amber.shade800),
+          Icon(
+              fy.isViewingFutureYear
+                  ? Icons.event_note_outlined
+                  : Icons.history_outlined,
+              color: Colors.amber.shade800),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -702,7 +840,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color.lerp(colors.primary, Colors.black, 0.35)!, colors.primary],
+          colors: [
+            Color.lerp(colors.primary, Colors.black, 0.35)!,
+            colors.primary
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -740,8 +881,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                fiscalYear == null ? 'ยังไม่มีข้อมูลปีงบประมาณ' : 'ปีงบประมาณ $fiscalYear',
-                style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 12.5),
+                fiscalYear == null
+                    ? 'ยังไม่มีข้อมูลปีงบประมาณ'
+                    : 'ปีงบประมาณ $fiscalYear',
+                style: TextStyle(
+                    color: colors.onPrimary.withValues(alpha: 0.6),
+                    fontSize: 12.5),
               ),
               if (_totalAllocatedBudget > 0) ...[
                 const SizedBox(height: 16),
@@ -763,7 +908,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onPressed: () => widget.onNavigate(AppMode.settings),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colors.onPrimary,
-                      side: BorderSide(color: colors.onPrimary.withValues(alpha: 0.5)),
+                      side: BorderSide(
+                          color: colors.onPrimary.withValues(alpha: 0.5)),
                     ),
                     icon: const Icon(Icons.arrow_forward, size: 16),
                     label: const Text('ไปกรอกข้อมูลโรงเรียน'),
@@ -822,9 +968,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('ใช้จ่ายจากงบประมาณ', style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.75), fontSize: 11.5)),
+              Text('ใช้จ่ายจากงบประมาณ',
+                  style: TextStyle(
+                      color: colors.onPrimary.withValues(alpha: 0.75),
+                      fontSize: 11.5)),
               Text('${(ratio * 100).toStringAsFixed(0)}%',
-                style: TextStyle(color: colors.onPrimary, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                  style: TextStyle(
+                      color: colors.onPrimary,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 4),
@@ -840,7 +992,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 4),
           Text(
             '${_formatBaht(spent)}  จาก  ${_formatBaht(allocated)}',
-            style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 11),
+            style: TextStyle(
+                color: colors.onPrimary.withValues(alpha: 0.6), fontSize: 11),
           ),
         ],
       ),
@@ -856,7 +1009,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: 84,
       height: 84,
       child: CustomPaint(
-        painter: _ProgressRingPainter(ratio: ratio, trackColor: colors.onPrimary, progressColor: Colors.amber.shade300),
+        painter: _ProgressRingPainter(
+            ratio: ratio,
+            trackColor: colors.onPrimary,
+            progressColor: Colors.amber.shade300),
         child: Center(
           child: Text(
             '$pct%',
@@ -898,7 +1054,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: Text(
                   'เมนูด่วน',
-                  style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      color: colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600),
                 ),
               ),
               InkWell(
@@ -906,7 +1065,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onTap: _openQuickActionsEditor,
                 child: Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.tune, size: 16, color: colors.onSurfaceVariant),
+                  child: Icon(Icons.tune,
+                      size: 16, color: colors.onSurfaceVariant),
                 ),
               ),
             ],
@@ -987,7 +1147,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 6),
               Text(
                 label,
-                style: TextStyle(fontSize: 11, color: colors.primary, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: colors.primary,
+                    fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1007,7 +1170,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _legendSwatch(Color color) => Container(
         width: 12,
         height: 12,
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        decoration:
+            BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
       );
 
   /// สีประจำแต่ละฝ่าย — เลือกให้ต่างกันชัดเจนแยกแท่งออกจากกันง่าย (ไม่ยึดโทนเขียว
@@ -1059,20 +1223,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('งบประมาณตามฝ่าย/กลุ่มงาน',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.primary)),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: colors.primary)),
           const SizedBox(height: 4),
-          Text('สีอ่อน = วงเงินที่ได้รับจัดสรรทั้งหมด · สีเข้ม = ยอดที่ใช้ไปแล้ว (เอกสารที่เสร็จสมบูรณ์)',
-            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12)),
+          Text(
+              'สีอ่อน = วงเงินที่ได้รับจัดสรรทั้งหมด · สีเข้ม = ยอดที่ใช้ไปแล้ว (เอกสารที่เสร็จสมบูรณ์)',
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12)),
           const SizedBox(height: 10),
           Row(
             children: [
               _legendSwatch(colors.primary.withValues(alpha: 0.28)),
               const SizedBox(width: 6),
-              Text('วงเงินทั้งหมด', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+              Text('วงเงินทั้งหมด',
+                  style: TextStyle(
+                      fontSize: 11.5, color: colors.onSurfaceVariant)),
               const SizedBox(width: 16),
               _legendSwatch(colors.primary),
               const SizedBox(width: 6),
-              Text('ใช้ไปแล้ว (แต่ละฝ่ายมีสีเฉพาะของตัวเอง)', style: TextStyle(fontSize: 11.5, color: colors.onSurfaceVariant)),
+              Text('ใช้ไปแล้ว (แต่ละฝ่ายมีสีเฉพาะของตัวเอง)',
+                  style: TextStyle(
+                      fontSize: 11.5, color: colors.onSurfaceVariant)),
             ],
           ),
           const SizedBox(height: 16),
@@ -1083,7 +1255,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   SizedBox(
                     width: labelColW,
-                    child: Text(entries[i].key, style: labelStyle, softWrap: false, maxLines: 1),
+                    child: Text(entries[i].key,
+                        style: labelStyle, softWrap: false, maxLines: 1),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -1103,7 +1276,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                             Container(
-                              width: constraints.maxWidth * totalRatio.clamp(0.02, 1.0),
+                              width: constraints.maxWidth *
+                                  totalRatio.clamp(0.02, 1.0),
                               height: 15,
                               decoration: BoxDecoration(
                                 color: deptColor.withValues(alpha: 0.32),
@@ -1112,7 +1286,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             if (spent > 0)
                               Container(
-                                width: constraints.maxWidth * spentRatio.clamp(0.02, 1.0),
+                                width: constraints.maxWidth *
+                                    spentRatio.clamp(0.02, 1.0),
                                 height: 15,
                                 decoration: BoxDecoration(
                                   color: deptColor,
@@ -1128,8 +1303,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   SizedBox(
                     width: 130,
                     child: Text('${formatBaht(entries[i].value)} บาท',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                            fontSize: 12.5, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
@@ -1195,12 +1371,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               for (int i = 0; i < cards.length; i += 2)
                 Padding(
-                  padding: EdgeInsets.only(bottom: i + 2 < cards.length ? 12 : 0),
+                  padding:
+                      EdgeInsets.only(bottom: i + 2 < cards.length ? 12 : 0),
                   child: Row(
                     children: [
                       Expanded(child: cards[i]),
                       const SizedBox(width: 12),
-                      if (i + 1 < cards.length) Expanded(child: cards[i + 1]) else const Spacer(),
+                      if (i + 1 < cards.length)
+                        Expanded(child: cards[i + 1])
+                      else
+                        const Spacer(),
                     ],
                   ),
                 ),
@@ -1230,7 +1410,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, constraints) {
         const spacing = 12.0;
         const columns = 3;
-        final tileWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        final tileWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
@@ -1259,18 +1440,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.warning_amber_outlined, color: Colors.redAccent, size: 20),
+              const Icon(Icons.warning_amber_outlined,
+                  color: Colors.redAccent, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   alert.message,
-                  style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600, fontSize: 12.5),
+                  style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.arrow_forward, color: Colors.redAccent, size: 18),
+              const Icon(Icons.arrow_forward,
+                  color: Colors.redAccent, size: 18),
             ],
           ),
         ),
@@ -1295,7 +1481,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: selected ? colors.onPrimary : colors.onSurfaceVariant,
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
         ),
-        side: BorderSide(color: selected ? colors.primary : colors.outlineVariant),
+        side: BorderSide(
+            color: selected ? colors.primary : colors.outlineVariant),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: selected ? 2 : 0,
         shadowColor: colors.primary.withValues(alpha: 0.3),
@@ -1370,8 +1557,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
-    final filteredIds = _filteredOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
-    final allSelected = filteredIds.isNotEmpty && _selectedOrderIds.containsAll(filteredIds);
+    final filteredIds =
+        _filteredOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
+    final allSelected =
+        filteredIds.isNotEmpty && _selectedOrderIds.containsAll(filteredIds);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -1383,18 +1572,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Text(
               'เลือกแล้ว ${_selectedOrderIds.length} รายการ',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurfaceVariant),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurfaceVariant),
             ),
           ),
           TextButton(
             onPressed: _bulkGenerating ? null : _toggleSelectAllFiltered,
-            child: Text(allSelected ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด (${filteredIds.length})'),
+            child: Text(allSelected
+                ? 'ยกเลิกทั้งหมด'
+                : 'เลือกทั้งหมด (${filteredIds.length})'),
           ),
           const SizedBox(width: 4),
           FilledButton.icon(
-            onPressed: (_selectedOrderIds.isEmpty || _bulkGenerating) ? null : _bulkGenerateSelected,
+            onPressed: (_selectedOrderIds.isEmpty || _bulkGenerating)
+                ? null
+                : _bulkGenerateSelected,
             icon: _bulkGenerating
-                ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                ? SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: colors.onPrimary))
                 : const Icon(Icons.description_outlined, size: 18),
             label: Text(_bulkGenerating ? 'กำลังสร้าง...' : 'สร้างเอกสาร'),
           ),
@@ -1425,7 +1625,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inbox_outlined, size: 64, color: colors.onSurfaceVariant),
+              Icon(Icons.inbox_outlined,
+                  size: 64, color: colors.onSurfaceVariant),
               const SizedBox(height: 12),
               Text(
                 _query.isNotEmpty
@@ -1482,7 +1683,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: _selectionMode ? () => _toggleOrderSelected(order) : () => widget.onEditOrder(order),
+          onTap: _selectionMode
+              ? () => _toggleOrderSelected(order)
+              : () => widget.onEditOrder(order),
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -1492,8 +1695,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     if (_selectionMode) ...[
                       Checkbox(
-                        value: order.id != null && _selectedOrderIds.contains(order.id),
-                        onChanged: order.id == null ? null : (_) => _toggleOrderSelected(order),
+                        value: order.id != null &&
+                            _selectedOrderIds.contains(order.id),
+                        onChanged: order.id == null
+                            ? null
+                            : (_) => _toggleOrderSelected(order),
                       ),
                       const SizedBox(width: 4),
                     ],
@@ -1505,21 +1711,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Text(
                             [
-                              order.projectName?.isNotEmpty == true ? order.projectName! : '(ไม่มีชื่อโครงการ)',
-                              if (order.activityName?.trim().isNotEmpty ?? false) order.activityName!.trim(),
+                              order.projectName?.isNotEmpty == true
+                                  ? order.projectName!
+                                  : '(ไม่มีชื่อโครงการ)',
+                              if (order.activityName?.trim().isNotEmpty ??
+                                  false)
+                                order.activityName!.trim(),
                             ].join(' › '),
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 5),
                           Text(
                             [
-                              if (order.procurementNumber?.isNotEmpty == true) order.procurementNumber,
-                              if (order.vendorName?.isNotEmpty == true) order.vendorName,
-                              if (order.procurementMethod?.isNotEmpty == true) order.procurementMethod,
+                              if (order.procurementNumber?.isNotEmpty == true)
+                                order.procurementNumber,
+                              if (order.vendorName?.isNotEmpty == true)
+                                order.vendorName,
+                              if (order.procurementMethod?.isNotEmpty == true)
+                                order.procurementMethod,
                             ].join('  •  '),
-                            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+                            style: TextStyle(
+                                color: colors.onSurfaceVariant, fontSize: 13),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1531,7 +1746,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         padding: const EdgeInsets.only(right: 10),
                         child: Text(
                           '${formatBaht(order.currentOrderPrice)} บาท',
-                          style: TextStyle(fontWeight: FontWeight.w600, color: colors.primary),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: colors.primary),
                         ),
                       ),
                     // ปุ่มลัดใช้งานนอกระบบ 3 ปุ่ม: ดูตัวอย่างเอกสาร / สร้างเอกสาร / ลบ
@@ -1543,15 +1760,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ? const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8),
                               child: SizedBox(
-                                width: 16, height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               ),
                             )
                           : IconButton(
                               icon: const Icon(Icons.visibility_outlined),
                               iconSize: 18,
                               padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                              constraints: const BoxConstraints(
+                                  minWidth: 30, minHeight: 30),
                               visualDensity: VisualDensity.compact,
                               color: colors.onSurfaceVariant,
                               tooltip: 'ดูตัวอย่างเอกสาร',
@@ -1561,7 +1781,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: const Icon(Icons.description_outlined),
                         iconSize: 18,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        constraints:
+                            const BoxConstraints(minWidth: 30, minHeight: 30),
                         visualDensity: VisualDensity.compact,
                         color: colors.onSurfaceVariant,
                         tooltip: 'สร้างเอกสาร',
@@ -1571,15 +1792,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ? const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8),
                               child: SizedBox(
-                                width: 16, height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               ),
                             )
                           : IconButton(
                               icon: const Icon(Icons.copy_all_outlined),
                               iconSize: 18,
                               padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                              constraints: const BoxConstraints(
+                                  minWidth: 30, minHeight: 30),
                               visualDensity: VisualDensity.compact,
                               color: colors.onSurfaceVariant,
                               tooltip: 'คัดลอกโครงการ',
@@ -1592,17 +1816,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           icon: const Icon(Icons.move_up_outlined),
                           iconSize: 18,
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          constraints:
+                              const BoxConstraints(minWidth: 30, minHeight: 30),
                           visualDensity: VisualDensity.compact,
                           color: colors.primary,
-                          tooltip: 'คัดลอกไปปีงบปัจจุบัน (${FiscalYearController.instance.currentRealYear})',
+                          tooltip:
+                              'คัดลอกไปปีงบปัจจุบัน (${FiscalYearController.instance.currentRealYear})',
                           onPressed: () => _copyOrderToCurrentYear(order),
                         ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.redAccent),
                         iconSize: 18,
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        constraints:
+                            const BoxConstraints(minWidth: 30, minHeight: 30),
                         visualDensity: VisualDensity.compact,
                         tooltip: 'ลบ',
                         onPressed: () => _confirmDelete(order),
@@ -1639,7 +1867,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     if (isCompleted) ...[
                       const SizedBox(width: 4),
-                      Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
+                      Icon(Icons.check_circle,
+                          size: 16, color: Colors.green.shade600),
                     ],
                   ],
                 ),
@@ -1665,13 +1894,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 7, height: 7,
+            width: 7,
+            height: 7,
             decoration: BoxDecoration(shape: BoxShape.circle, color: color),
           ),
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w600, color: color),
           ),
         ],
       ),
@@ -1708,7 +1939,10 @@ class _KpiCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: highlight ? Border.all(color: colors.tertiary.withValues(alpha: 0.4), width: 1.2) : null,
+        border: highlight
+            ? Border.all(
+                color: colors.tertiary.withValues(alpha: 0.4), width: 1.2)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1734,7 +1968,8 @@ class _KpiCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
+                  style:
+                      TextStyle(fontSize: 12.5, color: colors.onSurfaceVariant),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1744,7 +1979,10 @@ class _KpiCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: colors.onSurface),
+            style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: colors.onSurface),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1771,7 +2009,10 @@ class _ProgressRingPainter extends CustomPainter {
   final Color trackColor;
   final Color progressColor;
 
-  _ProgressRingPainter({required this.ratio, required this.trackColor, required this.progressColor});
+  _ProgressRingPainter(
+      {required this.ratio,
+      required this.trackColor,
+      required this.progressColor});
 
   @override
   void paint(Canvas canvas, Size size) {

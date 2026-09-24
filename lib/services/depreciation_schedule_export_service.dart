@@ -77,7 +77,8 @@ class DepreciationScheduleExportService {
   }
 
   static Future<void> exportAndOpen(List<FixedAsset> assets) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
     final file = await export(assets);
     await _openFile(file.path);
   }

@@ -8,6 +8,7 @@ import '../data/procurement_repository.dart';
 import '../models/budget_spending.dart';
 import '../services/expenditure_register_export_service.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/money_format.dart';
 import '../utils/thai_date.dart';
 import '../widgets/guide_panel.dart';
@@ -25,7 +26,8 @@ class _ExpenditureRegisterScreenState extends State<ExpenditureRegisterScreen> {
   List<BudgetSpending> _rows = [];
   bool _loading = true;
   bool _exporting = false;
-  String? _fiscalYearFilter;
+  String? _fiscalYearFilter = UiSessionState.instance
+      .read<String?>('expenditure_register_fiscal_year', null);
   final _scrollCtrl = ScrollController();
   final _vScrollCtrl = ScrollController();
 
@@ -172,7 +174,11 @@ class _ExpenditureRegisterScreenState extends State<ExpenditureRegisterScreen> {
                               child: Text('ปี $y',
                                   overflow: TextOverflow.ellipsis))),
                         ],
-                        onChanged: (v) => setState(() => _fiscalYearFilter = v),
+                        onChanged: (v) {
+                          setState(() => _fiscalYearFilter = v);
+                          UiSessionState.instance
+                              .write('expenditure_register_fiscal_year', v);
+                        },
                       ),
                     ),
                     OutlinedButton.icon(

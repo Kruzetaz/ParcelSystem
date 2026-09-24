@@ -8,12 +8,32 @@ import 'package:flutter/material.dart';
 import 'design_system/clearable_text_field.dart';
 
 const _thaiMonthsFull = [
-  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ];
 const _thaiMonthsShort = [
-  'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
+  'ม.ค.',
+  'ก.พ.',
+  'มี.ค.',
+  'เม.ย.',
+  'พ.ค.',
+  'มิ.ย.',
+  'ก.ค.',
+  'ส.ค.',
+  'ก.ย.',
+  'ต.ค.',
+  'พ.ย.',
+  'ธ.ค.',
 ];
 const _thaiWeekdaysShort = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
@@ -198,8 +218,10 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
 
   void _shiftMonth(int delta) {
     final next = DateTime(_viewMonth.year, _viewMonth.month + delta);
-    if (next.isBefore(DateTime(widget.firstDate.year, widget.firstDate.month))) return;
-    if (next.isAfter(DateTime(widget.lastDate.year, widget.lastDate.month))) return;
+    if (next.isBefore(DateTime(widget.firstDate.year, widget.firstDate.month)))
+      return;
+    if (next.isAfter(DateTime(widget.lastDate.year, widget.lastDate.month)))
+      return;
     setState(() => _viewMonth = next);
   }
 
@@ -232,10 +254,13 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                   hintText: 'เช่น 24/01/2569 หรือ 24 มี.ค. 2569',
                   errorText: _manualError,
                   floatingLabelBehavior: FloatingLabelBehavior.always,
-                  labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  labelStyle: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700),
                   isDense: true,
-                  prefixIcon: const Icon(Icons.edit_calendar_outlined, size: 20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon:
+                      const Icon(Icons.edit_calendar_outlined, size: 20),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
               const SizedBox(height: 10),
@@ -250,7 +275,8 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                   ),
                   const SizedBox(width: 4),
                   FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: widget.primaryColor),
+                    style: FilledButton.styleFrom(
+                        backgroundColor: widget.primaryColor),
                     onPressed: () => Navigator.pop(context, _selected),
                     child: const Text('เลือกวันนี้'),
                   ),
@@ -288,7 +314,8 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
                   isExpanded: true,
                   items: [
                     for (final m in _availableMonthsForViewYear)
-                      DropdownMenuItem(value: m, child: Text(_thaiMonthsFull[m - 1])),
+                      DropdownMenuItem(
+                          value: m, child: Text(_thaiMonthsFull[m - 1])),
                   ],
                   onChanged: (m) {
                     if (m != null) _changeViewMonth(year, m);
@@ -338,20 +365,24 @@ class _ThaiDatePickerDialogState extends State<_ThaiDatePickerDialog> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7),
           itemCount: firstWeekday + daysInMonth,
           itemBuilder: (context, index) {
             if (index < firstWeekday) return const SizedBox.shrink();
             final day = index - firstWeekday + 1;
             final date = DateTime(year, month, day);
-            final inRange = !date.isBefore(widget.firstDate) && !date.isAfter(widget.lastDate);
+            final inRange = !date.isBefore(widget.firstDate) &&
+                !date.isAfter(widget.lastDate);
             final isSelected = date.year == _selected.year &&
                 date.month == _selected.month &&
                 date.day == _selected.day;
-            final isToday =
-                date.year == today.year && date.month == today.month && date.day == today.day;
+            final isToday = date.year == today.year &&
+                date.month == today.month &&
+                date.day == today.day;
             // เสาร์ (6) / อาทิตย์ (7) ตาม DateTime.weekday
-            final isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+            final isWeekend = date.weekday == DateTime.saturday ||
+                date.weekday == DateTime.sunday;
             return Padding(
               padding: const EdgeInsets.all(2),
               child: Material(

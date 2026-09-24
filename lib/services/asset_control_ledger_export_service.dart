@@ -12,7 +12,8 @@ import '../utils/app_folder_name.dart';
 import 'feature_access_service.dart';
 
 class AssetControlLedgerExportService {
-  static Future<File> export(List<FixedAsset> assets, {required DateTime? Function(String?) parseDate}) async {
+  static Future<File> export(List<FixedAsset> assets,
+      {required DateTime? Function(String?) parseDate}) async {
     final excel = xls.Excel.createExcel();
     final sheet = excel[excel.getDefaultSheet() ?? 'Sheet1'];
 
@@ -52,9 +53,13 @@ class AssetControlLedgerExportService {
         xls.DoubleCellValue(a.unitPrice ?? 0),
         xls.DoubleCellValue(a.totalValue),
         xls.TextCellValue(a.usefulLifeYears?.toString() ?? '-'),
-        xls.TextCellValue(dep != null ? dep.ratePercentPerYear.toStringAsFixed(2) : '-'),
-        xls.TextCellValue(dep != null ? dep.accumulatedDepreciation.toStringAsFixed(2) : '-'),
-        xls.TextCellValue(dep != null ? dep.netBookValue.toStringAsFixed(2) : a.totalValue.toStringAsFixed(2)),
+        xls.TextCellValue(
+            dep != null ? dep.ratePercentPerYear.toStringAsFixed(2) : '-'),
+        xls.TextCellValue(
+            dep != null ? dep.accumulatedDepreciation.toStringAsFixed(2) : '-'),
+        xls.TextCellValue(dep != null
+            ? dep.netBookValue.toStringAsFixed(2)
+            : a.totalValue.toStringAsFixed(2)),
         xls.TextCellValue(a.status),
       ]);
     }
@@ -75,8 +80,10 @@ class AssetControlLedgerExportService {
     return file;
   }
 
-  static Future<void> exportAndOpen(List<FixedAsset> assets, {required DateTime? Function(String?) parseDate}) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
+  static Future<void> exportAndOpen(List<FixedAsset> assets,
+      {required DateTime? Function(String?) parseDate}) async {
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.assetManagement, 'ทะเบียนครุภัณฑ์');
     final file = await export(assets, parseDate: parseDate);
     await _openFile(file.path);
   }

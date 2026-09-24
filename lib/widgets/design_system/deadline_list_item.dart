@@ -24,7 +24,8 @@ class DeadlineListItem extends StatelessWidget {
   final String month; // "ส.ค."
   final String title; // เช่น "ส่งมอบงาน · จ้างปรับปรุงห้องสมุด"
   final String subtitle; // เช่น "w.007/2569 · เกินกำหนด 6 วัน"
-  final bool isUrgent; // true = เกินกำหนด/ครบกำหนดวันนี้ (แต้มสีแดงที่กล่องวันที่)
+  final bool
+      isUrgent; // true = เกินกำหนด/ครบกำหนดวันนี้ (แต้มสีแดงที่กล่องวันที่)
   final VoidCallback? onTap;
 
   @override
@@ -44,10 +45,14 @@ class DeadlineListItem extends StatelessWidget {
               width: 34,
               padding: const EdgeInsets.symmetric(vertical: 4),
               decoration: BoxDecoration(
-                color: isUrgent ? BrandAccent.red(context).withValues(alpha: 0.1) : BrandAccent.surface2(context),
+                color: isUrgent
+                    ? BrandAccent.red(context).withValues(alpha: 0.1)
+                    : BrandAccent.surface2(context),
                 borderRadius: BorderRadius.circular(RadiusSize.md),
                 border: Border.all(
-                  color: isUrgent ? BrandAccent.red(context).withValues(alpha: 0.2) : colorScheme.outline,
+                  color: isUrgent
+                      ? BrandAccent.red(context).withValues(alpha: 0.2)
+                      : colorScheme.outline,
                 ),
               ),
               child: Column(
@@ -58,7 +63,9 @@ class DeadlineListItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: AppTypography.weightExtraBold,
-                      color: isUrgent ? BrandAccent.red(context) : colorScheme.onSurface,
+                      color: isUrgent
+                          ? BrandAccent.red(context)
+                          : colorScheme.onSurface,
                       height: 1.1,
                     ),
                   ),

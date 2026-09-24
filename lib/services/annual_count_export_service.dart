@@ -32,8 +32,12 @@ class AnnualCountExportService {
         xls.TextCellValue(a.fiscalYear),
         xls.TextCellValue(a.startDate ?? '-'),
         xls.TextCellValue(a.responsiblePersons ?? '-'),
-        a.totalItems != null ? xls.IntCellValue(a.totalItems!) : xls.TextCellValue('-'),
-        a.foundItems != null ? xls.IntCellValue(a.foundItems!) : xls.TextCellValue('-'),
+        a.totalItems != null
+            ? xls.IntCellValue(a.totalItems!)
+            : xls.TextCellValue('-'),
+        a.foundItems != null
+            ? xls.IntCellValue(a.foundItems!)
+            : xls.TextCellValue('-'),
         xls.IntCellValue(a.damagedLostItems ?? 0),
         xls.TextCellValue(a.status),
         xls.TextCellValue(a.summaryNotes ?? '-'),
@@ -57,7 +61,8 @@ class AnnualCountExportService {
   }
 
   static Future<void> exportAndOpen(List<AnnualCount> counts) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'ตรวจนับพัสดุประจำปี');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.assetManagement, 'ตรวจนับพัสดุประจำปี');
     final file = await export(counts);
     await _openFile(file.path);
   }

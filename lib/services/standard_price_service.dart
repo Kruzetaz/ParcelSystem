@@ -13,9 +13,11 @@ class StandardPriceItem {
   final String name;
   final int price;
 
-  const StandardPriceItem({required this.category, required this.name, required this.price});
+  const StandardPriceItem(
+      {required this.category, required this.name, required this.price});
 
-  factory StandardPriceItem.fromJson(Map<String, dynamic> json) => StandardPriceItem(
+  factory StandardPriceItem.fromJson(Map<String, dynamic> json) =>
+      StandardPriceItem(
         category: json['category'] as String,
         name: json['name'] as String,
         price: json['price'] as int,
@@ -30,9 +32,12 @@ class StandardPriceService {
 
   Future<List<StandardPriceItem>> _load() async {
     if (_items != null) return _items!;
-    final raw = await rootBundle.loadString('assets/data/standard_asset_prices_2568.json');
+    final raw = await rootBundle
+        .loadString('assets/data/standard_asset_prices_2568.json');
     final decoded = jsonDecode(raw) as List;
-    _items = decoded.map((e) => StandardPriceItem.fromJson(e as Map<String, dynamic>)).toList();
+    _items = decoded
+        .map((e) => StandardPriceItem.fromJson(e as Map<String, dynamic>))
+        .toList();
     return _items!;
   }
 

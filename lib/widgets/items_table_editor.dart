@@ -15,7 +15,8 @@ import 'design_system/clearable_text_field.dart';
 /// แถวหนึ่งในตาราง — ผูก TextEditingController ของแต่ละ field ไว้ในตัวเดียว
 /// เพื่อไม่ให้ cursor กระโดดตอนพิมพ์ (ปัญหาคลาสสิกของ dynamic form ใน Flutter)
 class _ItemRowControllers {
-  final int? existingId; // id เดิมใน DB ถ้าเป็นแถวที่โหลดมาแก้ไข (null = แถวใหม่)
+  final int?
+      existingId; // id เดิมใน DB ถ้าเป็นแถวที่โหลดมาแก้ไข (null = แถวใหม่)
   final TextEditingController itemName;
   final TextEditingController quantity;
   final TextEditingController unit;
@@ -37,9 +38,11 @@ class _ItemRowControllers {
   double get total => parsedQuantity * parsedUnitPrice;
 
   bool get quantityInvalid =>
-      quantity.text.trim().isNotEmpty && double.tryParse(quantity.text.trim()) == null;
+      quantity.text.trim().isNotEmpty &&
+      double.tryParse(quantity.text.trim()) == null;
   bool get unitPriceInvalid =>
-      unitPrice.text.trim().isNotEmpty && double.tryParse(unitPrice.text.trim()) == null;
+      unitPrice.text.trim().isNotEmpty &&
+      double.tryParse(unitPrice.text.trim()) == null;
 
   ProcurementItem toItem({int? orderId}) => ProcurementItem(
         id: existingId,
@@ -220,9 +223,12 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
             title: const Text('ยืนยันการลบ'),
             content: Text(message),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('ยกเลิก')),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                style:
+                    FilledButton.styleFrom(backgroundColor: Colors.redAccent),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('ลบ'),
               ),
@@ -235,7 +241,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
   /// ลบเฉพาะแถวที่ติ๊กเลือกไว้ — เหลืออย่างน้อย 1 แถวว่างเสมอถ้าลบจนหมด
   Future<void> _deleteSelected() async {
     if (_selectedIndices.isEmpty) return;
-    final confirmed = await _confirmBulkDelete('ต้องการลบ ${_selectedIndices.length} รายการที่เลือกไว้ใช่หรือไม่?');
+    final confirmed = await _confirmBulkDelete(
+        'ต้องการลบ ${_selectedIndices.length} รายการที่เลือกไว้ใช่หรือไม่?');
     if (!confirmed) return;
     setState(() {
       final sorted = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
@@ -254,7 +261,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
   Future<void> _deleteAllRows() async {
     final hasContent = _rows.any((r) => r.itemName.text.trim().isNotEmpty);
     if (!hasContent) return;
-    final confirmed = await _confirmBulkDelete('ต้องการลบรายการพัสดุทั้งหมด ${_rows.length} รายการใช่หรือไม่?');
+    final confirmed = await _confirmBulkDelete(
+        'ต้องการลบรายการพัสดุทั้งหมด ${_rows.length} รายการใช่หรือไม่?');
     if (!confirmed) return;
     setState(() {
       for (final r in _rows) {
@@ -268,8 +276,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
     _notifyChanged();
   }
 
-  double get _grandTotal =>
-      _rows.fold<double>(0, (sum, r) => sum + (r.itemName.text.trim().isEmpty ? 0 : r.total));
+  double get _grandTotal => _rows.fold<double>(
+      0, (sum, r) => sum + (r.itemName.text.trim().isEmpty ? 0 : r.total));
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +311,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Text('รวมทั้งสิ้น: ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('รวมทั้งสิ้น: ',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               Text(
                 '${formatBaht(_grandTotal)} บาท',
                 style: TextStyle(
@@ -321,7 +330,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
 
   /// แถบเครื่องมือเหนือตาราง — สลับโหมดเลือกหลายรายการ + ปุ่มลบที่เลือก/ลบทั้งหมด
   Widget _buildToolbarRow(ColorScheme colors) {
-    final hasContent = _rows.any((r) => r.itemName.text.trim().isNotEmpty) || _rows.length > 1;
+    final hasContent =
+        _rows.any((r) => r.itemName.text.trim().isNotEmpty) || _rows.length > 1;
     if (!_selectionMode) {
       return Row(
         children: [
@@ -333,13 +343,16 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
           const Spacer(),
           TextButton.icon(
             onPressed: hasContent ? _deleteAllRows : null,
-            icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.redAccent),
-            label: const Text('ลบทั้งหมด', style: TextStyle(color: Colors.redAccent)),
+            icon: const Icon(Icons.delete_sweep_outlined,
+                size: 18, color: Colors.redAccent),
+            label: const Text('ลบทั้งหมด',
+                style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       );
     }
-    final allSelected = _rows.isNotEmpty && _selectedIndices.length == _rows.length;
+    final allSelected =
+        _rows.isNotEmpty && _selectedIndices.length == _rows.length;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -350,20 +363,28 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
         children: [
           Checkbox(value: allSelected, onChanged: (_) => _toggleSelectAll()),
           Text('เลือกแล้ว ${_selectedIndices.length} รายการ',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurfaceVariant)),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurfaceVariant)),
           const Spacer(),
           TextButton(
             onPressed: _selectedIndices.isEmpty ? null : _deleteSelected,
-            child: const Text('ลบที่เลือก', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('ลบที่เลือก',
+                style: TextStyle(color: Colors.redAccent)),
           ),
-          TextButton(onPressed: _toggleSelectionMode, child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: _toggleSelectionMode, child: const Text('ยกเลิก')),
         ],
       ),
     );
   }
 
   Widget _buildHeaderRow(ColorScheme colors) {
-    final style = TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: colors.onSurfaceVariant);
+    final style = TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 13,
+        color: colors.onSurfaceVariant);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -371,14 +392,22 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
           SizedBox(
             width: 46,
             child: _selectionMode
-                ? Text('เลือก', style: style, softWrap: false, overflow: TextOverflow.visible)
-                : Text('ลำดับ', style: style, softWrap: false, overflow: TextOverflow.visible),
+                ? Text('เลือก',
+                    style: style,
+                    softWrap: false,
+                    overflow: TextOverflow.visible)
+                : Text('ลำดับ',
+                    style: style,
+                    softWrap: false,
+                    overflow: TextOverflow.visible),
           ),
           Expanded(flex: 4, child: Text('ชื่อรายการ', style: style)),
           SizedBox(width: 90, child: Text('จำนวน', style: style)),
           SizedBox(width: 80, child: Text('หน่วย', style: style)),
           SizedBox(width: 110, child: Text('ราคา/หน่วย', style: style)),
-          SizedBox(width: 120, child: Text('รวม', style: style, textAlign: TextAlign.right)),
+          SizedBox(
+              width: 120,
+              child: Text('รวม', style: style, textAlign: TextAlign.right)),
           const SizedBox(width: 40),
         ],
       ),
@@ -399,7 +428,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
                     value: _selectedIndices.contains(index),
                     onChanged: (_) => _toggleRowSelected(index),
                   )
-                : Text('${index + 1}', style: TextStyle(color: colors.onSurfaceVariant)),
+                : Text('${index + 1}',
+                    style: TextStyle(color: colors.onSurfaceVariant)),
           ),
           Expanded(
             flex: 4,
@@ -423,7 +453,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ClearableTextField(
                 controller: row.quantity,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.right,
                 decoration: InputDecoration(
                   isDense: true,
@@ -456,7 +487,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ClearableTextField(
                 controller: row.unitPrice,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.right,
                 decoration: InputDecoration(
                   isDense: true,
@@ -480,7 +512,8 @@ class _ItemsTableEditorState extends State<ItemsTableEditor> {
             child: _selectionMode
                 ? null
                 : IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.redAccent),
                     tooltip: 'ลบรายการ',
                     onPressed: () => _removeRow(index),
                   ),

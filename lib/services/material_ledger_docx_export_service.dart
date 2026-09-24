@@ -19,7 +19,8 @@ import 'docx_template_service.dart';
 import 'feature_access_service.dart';
 
 class MaterialLedgerDocxExportService {
-  static const String _templateAssetPath = 'assets/templates/material_ledger_template.docx';
+  static const String _templateAssetPath =
+      'assets/templates/material_ledger_template.docx';
 
   static Future<File> export({
     required List<MaterialItem> materials,
@@ -28,7 +29,8 @@ class MaterialLedgerDocxExportService {
     String? educationServiceArea,
   }) async {
     final templateData = await rootBundle.load(_templateAssetPath);
-    final templateBytes = templateData.buffer.asUint8List(templateData.offsetInBytes, templateData.lengthInBytes);
+    final templateBytes = templateData.buffer
+        .asUint8List(templateData.offsetInBytes, templateData.lengthInBytes);
 
     final parts = <Uint8List>[];
     for (var i = 0; i < materials.length; i++) {
@@ -48,7 +50,8 @@ class MaterialLedgerDocxExportService {
         } else {
           qtyOutTotal += t.quantity;
         }
-        final counterpartyLabel = '${isIn ? "รับจาก" : "จ่ายให้"} ${t.counterparty ?? "-"}';
+        final counterpartyLabel =
+            '${isIn ? "รับจาก" : "จ่ายให้"} ${t.counterparty ?? "-"}';
         rows.add({
           'tx_date': t.transactionDate ?? '-',
           'tx_counterparty': counterpartyLabel,
@@ -63,7 +66,9 @@ class MaterialLedgerDocxExportService {
 
       final fieldValues = {
         'school_name': schoolName ?? '',
-        'department_name': (educationServiceArea?.trim().isNotEmpty ?? false) ? educationServiceArea! : (schoolName ?? ''),
+        'department_name': (educationServiceArea?.trim().isNotEmpty ?? false)
+            ? educationServiceArea!
+            : (schoolName ?? ''),
         'sheet_no': '${i + 1}',
         'category': m.category ?? '-',
         'material_name': m.name,
@@ -100,7 +105,8 @@ class MaterialLedgerDocxExportService {
     if (!outputDir.existsSync()) outputDir.createSync(recursive: true);
 
     final stamp = DateTime.now();
-    final fileName = 'บัญชีวัสดุ_${stamp.year}${_pad(stamp.month)}${_pad(stamp.day)}${_pad(stamp.hour)}${_pad(stamp.minute)}.docx';
+    final fileName =
+        'บัญชีวัสดุ_${stamp.year}${_pad(stamp.month)}${_pad(stamp.day)}${_pad(stamp.hour)}${_pad(stamp.minute)}.docx';
     final file = File('${outputDir.path}/$fileName');
     await file.writeAsBytes(mergedBytes);
     return file;
@@ -112,7 +118,8 @@ class MaterialLedgerDocxExportService {
     String? schoolName,
     String? educationServiceArea,
   }) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
     final file = await export(
       materials: materials,
       transactionsByMaterialId: transactionsByMaterialId,

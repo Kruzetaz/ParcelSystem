@@ -26,7 +26,10 @@ class LicenseGraceBanner extends StatelessWidget {
             child: Text(
               'ไม่ได้เชื่อมต่ออินเทอร์เน็ตเพื่ออัปเดตสิทธิ์ลิขสิทธิ์เกิน 90 วันแล้ว '
               'กรุณาเชื่อมต่ออินเทอร์เน็ตภายใน $daysLeft วัน ไม่งั้นแอปจะถูกล็อกจนกว่าจะอัปเดตสิทธิ์',
-              style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w600, color: colors.onSurface),
+              style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface),
             ),
           ),
         ],

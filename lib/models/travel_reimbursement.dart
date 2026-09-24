@@ -81,7 +81,8 @@ class TravelReimbursement {
         'departs_from_home': departsFromHome ? 1 : 0,
       };
 
-  factory TravelReimbursement.fromMap(Map<String, dynamic> m) => TravelReimbursement(
+  factory TravelReimbursement.fromMap(Map<String, dynamic> m) =>
+      TravelReimbursement(
         id: m['id'] as int?,
         budgetId: m['budget_id'] as int?,
         documentNumber: m['document_number'] as String?,
@@ -126,17 +127,23 @@ class TravelReimbursement {
   }) =>
       TravelReimbursement(
         id: id ?? this.id,
-        budgetId: identical(budgetId, _unset) ? this.budgetId : budgetId as int?,
+        budgetId:
+            identical(budgetId, _unset) ? this.budgetId : budgetId as int?,
         documentNumber: documentNumber ?? this.documentNumber,
         subject: subject ?? this.subject,
         destination: destination ?? this.destination,
         startDate: startDate ?? this.startDate,
         endDate: endDate ?? this.endDate,
         isAdvancePayer: isAdvancePayer ?? this.isAdvancePayer,
-        advancePayerPersonnelId:
-            identical(advancePayerPersonnelId, _unset) ? this.advancePayerPersonnelId : advancePayerPersonnelId as int?,
-        requesterPersonnelId: identical(requesterPersonnelId, _unset) ? this.requesterPersonnelId : requesterPersonnelId as int?,
-        checkerPersonnelId: identical(checkerPersonnelId, _unset) ? this.checkerPersonnelId : checkerPersonnelId as int?,
+        advancePayerPersonnelId: identical(advancePayerPersonnelId, _unset)
+            ? this.advancePayerPersonnelId
+            : advancePayerPersonnelId as int?,
+        requesterPersonnelId: identical(requesterPersonnelId, _unset)
+            ? this.requesterPersonnelId
+            : requesterPersonnelId as int?,
+        checkerPersonnelId: identical(checkerPersonnelId, _unset)
+            ? this.checkerPersonnelId
+            : checkerPersonnelId as int?,
         totalAmount: totalAmount ?? this.totalAmount,
         totalAmountTh: totalAmountTh ?? this.totalAmountTh,
         createdAt: createdAt ?? this.createdAt,

@@ -16,7 +16,8 @@ import '../widgets/design_system/progress_indicators.dart' show ProgressBar;
 class ProcurementCalendarScreen extends StatefulWidget {
   const ProcurementCalendarScreen({super.key});
   @override
-  State<ProcurementCalendarScreen> createState() => _ProcurementCalendarScreenState();
+  State<ProcurementCalendarScreen> createState() =>
+      _ProcurementCalendarScreenState();
 }
 
 class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
@@ -95,12 +96,15 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
                       ? const Center(child: CircularProgressIndicator())
                       : ListView.separated(
                           itemCount: months.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (_, i) {
                             final month = months[i];
                             final isCurrentMonth =
-                                month.calendarMonth == now.month && month.buddhistYear == now.year + 543;
-                            return _buildMonthCard(context, colors, month, isCurrentMonth);
+                                month.calendarMonth == now.month &&
+                                    month.buddhistYear == now.year + 543;
+                            return _buildMonthCard(
+                                context, colors, month, isCurrentMonth);
                           },
                         ),
                 ),
@@ -116,24 +120,35 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
     final isCurrentYear = _fiscalYear == _currentFiscalYear;
     return Row(
       children: [
-        Icon(Icons.event_note_outlined, color: BrandAccent.tealOn(context), size: 22),
+        Icon(Icons.event_note_outlined,
+            color: BrandAccent.tealOn(context), size: 22),
         const SizedBox(width: 10),
         Expanded(
           child: Text('ปฏิทินงานพัสดุประจำปี',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+              style: TextStyle(
+                  fontSize: AppTypography.heading2,
+                  fontWeight: AppTypography.weightExtraBold,
+                  color: colors.onSurface)),
         ),
-        _navIconButton(context, icon: Icons.chevron_left, tooltip: 'ปีงบก่อนหน้า', onTap: () => _changeFiscalYear(-1)),
+        _navIconButton(context,
+            icon: Icons.chevron_left,
+            tooltip: 'ปีงบก่อนหน้า',
+            onTap: () => _changeFiscalYear(-1)),
         const SizedBox(width: 8),
         Container(
           height: 34,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isCurrentYear ? BrandAccent.teal(context) : BrandAccent.surface2(context),
+            color: isCurrentYear
+                ? BrandAccent.teal(context)
+                : BrandAccent.surface2(context),
             borderRadius: BorderRadius.circular(RadiusSize.md),
-            border: Border.all(color: isCurrentYear ? BrandAccent.teal(context) : colors.outline),
+            border: Border.all(
+                color:
+                    isCurrentYear ? BrandAccent.teal(context) : colors.outline),
           ),
           child: Text('ปีงบประมาณ $_fiscalYear',
               style: TextStyle(
@@ -143,12 +158,18 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
               )),
         ),
         const SizedBox(width: 8),
-        _navIconButton(context, icon: Icons.chevron_right, tooltip: 'ปีงบถัดไป', onTap: () => _changeFiscalYear(1)),
+        _navIconButton(context,
+            icon: Icons.chevron_right,
+            tooltip: 'ปีงบถัดไป',
+            onTap: () => _changeFiscalYear(1)),
       ],
     );
   }
 
-  Widget _navIconButton(BuildContext context, {required IconData icon, required String tooltip, required VoidCallback onTap}) {
+  Widget _navIconButton(BuildContext context,
+      {required IconData icon,
+      required String tooltip,
+      required VoidCallback onTap}) {
     final colors = Theme.of(context).colorScheme;
     return Tooltip(
       message: tooltip,
@@ -172,9 +193,11 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
     );
   }
 
-  Widget _buildMonthCard(BuildContext context, ColorScheme colors, ProcurementCalendarMonth month, bool isCurrentMonth) {
+  Widget _buildMonthCard(BuildContext context, ColorScheme colors,
+      ProcurementCalendarMonth month, bool isCurrentMonth) {
     final doneCount = month.tasks
-        .where((t) => _checkedIds.contains('${month.calendarMonth}_${month.buddhistYear}_${t.slug}'))
+        .where((t) => _checkedIds
+            .contains('${month.calendarMonth}_${month.buddhistYear}_${t.slug}'))
         .length;
     final total = month.tasks.length;
     return Container(
@@ -187,19 +210,31 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
       padding: isCurrentMonth ? const EdgeInsets.all(3) : EdgeInsets.zero,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(RadiusSize.card),
-        border: isCurrentMonth ? Border.all(color: BrandAccent.teal(context), width: 1.6) : null,
+        border: isCurrentMonth
+            ? Border.all(color: BrandAccent.teal(context), width: 1.6)
+            : null,
       ),
       child: AppCard(
         titleWidget: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(month.label, style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading4, color: colors.onSurface)),
+            Text(month.label,
+                style: TextStyle(
+                    fontWeight: AppTypography.weightExtraBold,
+                    fontSize: AppTypography.heading4,
+                    color: colors.onSurface)),
             if (isCurrentMonth) ...[
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: BrandAccent.teal(context), borderRadius: BorderRadius.circular(RadiusSize.full)),
-                child: const Text('เดือนนี้', style: TextStyle(fontSize: AppTypography.caption, color: Colors.white, fontWeight: AppTypography.weightBold)),
+                decoration: BoxDecoration(
+                    color: BrandAccent.teal(context),
+                    borderRadius: BorderRadius.circular(RadiusSize.full)),
+                child: const Text('เดือนนี้',
+                    style: TextStyle(
+                        fontSize: AppTypography.caption,
+                        color: Colors.white,
+                        fontWeight: AppTypography.weightBold)),
               ),
             ],
           ],
@@ -209,24 +244,32 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(width: 90, child: ProgressBar(progress: total == 0 ? 0 : doneCount / total, height: 6)),
+              SizedBox(
+                  width: 90,
+                  child: ProgressBar(
+                      progress: total == 0 ? 0 : doneCount / total, height: 6)),
               const SizedBox(width: 8),
               Text('$doneCount/$total',
-                  style: TextStyle(fontSize: AppTypography.caption, fontWeight: AppTypography.weightBold, color: colors.onSurfaceVariant)),
+                  style: TextStyle(
+                      fontSize: AppTypography.caption,
+                      fontWeight: AppTypography.weightBold,
+                      color: colors.onSurfaceVariant)),
             ],
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final task in month.tasks) _buildTaskRow(context, colors, month, task),
+            for (final task in month.tasks)
+              _buildTaskRow(context, colors, month, task),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTaskRow(BuildContext context, ColorScheme colors, ProcurementCalendarMonth month, ProcurementCalendarTaskDef task) {
+  Widget _buildTaskRow(BuildContext context, ColorScheme colors,
+      ProcurementCalendarMonth month, ProcurementCalendarTaskDef task) {
     final taskId = '${month.calendarMonth}_${month.buddhistYear}_${task.slug}';
     final done = _checkedIds.contains(taskId);
     return InkWell(
@@ -239,7 +282,8 @@ class _ProcurementCalendarScreenState extends State<ProcurementCalendarScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: DsCheckbox(value: done, onChanged: (_) => _toggleTask(taskId)),
+              child: DsCheckbox(
+                  value: done, onChanged: (_) => _toggleTask(taskId)),
             ),
             const SizedBox(width: 10),
             Expanded(

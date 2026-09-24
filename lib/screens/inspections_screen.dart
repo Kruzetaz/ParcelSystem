@@ -558,7 +558,7 @@ class _InspectionsScreenState extends State<InspectionsScreen> {
                 actions: [
                   if (order != null && !isExportingThis)
                     DsRowAction(
-                      icon: Icons.description_outlined,
+                      icon: Icons.print_outlined,
                       tooltip: 'สร้าง/ดูเอกสารบันทึกขออนุมัติเบิกจ่าย',
                       onTap: () => _exportDisbursementMemo(i),
                     ),

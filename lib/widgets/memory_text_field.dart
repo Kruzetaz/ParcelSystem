@@ -51,7 +51,8 @@ class _MemoryTextFieldState extends State<MemoryTextField> {
   }
 
   Future<void> _loadSuggestions() async {
-    final history = await FieldMemoryService.instance.getSuggestions(widget.fieldKey);
+    final history =
+        await FieldMemoryService.instance.getSuggestions(widget.fieldKey);
     if (!mounted) return;
     setState(() {
       _suggestions = [
@@ -63,7 +64,8 @@ class _MemoryTextFieldState extends State<MemoryTextField> {
 
   void _onFocusChange() {
     if (!_focusNode.hasFocus) {
-      FieldMemoryService.instance.remember(widget.fieldKey, widget.controller.text);
+      FieldMemoryService.instance
+          .remember(widget.fieldKey, widget.controller.text);
     }
   }
 
@@ -119,7 +121,8 @@ class _MemoryTextFieldState extends State<MemoryTextField> {
             borderRadius: BorderRadius.circular(8),
             color: colors.surfaceContainerHigh,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 220, minWidth: 240, maxWidth: 500),
+              constraints: const BoxConstraints(
+                  maxHeight: 220, minWidth: 240, maxWidth: 500),
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 shrinkWrap: true,
@@ -129,8 +132,10 @@ class _MemoryTextFieldState extends State<MemoryTextField> {
                   return InkWell(
                     onTap: () => onSelected(option),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      child: Text(option, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      child: Text(option,
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
                   );
                 },

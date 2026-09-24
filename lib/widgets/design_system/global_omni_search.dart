@@ -17,7 +17,8 @@ class GlobalOmniSearch extends StatefulWidget {
     required this.focusNode,
     required this.onSearch,
     required this.onSelect,
-    this.hintText = 'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อกิจกรรม / ชื่อร้านค้า / เมนู',
+    this.hintText =
+        'ค้นหาเลขที่ / ชื่อโครงการ / ชื่อกิจกรรม / ชื่อร้านค้า / เมนู',
     this.shortcutLabel = 'Ctrl K',
   });
 
@@ -148,85 +149,116 @@ class _GlobalOmniSearchState extends State<GlobalOmniSearch> {
               child: _loading
                   ? const Padding(
                       padding: EdgeInsets.all(20),
-                      child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                      child: Center(
+                          child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2))),
                     )
                   : _error != null
                       ? Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
                             'ค้นหาไม่สำเร็จ: $_error',
-                            style: TextStyle(fontSize: AppTypography.bodySmall, color: BrandAccent.red(context)),
+                            style: TextStyle(
+                                fontSize: AppTypography.bodySmall,
+                                color: BrandAccent.red(context)),
                           ),
                         )
                       : _groups.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                            'ไม่พบผลลัพธ์',
-                            style: TextStyle(fontSize: AppTypography.bodySmall, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                          ),
-                        )
-                      : ListView(
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          children: [
-                            for (final group in _groups) ...[
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-                                child: Text(
-                                  group.label,
-                                  style: TextStyle(
-                                    fontSize: AppTypography.mini,
-                                    fontWeight: AppTypography.weightBold,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    letterSpacing: 0.4,
-                                  ),
-                                ),
+                          ? Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                'ไม่พบผลลัพธ์',
+                                style: TextStyle(
+                                    fontSize: AppTypography.bodySmall,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                               ),
-                              for (final item in group.items)
-                                InkWell(
-                                  onTap: () => _selectItem(item),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                    child: Row(
-                                      children: [
-                                        Icon(item.icon, size: 16, color: BrandAccent.teal(context)),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                item.title,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: AppTypography.bodySmall,
-                                                  fontWeight: AppTypography.weightSemiBold,
-                                                  color: Theme.of(context).colorScheme.onSurface,
-                                                ),
-                                              ),
-                                              if (item.subtitle != null && item.subtitle!.trim().isNotEmpty)
-                                                Text(
-                                                  item.subtitle!,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontSize: AppTypography.tiny,
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                            )
+                          : ListView(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              children: [
+                                for (final group in _groups) ...[
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                                    child: Text(
+                                      group.label,
+                                      style: TextStyle(
+                                        fontSize: AppTypography.mini,
+                                        fontWeight: AppTypography.weightBold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                        letterSpacing: 0.4,
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
-                          ],
-                        ),
+                                  for (final item in group.items)
+                                    InkWell(
+                                      onTap: () => _selectItem(item),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 8),
+                                        child: Row(
+                                          children: [
+                                            Icon(item.icon,
+                                                size: 16,
+                                                color:
+                                                    BrandAccent.teal(context)),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    item.title,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: AppTypography
+                                                          .bodySmall,
+                                                      fontWeight: AppTypography
+                                                          .weightSemiBold,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                    ),
+                                                  ),
+                                                  if (item.subtitle != null &&
+                                                      item.subtitle!
+                                                          .trim()
+                                                          .isNotEmpty)
+                                                    Text(
+                                                      item.subtitle!,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize:
+                                                            AppTypography.tiny,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ],
+                            ),
             ),
           ),
         ),
@@ -260,7 +292,8 @@ class _GlobalOmniSearchState extends State<GlobalOmniSearch> {
     return Row(
       children: [
         const SizedBox(width: 12),
-        Icon(Icons.search, size: IconSizes.md, color: Colors.white.withValues(alpha: 0.75)),
+        Icon(Icons.search,
+            size: IconSizes.md, color: Colors.white.withValues(alpha: 0.75)),
         const SizedBox(width: 8),
         Expanded(
           child: TextField(
@@ -269,7 +302,8 @@ class _GlobalOmniSearchState extends State<GlobalOmniSearch> {
             style: const TextStyle(fontSize: 13, color: Colors.white),
             decoration: InputDecoration(
               hintText: widget.hintText,
-              hintStyle: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)),
+              hintStyle: TextStyle(
+                  fontSize: 13, color: Colors.white.withValues(alpha: 0.5)),
               filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -303,7 +337,8 @@ class _GlobalOmniSearchState extends State<GlobalOmniSearch> {
               setState(() => _groups = []);
               _updateOverlay();
             },
-            child: Icon(Icons.close, size: 16, color: Colors.white.withValues(alpha: 0.7)),
+            child: Icon(Icons.close,
+                size: 16, color: Colors.white.withValues(alpha: 0.7)),
           ),
         const SizedBox(width: 12),
       ],

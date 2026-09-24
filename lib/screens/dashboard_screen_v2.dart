@@ -13,12 +13,16 @@ import '../models/inspection.dart';
 import '../models/school_settings.dart';
 import '../services/document_generator.dart';
 import '../services/fiscal_year_controller.dart';
+import '../services/import_notification_helper.dart';
+import '../services/navigation_request_controller.dart';
 import '../services/pending_import_controller.dart';
 import '../services/procurement_import_service.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/money_format.dart';
 import '../utils/thai_date.dart';
 import '../widgets/design_system/design_system.dart';
+import '../widgets/order_quick_edit_dialog.dart';
 import '../widgets/procurement_import_dialog.dart';
 import '../theme/design_tokens.dart';
 
@@ -163,7 +167,9 @@ const _orderColumns = [
   // ไม่ได้ต้องการพื้นที่มากขนาดนั้น เหลือช่องว่างตรงกลางระหว่างสองคอลัมน์นี้
   // เยอะเกินไปเมื่อก่อน
   DsColumn('ความคืบหน้า', width: 116),
-  DsColumn('ดำเนินการ', width: 130, align: TextAlign.right),
+  // 130 เดิมพอดีสำหรับ 4 ไอคอน (28px + padding 3px ต่ออัน) — เพิ่มปุ่ม "แก้ไขด่วน"
+  // เป็นไอคอนที่ 5 แล้ว ต้องขยายตามเพื่อไม่ให้ overflow (28+3)*5 = 155 บวกเผื่อ
+  DsColumn('ดำเนินการ', width: 165, align: TextAlign.right),
 ];
 
 class DashboardScreenV2 extends StatefulWidget {
@@ -199,8 +205,13 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
   SchoolSettings? _school;
   bool _loading = true;
   String _query = '';
-  late String _filter = widget.initialFilter ?? 'all';
-  String _sortMode = 'latest';
+  // widget.initialFilter (มาจากกดกระดิ่งแจ้งเตือน) ชนะเสมอถ้ามี ไม่งั้นใช้ตัวกรอง
+  // ที่เลือกไว้ล่าสุดในเซสชันนี้ (จำไว้ผ่าน UiSessionState กันรีเซ็ตกลับ "ทั้งหมด"
+  // ทุกครั้งที่สลับหน้าออกแล้วกลับมา)
+  late String _filter = widget.initialFilter ??
+      UiSessionState.instance.read('dashboard_filter', 'all');
+  late String _sortMode =
+      UiSessionState.instance.read('dashboard_sort_mode', 'latest');
   static const _sortOptions = {
     'latest': 'แก้ไข/สร้างล่าสุดก่อน',
     'oldest': 'เก่าสุดก่อน',
@@ -255,7 +266,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
 
     final files = result.files.where((f) => f.path != null).toList();
     final toastId = showAppLoadingToast('กำลังนำเข้าโครงการเก่า',
-        message: 'ให้ AI อ่านไฟล์ 0/${files.length} ไฟล์...');
+        message: 'ให้ AI อ่านไฟล์ 0/${files.length} ไฟล์...',
+        onTap: () =>
+            NavigationRequestController.instance.requestMode('order_register'));
     final attempts = <ImportAttempt>[];
     try {
       const concurrency = 4;
@@ -266,10 +279,16 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
           try {
             final parsed =
                 await ProcurementImportService.instance.importFromFile(f.path!);
-            return (name: f.name, parsed: parsed, error: null as Object?);
+            return (
+              name: f.name,
+              path: f.path!,
+              parsed: parsed,
+              error: null as Object?
+            );
           } catch (e) {
             return (
               name: f.name,
+              path: f.path!,
               parsed: const <ImportedProject>[],
               error: e as Object?
             );
@@ -278,10 +297,11 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         for (final r in results) {
           done++;
           if (r.error != null) {
-            attempts.add(ImportAttempt.failure(r.name, '${r.error}'));
+            attempts.add(ImportAttempt.failure(r.name, '${r.error}', r.path));
           } else {
             for (final p in r.parsed) {
-              attempts.add(ImportAttempt.success(r.name, p.order, p.items));
+              attempts
+                  .add(ImportAttempt.success(r.name, p.order, p.items, r.path));
             }
           }
         }
@@ -291,9 +311,19 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
 
       if (attempts.isEmpty) {
         completeAppToast(toastId,
-            success: false, message: 'ไม่พบข้อมูลที่นำเข้าได้');
+            success: false,
+            message: 'ไม่พบข้อมูลที่นำเข้าได้',
+            navigateMode: 'order_register');
         return;
       }
+
+      // ถ้ามีไฟล์อ่านไม่สำเร็จปนอยู่ — บอกจำนวนสำเร็จ/ไม่สำเร็จในข้อความสรุป
+      // แล้วแยกแจ้งเตือนไฟล์ที่พังออกมาเป็นอีกรายการต่างหากในกระดิ่ง กันตกหล่น
+      notifyImportFailuresIfAny(attempts, navigateMode: 'order_register');
+      final failedCount = attempts.where((a) => !a.ok).length;
+      final summarySuffix = failedCount == 0
+          ? ''
+          : ' (สำเร็จ ${attempts.length - failedCount} ไฟล์ · ไม่สำเร็จ $failedCount ไฟล์)';
 
       if (!mounted) {
         // สลับออกจากหน้าหลักไปแล้วระหว่างรอ AI อ่านไฟล์ — เก็บผลไว้ ให้หน้า
@@ -303,13 +333,16 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         completeAppToast(toastId,
             title: 'อ่านไฟล์เสร็จแล้ว',
             success: true,
-            message: 'ไปที่หน้าทะเบียนคุมเพื่อตรวจสอบและบันทึกได้เลย');
+            message:
+                'ไปที่หน้าทะเบียนคุมเพื่อตรวจสอบและบันทึกได้เลย$summarySuffix',
+            navigateMode: 'order_register');
         return;
       }
       completeAppToast(toastId,
           success: true,
           title: 'อ่านไฟล์เสร็จแล้ว',
-          message: 'กรุณาตรวจสอบข้อมูลก่อนบันทึก');
+          message: 'กรุณาตรวจสอบข้อมูลก่อนบันทึก$summarySuffix',
+          navigateMode: 'order_register');
 
       final existingOrderNumbers = _orders
           .map((o) => o.orderNumber?.trim())
@@ -329,7 +362,9 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
       _load();
     } catch (e) {
       completeAppToast(toastId,
-          success: false, message: 'นำเข้าไฟล์ไม่สำเร็จ: $e');
+          success: false,
+          message: 'นำเข้าไฟล์ไม่สำเร็จ: $e',
+          navigateMode: 'order_register');
     } finally {
       if (mounted) setState(() => _importingFullMode = false);
     }
@@ -636,6 +671,21 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
       _filter = filter;
       _currentPage = 1;
     });
+    UiSessionState.instance.write('dashboard_filter', filter);
+  }
+
+  /// แก้ไขด่วน — ป๊อปอัพเดียวหน้าตาเหมือนหน้าตรวจสอบโครงการที่นำเข้า แทนที่จะ
+  /// ต้องเปิด wizard 5 แท็บเต็มรูปแบบแค่เพื่อแก้ฟิลด์เล็กๆ น้อยๆ
+  Future<void> _openQuickEdit(ProcurementOrder order) async {
+    if (order.id == null) return;
+    final items = await _repo.getItems(order.id!);
+    if (!mounted) return;
+    final saved =
+        await showOrderQuickEditDialog(context, order: order, items: items);
+    if (saved == true) {
+      showAppToast('บันทึกการแก้ไขแล้ว');
+      _load();
+    }
   }
 
   /// คัดลอกโครงการ — ใช้ toMap()/fromMap() round-trip แทนการไล่ก็อปทีละฟิลด์
@@ -1246,14 +1296,17 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
                   }),
                 ),
                 _headerActionButton(
-                  icon: Icons.description_outlined,
+                  icon: Icons.print_outlined,
                   label: 'สร้างเอกสาร',
                   active: true,
                   onTap: () => widget.onNavigate('document_hub'),
                 ),
                 PopupMenuButton<String>(
                   tooltip: 'เรียงลำดับ',
-                  onSelected: (v) => setState(() => _sortMode = v),
+                  onSelected: (v) {
+                    setState(() => _sortMode = v);
+                    UiSessionState.instance.write('dashboard_sort_mode', v);
+                  },
                   offset: const Offset(0, 30),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(RadiusSize.card),
@@ -1381,6 +1434,7 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
         // Sidebar
         CollapsibleSidebar(
           width: 190,
+          sessionKey: 'dashboard_sidebar_expanded',
           children: [
             SidebarSection(
               title: 'เมนูด่วน',
@@ -1720,7 +1774,12 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
               onTap: () => widget.onEditOrder(order),
             ),
             DsRowAction(
-              icon: Icons.description_outlined,
+              icon: Icons.bolt_outlined,
+              tooltip: 'แก้ไขด่วน',
+              onTap: () => _openQuickEdit(order),
+            ),
+            DsRowAction(
+              icon: Icons.print_outlined,
               tooltip: 'สร้างเอกสาร',
               onTap: () => widget.onGenerateDocument(order),
             ),
@@ -1804,6 +1863,7 @@ class _DashboardScreenV2State extends State<DashboardScreenV2> {
     return AppCard(
       title: 'งบประมาณตามฝ่าย/กลุ่มงาน',
       collapsible: true,
+      sessionKey: 'dashboard_budget_chart_expanded',
       titleAction: InkWell(
         onTap: () => widget.onNavigate('budgets'),
         child: Row(

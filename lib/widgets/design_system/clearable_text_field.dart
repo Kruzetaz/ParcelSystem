@@ -63,7 +63,8 @@ class _ClearableTextFieldState extends State<ClearableTextField> {
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
+    _controller =
+        widget.controller ?? TextEditingController(text: widget.initialValue);
     _controller.addListener(_onTextChanged);
   }
 
@@ -121,7 +122,9 @@ class _ClearableTextFieldState extends State<ClearableTextField> {
       builder: (context, hovering) => TextFormField(
         controller: ctrl,
         decoration: (widget.decoration ?? const InputDecoration()).copyWith(
-          suffixIcon: hovering && ctrl.text.isNotEmpty ? clearIconButton(context, _clear) : (widget.decoration?.suffixIcon),
+          suffixIcon: hovering && ctrl.text.isNotEmpty
+              ? clearIconButton(context, _clear)
+              : (widget.decoration?.suffixIcon),
         ),
         onChanged: widget.onChanged,
         onFieldSubmitted: widget.onSubmitted,

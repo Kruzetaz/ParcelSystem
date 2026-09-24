@@ -5,8 +5,8 @@
 
 class CalcEngine {
   // อัตราภาษีมาตรฐาน (แก้ได้ตามต้องการ)
-  static const double vatRate = 0.07;          // VAT 7%
-  static const double withholdingRate = 0.03;  // หัก ณ ที่จ่าย 3%
+  static const double vatRate = 0.07; // VAT 7%
+  static const double withholdingRate = 0.03; // หัก ณ ที่จ่าย 3%
 
   // ─────────────────────────────────────────
   // คำนวณราคารวมจาก items
@@ -33,12 +33,14 @@ class CalcEngine {
       totalInclVat - calcPreVat(totalInclVat, rate: rate);
 
   /// หัก ณ ที่จ่าย คำนวณจากยอดก่อน VAT เสมอ (ตามระเบียบจริง)
-  static double calcWithholding(double preVatAmount, {double rate = withholdingRate}) =>
+  static double calcWithholding(double preVatAmount,
+          {double rate = withholdingRate}) =>
       preVatAmount * rate;
 
   /// คืน map ครบทุก field ที่ต้องบันทึกลง DB
   static Map<String, double> calcAll(double totalInclVat) {
-    return calcAllWithRates(totalInclVat, vatRate: vatRate, withholdingRate: withholdingRate);
+    return calcAllWithRates(totalInclVat,
+        vatRate: vatRate, withholdingRate: withholdingRate);
   }
 
   /// คำนวณด้วย rate ที่กรอกเองต่อบิล — [totalInclVat] คือยอดรวมจากตารางรายการ
@@ -68,12 +70,26 @@ class CalcEngine {
   // ─────────────────────────────────────────
 
   static const _ones = [
-    '', 'หนึ่ง', 'สอง', 'สาม', 'สี่',
-    'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า',
+    '',
+    'หนึ่ง',
+    'สอง',
+    'สาม',
+    'สี่',
+    'ห้า',
+    'หก',
+    'เจ็ด',
+    'แปด',
+    'เก้า',
   ];
 
   static const _places = [
-    '', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน',
+    '',
+    'สิบ',
+    'ร้อย',
+    'พัน',
+    'หมื่น',
+    'แสน',
+    'ล้าน',
   ];
 
   static String bahtText(double amount) {

@@ -26,7 +26,8 @@ class MaterialLedgerExportService {
 
     for (var i = 0; i < materials.length; i++) {
       final m = materials[i];
-      final sheetName = i == 0 ? defaultSheetName : _sheetNameFor(m, i, usedSheetNames);
+      final sheetName =
+          i == 0 ? defaultSheetName : _sheetNameFor(m, i, usedSheetNames);
       usedSheetNames.add(sheetName);
       if (i == 0) excel.rename(defaultSheetName, sheetName);
       final sheet = excel[sheetName];
@@ -47,8 +48,10 @@ class MaterialLedgerExportService {
         xls.TextCellValue('ที่เก็บ: ${m.storageLocation ?? "-"}'),
       ]);
       sheet.appendRow([
-        xls.TextCellValue('จำนวนอย่างสูง: ${m.maxStock?.toStringAsFixed(0) ?? "-"}'),
-        xls.TextCellValue('จำนวนอย่างต่ำ: ${m.minStock?.toStringAsFixed(0) ?? "-"}'),
+        xls.TextCellValue(
+            'จำนวนอย่างสูง: ${m.maxStock?.toStringAsFixed(0) ?? "-"}'),
+        xls.TextCellValue(
+            'จำนวนอย่างต่ำ: ${m.minStock?.toStringAsFixed(0) ?? "-"}'),
       ]);
       sheet.appendRow([
         xls.TextCellValue('วันเดือนปี'),
@@ -70,7 +73,9 @@ class MaterialLedgerExportService {
           xls.TextCellValue(t.transactionDate ?? '-'),
           xls.TextCellValue(t.counterparty ?? '-'),
           xls.TextCellValue(t.refDocument ?? '-'),
-          t.unitPrice != null ? xls.DoubleCellValue(t.unitPrice!) : xls.TextCellValue('-'),
+          t.unitPrice != null
+              ? xls.DoubleCellValue(t.unitPrice!)
+              : xls.TextCellValue('-'),
           xls.TextCellValue(isIn ? t.quantity.toStringAsFixed(0) : ''),
           xls.TextCellValue(!isIn ? t.quantity.toStringAsFixed(0) : ''),
           xls.TextCellValue(runningBalance.toStringAsFixed(0)),
@@ -107,7 +112,8 @@ class MaterialLedgerExportService {
     required Map<int, List<MaterialTransaction>> transactionsByMaterialId,
     String? schoolName,
   }) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.assetManagement, 'วัสดุ/คลังพัสดุ');
     final file = await export(
       materials: materials,
       transactionsByMaterialId: transactionsByMaterialId,
@@ -124,7 +130,10 @@ class MaterialLedgerExportService {
     final sanitized = raw.replaceAll(RegExp(r'[\\/?*\[\]:]'), ' ');
     final prefix = '${index + 1}. ';
     final maxNameLen = 31 - prefix.length;
-    var name = prefix + (sanitized.length > maxNameLen ? sanitized.substring(0, maxNameLen) : sanitized);
+    var name = prefix +
+        (sanitized.length > maxNameLen
+            ? sanitized.substring(0, maxNameLen)
+            : sanitized);
     var suffix = 1;
     while (used.contains(name)) {
       suffix++;

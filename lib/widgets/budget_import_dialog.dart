@@ -4,7 +4,8 @@
 import 'package:flutter/material.dart';
 import '../models/budget.dart';
 import '../theme/design_tokens.dart';
-import 'design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import 'design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction;
 import 'design_system/clearable_text_field.dart';
 
 class _EditableBudget {
@@ -17,11 +18,14 @@ class _EditableBudget {
 
   _EditableBudget(Budget b, List<String> departmentOptions)
       : fiscalYear = TextEditingController(text: b.fiscalYear),
-        groupName = departmentOptions.contains(b.groupName) ? b.groupName : null,
+        groupName =
+            departmentOptions.contains(b.groupName) ? b.groupName : null,
         projectName = TextEditingController(text: b.projectName ?? ''),
         activityName = TextEditingController(text: b.activityName ?? ''),
-        allocatedAmount = TextEditingController(text: b.allocatedAmount?.toStringAsFixed(2) ?? ''),
-        responsiblePerson = TextEditingController(text: b.responsiblePerson ?? '');
+        allocatedAmount = TextEditingController(
+            text: b.allocatedAmount?.toStringAsFixed(2) ?? ''),
+        responsiblePerson =
+            TextEditingController(text: b.responsiblePerson ?? '');
 
   void dispose() {
     fiscalYear.dispose();
@@ -34,11 +38,15 @@ class _EditableBudget {
   Budget toBudget() => Budget(
         fiscalYear: fiscalYear.text.trim(),
         groupName: groupName,
-        projectName: projectName.text.trim().isEmpty ? null : projectName.text.trim(),
-        activityName: activityName.text.trim().isEmpty ? null : activityName.text.trim(),
+        projectName:
+            projectName.text.trim().isEmpty ? null : projectName.text.trim(),
+        activityName:
+            activityName.text.trim().isEmpty ? null : activityName.text.trim(),
         allocatedAmount: double.tryParse(allocatedAmount.text.trim()),
         remainingAmount: double.tryParse(allocatedAmount.text.trim()),
-        responsiblePerson: responsiblePerson.text.trim().isEmpty ? null : responsiblePerson.text.trim(),
+        responsiblePerson: responsiblePerson.text.trim().isEmpty
+            ? null
+            : responsiblePerson.text.trim(),
       );
 }
 
@@ -52,26 +60,32 @@ Future<List<Budget>?> showBudgetImportPreviewDialog(
   return showDialog<List<Budget>>(
     context: context,
     barrierDismissible: false,
-    builder: (ctx) => _BudgetImportPreviewDialog(parsedBudgets: parsedBudgets, departmentOptions: departmentOptions),
+    builder: (ctx) => _BudgetImportPreviewDialog(
+        parsedBudgets: parsedBudgets, departmentOptions: departmentOptions),
   );
 }
 
 class _BudgetImportPreviewDialog extends StatefulWidget {
   final List<Budget> parsedBudgets;
   final List<String> departmentOptions;
-  const _BudgetImportPreviewDialog({required this.parsedBudgets, required this.departmentOptions});
+  const _BudgetImportPreviewDialog(
+      {required this.parsedBudgets, required this.departmentOptions});
 
   @override
-  State<_BudgetImportPreviewDialog> createState() => _BudgetImportPreviewDialogState();
+  State<_BudgetImportPreviewDialog> createState() =>
+      _BudgetImportPreviewDialogState();
 }
 
-class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> {
+class _BudgetImportPreviewDialogState
+    extends State<_BudgetImportPreviewDialog> {
   late List<_EditableBudget> _rows;
 
   @override
   void initState() {
     super.initState();
-    _rows = widget.parsedBudgets.map((b) => _EditableBudget(b, widget.departmentOptions)).toList();
+    _rows = widget.parsedBudgets
+        .map((b) => _EditableBudget(b, widget.departmentOptions))
+        .toList();
   }
 
   @override
@@ -92,14 +106,17 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
   // ปุ่ม/ตัวหนังสือในกล่องนี้ ใหญ่กว่า default ของธีมกลางตรงๆ (เหมือนกล่องยืนยัน
   // อื่นๆ ในหน้าแผนงบประมาณ) เพราะ titleLarge/labelLarge ของธีมกลางถูกจูนไว้
   // เล็กสำหรับตารางข้อมูลหนาแน่น ไม่เหมาะกับกล่องโต้ตอบที่ต้องอ่าน/ตัดสินใจจริงจัง
-  static const _buttonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
-  static const _buttonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+  static const _buttonTextStyle =
+      TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+  static const _buttonPadding =
+      EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.card)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(RadiusSize.card)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 820, maxHeight: 680),
         child: Padding(
@@ -110,18 +127,23 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
             children: [
               Row(
                 children: [
-                  Icon(Icons.folder_open_outlined, color: BrandAccent.teal(context), size: 24),
+                  Icon(Icons.folder_open_outlined,
+                      color: BrandAccent.teal(context), size: 24),
                   const SizedBox(width: 8),
                   const Text(
                     'ตรวจสอบแผนงบประมาณที่นำเข้า',
-                    style: TextStyle(fontWeight: AppTypography.weightExtraBold, fontSize: AppTypography.heading2),
+                    style: TextStyle(
+                        fontWeight: AppTypography.weightExtraBold,
+                        fontSize: AppTypography.heading2),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 'ตรวจสอบและแก้ไขข้อมูลได้ก่อนบันทึกจริง',
-                style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.bodyMedium),
+                style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: AppTypography.bodyMedium),
               ),
               const SizedBox(height: 14),
               if (_rows.isEmpty)
@@ -129,7 +151,9 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: Text('ไม่พบรายการ',
-                        style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.body)),
+                        style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            fontSize: AppTypography.body)),
                   ),
                 )
               else
@@ -151,21 +175,24 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, null),
-                    style: TextButton.styleFrom(padding: _buttonPadding, textStyle: _buttonTextStyle),
+                    style: TextButton.styleFrom(
+                        padding: _buttonPadding, textStyle: _buttonTextStyle),
                     child: const Text('ยกเลิก'),
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
                     onPressed: _rows.isEmpty
                         ? null
-                        : () => Navigator.pop(context, _rows.map((r) => r.toBudget()).toList()),
+                        : () => Navigator.pop(
+                            context, _rows.map((r) => r.toBudget()).toList()),
                     icon: const Icon(Icons.check),
                     label: Text('ยืนยันนำเข้าข้อมูล (${_rows.length} รายการ)'),
                     style: FilledButton.styleFrom(
                       backgroundColor: BrandAccent.teal(context),
                       padding: _buttonPadding,
                       textStyle: _buttonTextStyle,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(RadiusSize.md)),
                     ),
                   ),
                 ],
@@ -195,7 +222,8 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                   child: ClearableTextField(
                     controller: row.fiscalYear,
                     style: fieldStyle,
-                    decoration: const InputDecoration(isDense: true, hintText: 'ปีงบ'),
+                    decoration:
+                        const InputDecoration(isDense: true, hintText: 'ปีงบ'),
                   ),
                 ),
               ),
@@ -206,7 +234,8 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                   child: ClearableTextField(
                     controller: row.projectName,
                     style: fieldStyle,
-                    decoration: const InputDecoration(isDense: true, hintText: 'ชื่อโครงการ'),
+                    decoration: const InputDecoration(
+                        isDense: true, hintText: 'ชื่อโครงการ'),
                   ),
                 ),
               ),
@@ -217,7 +246,8 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                   child: ClearableTextField(
                     controller: row.activityName,
                     style: fieldStyle,
-                    decoration: const InputDecoration(isDense: true, hintText: 'กิจกรรม'),
+                    decoration: const InputDecoration(
+                        isDense: true, hintText: 'กิจกรรม'),
                   ),
                 ),
               ),
@@ -229,14 +259,20 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                     controller: row.allocatedAmount,
                     style: fieldStyle,
                     textAlign: TextAlign.right,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(isDense: true, hintText: 'วงเงิน'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                        isDense: true, hintText: 'วงเงิน'),
                   ),
                 ),
               ),
               DsActionIconButtons(
                 actions: [
-                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบแถวนี้ออกจากการนำเข้า', onTap: () => _removeAt(index), danger: true),
+                  DsRowAction(
+                      icon: Icons.delete_outline,
+                      tooltip: 'ลบแถวนี้ออกจากการนำเข้า',
+                      onTap: () => _removeAt(index),
+                      danger: true),
                 ],
               ),
             ],
@@ -253,14 +289,21 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                     borderRadius: BorderRadius.circular(RadiusSize.card),
                     elevation: 6,
                     decoration: const InputDecoration(
-                      isDense: true, hintText: 'ฝ่าย/แผนงาน (ไม่ระบุ)',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      isDense: true,
+                      hintText: 'ฝ่าย/แผนงาน (ไม่ระบุ)',
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                       border: InputBorder.none,
                     ),
-                    style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodyMedium,
+                        color: colors.onSurfaceVariant),
                     items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุฝ่าย/แผนงาน)')),
-                      ...widget.departmentOptions.map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis))),
+                      const DropdownMenuItem<String?>(
+                          value: null, child: Text('(ไม่ระบุฝ่าย/แผนงาน)')),
+                      ...widget.departmentOptions.map((g) => DropdownMenuItem(
+                          value: g,
+                          child: Text(g, overflow: TextOverflow.ellipsis))),
                     ],
                     onChanged: (v) => setState(() => row.groupName = v),
                   ),
@@ -269,10 +312,14 @@ class _BudgetImportPreviewDialogState extends State<_BudgetImportPreviewDialog> 
                 Expanded(
                   child: ClearableTextField(
                     controller: row.responsiblePerson,
-                    style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+                    style: TextStyle(
+                        fontSize: AppTypography.bodyMedium,
+                        color: colors.onSurfaceVariant),
                     decoration: const InputDecoration(
-                      isDense: true, hintText: 'ผู้รับผิดชอบ (ไม่ระบุ)',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      isDense: true,
+                      hintText: 'ผู้รับผิดชอบ (ไม่ระบุ)',
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                       border: InputBorder.none,
                     ),
                   ),

@@ -31,7 +31,8 @@ class SearchField extends StatefulWidget {
 class _SearchFieldState extends State<SearchField> {
   TextEditingController? _internalController;
 
-  TextEditingController get _controller => widget.controller ?? (_internalController ??= TextEditingController());
+  TextEditingController get _controller =>
+      widget.controller ?? (_internalController ??= TextEditingController());
 
   @override
   void initState() {
@@ -45,7 +46,8 @@ class _SearchFieldState extends State<SearchField> {
   void didUpdateWidget(covariant SearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      (oldWidget.controller ?? _internalController)?.removeListener(_onTextChanged);
+      (oldWidget.controller ?? _internalController)
+          ?.removeListener(_onTextChanged);
       _controller.addListener(_onTextChanged);
     }
   }

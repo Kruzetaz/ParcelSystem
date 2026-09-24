@@ -14,6 +14,7 @@ import '../services/material_ledger_docx_export_service.dart';
 import '../services/material_list_docx_export_service.dart';
 import '../services/procurement_document_generator.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
@@ -247,7 +248,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   // จัดกลุ่มในมุมมอง "แบ่งตามโครงการ" เท่านั้น
   Map<int, String> _sourceProjectLabels = {};
   bool _loading = true;
-  _MaterialViewMode _viewMode = _MaterialViewMode.table;
+  _MaterialViewMode _viewMode = UiSessionState.instance
+      .read('materials_view_mode', _MaterialViewMode.table);
   String _searchQuery = '';
 
   // โหมดเลือกหลายรายการ — เปิดแล้วแต่ละแถว/การ์ดจะมี checkbox ให้ติ๊กเลือก
@@ -1873,8 +1875,11 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                                     tooltip: 'แบ่งตามโครงการ'),
                               ],
                               selected: {_viewMode},
-                              onSelectionChanged: (s) =>
-                                  setState(() => _viewMode = s.first),
+                              onSelectionChanged: (s) {
+                                setState(() => _viewMode = s.first);
+                                UiSessionState.instance
+                                    .write('materials_view_mode', s.first);
+                              },
                             ),
                           ],
                         ),

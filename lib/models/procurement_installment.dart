@@ -15,7 +15,8 @@ class ProcurementInstallment {
   final String? dateDelivery; // วันที่ส่งมอบงาน
   final String? dateInspection; // วันที่ตรวจรับ
   final String? dateDisbursement; // วันที่อนุมัติเบิกจ่าย
-  final String? inspectionResult; // 'ถูกต้องครบถ้วนตามสัญญา' | 'ไม่ครบถ้วนตามสัญญา'
+  final String?
+      inspectionResult; // 'ถูกต้องครบถ้วนตามสัญญา' | 'ไม่ครบถ้วนตามสัญญา'
   final bool hasPenalty;
   final double? penaltyAmount;
   final String? controlNumberInspection; // เลขคุมตรวจรับ
@@ -52,7 +53,8 @@ class ProcurementInstallment {
         'control_number_inspection': controlNumberInspection,
       };
 
-  factory ProcurementInstallment.fromMap(Map<String, dynamic> m) => ProcurementInstallment(
+  factory ProcurementInstallment.fromMap(Map<String, dynamic> m) =>
+      ProcurementInstallment(
         id: m['id'] as int?,
         orderId: m['order_id'] as int,
         periodNo: m['period_no'] as int,
@@ -96,7 +98,8 @@ class ProcurementInstallment {
       inspectionResult: inspectionResult ?? this.inspectionResult,
       hasPenalty: hasPenalty ?? this.hasPenalty,
       penaltyAmount: penaltyAmount ?? this.penaltyAmount,
-      controlNumberInspection: controlNumberInspection ?? this.controlNumberInspection,
+      controlNumberInspection:
+          controlNumberInspection ?? this.controlNumberInspection,
     );
   }
 }

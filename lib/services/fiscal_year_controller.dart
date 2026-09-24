@@ -14,7 +14,8 @@ import 'package:flutter/foundation.dart';
 import '../models/procurement_calendar_task.dart' show fiscalYearOf;
 
 class FiscalYearController extends ChangeNotifier {
-  FiscalYearController._() : _viewingYear = fiscalYearOf(DateTime.now()).toString();
+  FiscalYearController._()
+      : _viewingYear = fiscalYearOf(DateTime.now()).toString();
   static final FiscalYearController instance = FiscalYearController._();
 
   /// ปีงบจริงตามปฏิทินเครื่อง ณ ตอนนี้ (ต.ค.-ธ.ค. นับเป็นปีงบถัดไป) — ค่านี้ไม่

@@ -19,13 +19,15 @@ class LearningMaterialGrade {
         'sort_order': sortOrder,
       };
 
-  factory LearningMaterialGrade.fromMap(Map<String, dynamic> m) => LearningMaterialGrade(
+  factory LearningMaterialGrade.fromMap(Map<String, dynamic> m) =>
+      LearningMaterialGrade(
         id: m['id'] as int?,
         name: m['name'] as String,
         sortOrder: m['sort_order'] as int? ?? 0,
       );
 
-  LearningMaterialGrade copyWith({String? name, int? sortOrder}) => LearningMaterialGrade(
+  LearningMaterialGrade copyWith({String? name, int? sortOrder}) =>
+      LearningMaterialGrade(
         id: id,
         name: name ?? this.name,
         sortOrder: sortOrder ?? this.sortOrder,

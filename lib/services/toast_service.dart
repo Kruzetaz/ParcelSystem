@@ -15,6 +15,7 @@
 // เพื่อเปลี่ยนเป็นผลสำเร็จ/ล้มเหลวแล้วค่อยหายเองตามปกติ
 
 import 'package:flutter/material.dart';
+import 'notification_history_controller.dart';
 
 enum ToastType { success, error, warning, info, loading }
 
@@ -26,6 +27,9 @@ class ToastItem {
   // toast แบบ loading ไม่มีตัวจับเวลาหายเอง ต้องเรียก complete()/dismiss() เอง
   bool persistent;
   bool removing;
+  // กดที่ตัว toast แล้วพาไปหน้าที่เกี่ยวข้องได้ (เช่น toast "กำลังนำเข้าโครงการ
+  // เก่า" กดแล้วพาไปหน้าทะเบียนคุมเลขที่ที่ผลลัพธ์จะไปโผล่) — ไม่บังคับมี
+  final VoidCallback? onTap;
 
   ToastItem({
     required this.id,
@@ -34,6 +38,7 @@ class ToastItem {
     required this.type,
     this.persistent = false,
     this.removing = false,
+    this.onTap,
   });
 
   bool get isError => type == ToastType.error;
@@ -59,12 +64,14 @@ class ToastController extends ChangeNotifier {
 
   /// เริ่ม toast แบบ "กำลังทำงาน" — ไม่หายเอง ต้องเรียก complete()/dismiss()
   /// เองเมื่องานเสร็จ คืนค่า id ไว้ใช้เรียกปิด/เปลี่ยนสถานะภายหลัง
-  String showLoading(String title, {String message = 'กรุณารอสักครู่...'}) {
+  String showLoading(String title,
+      {String message = 'กรุณารอสักครู่...', VoidCallback? onTap}) {
     return _add(
         title: title,
         message: message,
         type: ToastType.loading,
-        persistent: true);
+        persistent: true,
+        onTap: onTap);
   }
 
   /// อัปเดตข้อความของ toast ที่ยังลอยค้างอยู่ (เช่น รายงานความคืบหน้า
@@ -78,8 +85,13 @@ class ToastController extends ChangeNotifier {
 
   /// เปลี่ยน toast แบบ loading (ตาม id) ให้กลายเป็นผลสำเร็จ/ล้มเหลว แล้วค่อยหาย
   /// เองตามเวลาปกติ — ถ้าหา id ไม่เจอแล้ว (เช่นผู้ใช้กดปิดเองไปก่อน) จะไม่ทำอะไร
+  /// [navigateMode] เก็บลงประวัติแจ้งเตือนถาวรด้วยเสมอ (กระดิ่งบนแถบบน) เผื่อ
+  /// toast ลอยหายไปก่อนผู้ใช้ทันเห็น/ทันกด — กดรายการในกระดิ่งย้อนหลังได้
   void complete(String id,
-      {required bool success, String? title, String? message}) {
+      {required bool success,
+      String? title,
+      String? message,
+      String? navigateMode}) {
     final idx = _items.indexWhere((t) => t.id == id);
     if (idx == -1) return;
     final item = _items[idx];
@@ -88,6 +100,13 @@ class ToastController extends ChangeNotifier {
     item.message = message ?? item.message;
     item.persistent = false;
     notifyListeners();
+    NotificationHistoryController.instance.add(
+      title: item.title,
+      message: item.message,
+      icon: success ? Icons.check_circle_outline : Icons.error_outline,
+      color: success ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+      navigateMode: navigateMode,
+    );
     final duration =
         success ? const Duration(seconds: 4) : const Duration(seconds: 8);
     Future.delayed(duration, () => dismiss(id));
@@ -97,14 +116,16 @@ class ToastController extends ChangeNotifier {
       {required String title,
       required String message,
       required ToastType type,
-      bool persistent = false}) {
+      bool persistent = false,
+      VoidCallback? onTap}) {
     final id = '${DateTime.now().microsecondsSinceEpoch}';
     _items.add(ToastItem(
         id: id,
         title: title,
         message: message,
         type: type,
-        persistent: persistent));
+        persistent: persistent,
+        onTap: onTap));
     _enforceLimit();
     notifyListeners();
     if (!persistent) {
@@ -150,8 +171,9 @@ void showAppToast(String message, {bool isError = false}) {
 /// ใช้กับงานเบื้องหลังที่ใช้เวลานานและห้ามสลับหน้าจอระหว่างรอ (import/export,
 /// ให้ AI อ่านไฟล์ ฯลฯ) คืนค่า id ไว้ใช้เรียกปิด/เปลี่ยนสถานะภายหลัง
 String showAppLoadingToast(String title,
-    {String message = 'กรุณารอสักครู่...'}) {
-  return ToastController.instance.showLoading(title, message: message);
+    {String message = 'กรุณารอสักครู่...', VoidCallback? onTap}) {
+  return ToastController.instance
+      .showLoading(title, message: message, onTap: onTap);
 }
 
 /// อัปเดตข้อความความคืบหน้าของ toast ที่เริ่มด้วย [showAppLoadingToast]
@@ -160,9 +182,15 @@ void updateAppLoadingToast(String id, String message) =>
 
 /// เปลี่ยน toast ที่เริ่มด้วย [showAppLoadingToast] ให้เป็นผลสำเร็จ/ล้มเหลว
 void completeAppToast(String id,
-    {required bool success, String? title, String? message}) {
-  ToastController.instance
-      .complete(id, success: success, title: title, message: message);
+    {required bool success,
+    String? title,
+    String? message,
+    String? navigateMode}) {
+  ToastController.instance.complete(id,
+      success: success,
+      title: title,
+      message: message,
+      navigateMode: navigateMode);
 }
 
 /// ปิด toast ทันที (ใช้กับ id ที่ได้จาก [showAppLoadingToast] ถ้าต้องการปิดโดย

@@ -22,13 +22,25 @@ import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/progress_indicators.dart' show ProgressBar;
-import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant;
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant;
 
 enum _ReportTab { monthly, readiness, auditTrail }
 
 const _thaiMonths = [
-  '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  '',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ];
 
 int? _monthIndexFromThaiDate(String? text) {
@@ -85,7 +97,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
     final monthlyRows = [
       for (var m = 1; m <= 12; m++)
-        {'monthIndex': m, 'month': _thaiMonths[m], 'count': monthlyCounts[m], 'total': monthlyTotals[m]},
+        {
+          'monthIndex': m,
+          'month': _thaiMonths[m],
+          'count': monthlyCounts[m],
+          'total': monthlyTotals[m]
+        },
     ];
 
     // สตง. checklist — ตรวจแค่ข้อมูลครบไหม (data completeness) ไม่ใช่ความถูกต้องทางกฎหมาย
@@ -136,11 +153,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
   /// ปุ่มส่งออก "แบบสรุปผลการจัดซื้อจัดจ้างรายเดือน" ต่อแถวเดือน — กรองเฉพาะ
   /// รายการที่ตรงเดือนนั้น (นับจาก dateOrderCreated) แล้วส่งออกเป็น Excel
   Future<void> _exportMonthlySummary(int monthIndex, String monthLabel) async {
-    final ordersInMonth = _orders.where((o) => _monthIndexFromThaiDate(o.dateOrderCreated) == monthIndex).toList();
+    final ordersInMonth = _orders
+        .where((o) => _monthIndexFromThaiDate(o.dateOrderCreated) == monthIndex)
+        .toList();
     if (ordersInMonth.isEmpty) return;
     final school = _school;
     if (school == null || (school.schoolName?.trim().isEmpty ?? true)) {
-      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน', isError: true);
+      showAppToast('กรุณากรอกข้อมูลโรงเรียนในหน้า "ตั้งค่าโรงเรียน" ก่อน',
+          isError: true);
       return;
     }
     // หา พ.ศ. ที่พบบ่อยที่สุดในกลุ่มเดือนนี้ (เผื่อมีข้อมูลข้ามปีงบปนกัน)
@@ -153,7 +173,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
     final year = yearCounts.isEmpty
         ? (DateTime.now().year + 543).toString()
-        : (yearCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
+        : (yearCounts.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value)))
+            .first
+            .key;
 
     setState(() => _exportingMonth = monthLabel);
     try {
@@ -193,13 +216,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.bar_chart_outlined, color: BrandAccent.tealOn(context), size: 22),
+                Icon(Icons.bar_chart_outlined,
+                    color: BrandAccent.tealOn(context), size: 22),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text('รายงาน/สตง.',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: AppTypography.heading2,
+                          fontWeight: AppTypography.weightExtraBold,
+                          color: colors.onSurface)),
                 ),
               ],
             ),
@@ -211,8 +238,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : switch (_tab) {
                       _ReportTab.monthly => _buildMonthlyReport(colors),
-                      _ReportTab.readiness => _buildReadinessReport(context, colors),
-                      _ReportTab.auditTrail => _buildAuditTrail(context, colors),
+                      _ReportTab.readiness =>
+                        _buildReadinessReport(context, colors),
+                      _ReportTab.auditTrail =>
+                        _buildAuditTrail(context, colors),
                     },
             ),
           ],
@@ -224,9 +253,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildTabSelector(ColorScheme colors) {
     return SegmentedButton<_ReportTab>(
       segments: const [
-        ButtonSegment(value: _ReportTab.monthly, icon: Icon(Icons.bar_chart_outlined), label: Text('รายงานรายเดือน')),
-        ButtonSegment(value: _ReportTab.readiness, icon: Icon(Icons.fact_check_outlined), label: Text('ตรวจสอบ สตง.')),
-        ButtonSegment(value: _ReportTab.auditTrail, icon: Icon(Icons.history_outlined), label: Text('Audit Trail')),
+        ButtonSegment(
+            value: _ReportTab.monthly,
+            icon: Icon(Icons.bar_chart_outlined),
+            label: Text('รายงานรายเดือน')),
+        ButtonSegment(
+            value: _ReportTab.readiness,
+            icon: Icon(Icons.fact_check_outlined),
+            label: Text('ตรวจสอบ สตง.')),
+        ButtonSegment(
+            value: _ReportTab.auditTrail,
+            icon: Icon(Icons.history_outlined),
+            label: Text('Audit Trail')),
       ],
       selected: {_tab},
       onSelectionChanged: (s) => setState(() => _tab = s.first),
@@ -238,8 +276,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // ─────────────────────────────────────────
 
   Widget _buildMonthlyReport(ColorScheme colors) {
-    final grandTotal = _monthlyRows.fold<double>(0, (s, r) => s + (r['total'] as double));
-    final maxTotal = _monthlyRows.fold<double>(1, (m, r) => (r['total'] as double) > m ? r['total'] as double : m);
+    final grandTotal =
+        _monthlyRows.fold<double>(0, (s, r) => s + (r['total'] as double));
+    final maxTotal = _monthlyRows.fold<double>(
+        1, (m, r) => (r['total'] as double) > m ? r['total'] as double : m);
 
     return SingleChildScrollView(
       child: Column(
@@ -250,18 +290,26 @@ class _ReportsScreenState extends State<ReportsScreen> {
             decoration: BoxDecoration(
               color: BrandAccent.teal(context).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(RadiusSize.card),
-              border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: BrandAccent.teal(context).withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
-                Icon(Icons.summarize_outlined, color: BrandAccent.tealOn(context)),
+                Icon(Icons.summarize_outlined,
+                    color: BrandAccent.tealOn(context)),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ยอดใช้จ่ายสะสมทั้งปี', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                    Text('ยอดใช้จ่ายสะสมทั้งปี',
+                        style: TextStyle(
+                            fontSize: AppTypography.caption,
+                            color: colors.onSurfaceVariant)),
                     Text('${formatBaht(grandTotal)} บาท',
-                      style: TextStyle(fontSize: AppTypography.heading3, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                        style: TextStyle(
+                            fontSize: AppTypography.heading3,
+                            fontWeight: AppTypography.weightExtraBold,
+                            color: colors.onSurface)),
                   ],
                 ),
               ],
@@ -277,7 +325,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
             child: Column(
               children: [
-                for (final row in _monthlyRows) _buildMonthRow(context, colors, row, maxTotal),
+                for (final row in _monthlyRows)
+                  _buildMonthRow(context, colors, row, maxTotal),
               ],
             ),
           ),
@@ -286,7 +335,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildMonthRow(BuildContext context, ColorScheme colors, Map<String, dynamic> row, double maxTotal) {
+  Widget _buildMonthRow(BuildContext context, ColorScheme colors,
+      Map<String, dynamic> row, double maxTotal) {
     final total = row['total'] as double;
     final count = row['count'] as int;
     final monthLabel = row['month'] as String;
@@ -294,14 +344,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final isExporting = _exportingMonth == monthLabel;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colors.outlineVariant))),
       child: Row(
         children: [
-          SizedBox(width: 90, child: Text(monthLabel, style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface))),
+          SizedBox(
+              width: 90,
+              child: Text(monthLabel,
+                  style: TextStyle(
+                      fontSize: AppTypography.bodyMedium,
+                      color: colors.onSurface))),
           Expanded(child: ProgressBar(progress: ratio, height: 10)),
           const SizedBox(width: 10),
-          SizedBox(width: 100, child: Text('${formatBaht(total)} บาท', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface))),
-          SizedBox(width: 60, child: Text('$count รายการ', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant))),
+          SizedBox(
+              width: 100,
+              child: Text('${formatBaht(total)} บาท',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                      fontSize: AppTypography.bodyMedium,
+                      color: colors.onSurface))),
+          SizedBox(
+              width: 60,
+              child: Text('$count รายการ',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                      fontSize: AppTypography.bodySmall,
+                      color: colors.onSurfaceVariant))),
           const SizedBox(width: 4),
           isExporting
               ? Container(
@@ -313,7 +381,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     borderRadius: BorderRadius.circular(RadiusSize.sm),
                     border: Border.all(color: colors.outline),
                   ),
-                  child: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                  child: const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
                 )
               : Padding(
                   padding: const EdgeInsets.only(left: 3),
@@ -322,17 +393,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     iconSize: IconSizes.md,
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints:
+                        const BoxConstraints(minWidth: 28, minHeight: 28),
                     style: IconButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(RadiusSize.sm),
-                        side: BorderSide(color: count == 0 ? colors.outline.withValues(alpha: 0.5) : colors.outline),
+                        side: BorderSide(
+                            color: count == 0
+                                ? colors.outline.withValues(alpha: 0.5)
+                                : colors.outline),
                       ),
                       foregroundColor: BrandAccent.tealOn(context),
-                      disabledForegroundColor: colors.onSurfaceVariant.withValues(alpha: 0.4),
+                      disabledForegroundColor:
+                          colors.onSurfaceVariant.withValues(alpha: 0.4),
                     ),
                     tooltip: 'ส่งออกแบบสรุปผลจัดซื้อจัดจ้าง (กวจ.)',
-                    onPressed: count == 0 ? null : () => _exportMonthlySummary(row['monthIndex'] as int, monthLabel),
+                    onPressed: count == 0
+                        ? null
+                        : () => _exportMonthlySummary(
+                            row['monthIndex'] as int, monthLabel),
                   ),
                 ),
         ],
@@ -347,10 +426,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildReadinessReport(BuildContext context, ColorScheme colors) {
     final overallScore = _checklist.isEmpty
         ? 0.0
-        : _checklist.map((c) => c.ratio).fold<double>(0, (a, b) => a + b) / _checklist.length;
+        : _checklist.map((c) => c.ratio).fold<double>(0, (a, b) => a + b) /
+            _checklist.length;
     final scoreColor = overallScore > 0.8
         ? BrandAccent.green(context)
-        : (overallScore > 0.5 ? BrandAccent.tertiary(context) : BrandAccent.red(context));
+        : (overallScore > 0.5
+            ? BrandAccent.tertiary(context)
+            : BrandAccent.red(context));
 
     return SingleChildScrollView(
       child: Column(
@@ -365,14 +447,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
             child: Row(
               children: [
-                CircularProgressIndicator(value: overallScore, color: scoreColor, backgroundColor: scoreColor.withValues(alpha: 0.2), strokeWidth: 6),
+                CircularProgressIndicator(
+                    value: overallScore,
+                    color: scoreColor,
+                    backgroundColor: scoreColor.withValues(alpha: 0.2),
+                    strokeWidth: 6),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${(overallScore * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: AppTypography.heading1, fontWeight: AppTypography.weightExtraBold, color: scoreColor)),
-                      Text('Ready Score — ตรวจแค่ความครบถ้วนของข้อมูล', style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
+                      Text('${(overallScore * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(
+                              fontSize: AppTypography.heading1,
+                              fontWeight: AppTypography.weightExtraBold,
+                              color: scoreColor)),
+                      Text('Ready Score — ตรวจแค่ความครบถ้วนของข้อมูล',
+                          style: TextStyle(
+                              fontSize: AppTypography.bodyMedium,
+                              color: colors.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -385,41 +478,63 @@ class _ReportsScreenState extends State<ReportsScreen> {
             decoration: BoxDecoration(
               color: BrandAccent.tertiary(context).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(RadiusSize.md),
-              border: Border.all(color: BrandAccent.tertiary(context).withValues(alpha: 0.4)),
+              border: Border.all(
+                  color: BrandAccent.tertiary(context).withValues(alpha: 0.4)),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: BrandAccent.tertiary(context), size: 18),
+                Icon(Icons.info_outline,
+                    color: BrandAccent.tertiary(context), size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'คะแนนนี้ตรวจแค่ "ข้อมูลกรอกครบไหม" ไม่ใช่การรับรองความถูกต้องทางกฎหมาย โปรดตรวจสอบตามระเบียบพัสดุจริงอีกครั้งก่อนใช้อ้างอิง',
-                    style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurface),
+                    style: TextStyle(
+                        fontSize: AppTypography.caption,
+                        color: colors.onSurface),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          for (final item in _checklist) _buildChecklistRow(context, colors, item),
+          for (final item in _checklist)
+            _buildChecklistRow(context, colors, item),
         ],
       ),
     );
   }
 
-  Widget _buildChecklistRow(BuildContext context, ColorScheme colors, _ChecklistItem item) {
-    final variant = item.ratio >= 1 ? BadgeVariant.success : (item.ratio > 0.5 ? BadgeVariant.warning : BadgeVariant.danger);
-    final color = item.ratio >= 1 ? BrandAccent.green(context) : (item.ratio > 0.5 ? BrandAccent.tertiary(context) : BrandAccent.red(context));
+  Widget _buildChecklistRow(
+      BuildContext context, ColorScheme colors, _ChecklistItem item) {
+    final variant = item.ratio >= 1
+        ? BadgeVariant.success
+        : (item.ratio > 0.5 ? BadgeVariant.warning : BadgeVariant.danger);
+    final color = item.ratio >= 1
+        ? BrandAccent.green(context)
+        : (item.ratio > 0.5
+            ? BrandAccent.tertiary(context)
+            : BrandAccent.red(context));
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(item.ratio >= 1 ? Icons.check_circle : Icons.error_outline, color: color, size: 20),
+          Icon(item.ratio >= 1 ? Icons.check_circle : Icons.error_outline,
+              color: color, size: 20),
           const SizedBox(width: 10),
-          Expanded(child: Text(item.label, style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface))),
-          Text('${item.completed}/${item.total}', style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
+          Expanded(
+              child: Text(item.label,
+                  style: TextStyle(
+                      fontSize: AppTypography.body, color: colors.onSurface))),
+          Text('${item.completed}/${item.total}',
+              style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  color: colors.onSurfaceVariant)),
           const SizedBox(width: 8),
-          StatusBadge(label: '${(item.ratio * 100).toStringAsFixed(0)}%', variant: variant, compact: true),
+          StatusBadge(
+              label: '${(item.ratio * 100).toStringAsFixed(0)}%',
+              variant: variant,
+              compact: true),
         ],
       ),
     );
@@ -435,9 +550,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.history_outlined, size: 64, color: colors.onSurfaceVariant),
+            Icon(Icons.history_outlined,
+                size: 64, color: colors.onSurfaceVariant),
             const SizedBox(height: 12),
-            Text('ยังไม่มีประวัติการใช้งาน', style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
+            Text('ยังไม่มีประวัติการใช้งาน',
+                style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: AppTypography.heading4)),
           ],
         ),
       );
@@ -452,7 +571,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       clipBehavior: Clip.antiAlias,
       child: ListView.separated(
         itemCount: _auditLog.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: colors.outlineVariant),
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, color: colors.outlineVariant),
         itemBuilder: (_, i) {
           final e = _auditLog[i];
           final variant = switch (e.action) {
@@ -462,10 +582,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
           };
           return ListTile(
             dense: true,
-            leading: StatusBadge(label: e.action, variant: variant, compact: true),
-            title: Text('${e.tableLabel}: ${e.description}', style: TextStyle(fontSize: AppTypography.body, color: colors.onSurface),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text('${e.timestamp} · โดย ${e.userName ?? "-"}', style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+            leading:
+                StatusBadge(label: e.action, variant: variant, compact: true),
+            title: Text('${e.tableLabel}: ${e.description}',
+                style: TextStyle(
+                    fontSize: AppTypography.body, color: colors.onSurface),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+            subtitle: Text('${e.timestamp} · โดย ${e.userName ?? "-"}',
+                style: TextStyle(
+                    fontSize: AppTypography.bodySmall,
+                    color: colors.onSurfaceVariant)),
           );
         },
       ),

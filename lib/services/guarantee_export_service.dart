@@ -30,7 +30,9 @@ class GuaranteeExportService {
         xls.IntCellValue(i + 1),
         xls.TextCellValue(g.guaranteeType ?? '-'),
         xls.TextCellValue(g.counterpartyName ?? '-'),
-        g.amount != null ? xls.DoubleCellValue(g.amount!) : xls.TextCellValue('-'),
+        g.amount != null
+            ? xls.DoubleCellValue(g.amount!)
+            : xls.TextCellValue('-'),
         xls.TextCellValue(g.startDate ?? '-'),
         xls.TextCellValue(g.expiryDate ?? '-'),
         xls.TextCellValue(g.status),
@@ -55,7 +57,8 @@ class GuaranteeExportService {
   }
 
   static Future<void> exportAndOpen(List<Guarantee> guarantees) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.contractManagement, 'หลักประกัน');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.contractManagement, 'หลักประกัน');
     final file = await export(guarantees);
     await _openFile(file.path);
   }

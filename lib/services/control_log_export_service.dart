@@ -31,7 +31,9 @@ class ControlLogExportService {
         xls.TextCellValue(e.docType),
         xls.TextCellValue(e.dateText ?? ''),
         xls.TextCellValue(e.description),
-        e.amount != null ? xls.DoubleCellValue(e.amount!) : xls.TextCellValue(''),
+        e.amount != null
+            ? xls.DoubleCellValue(e.amount!)
+            : xls.TextCellValue(''),
         xls.TextCellValue(e.department ?? ''),
         xls.TextCellValue(e.responsiblePerson ?? ''),
       ]);

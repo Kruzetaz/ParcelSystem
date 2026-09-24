@@ -7,7 +7,8 @@ class Contract {
   final String? contractNumber;
   final String? egpNumber;
   final int? orderId;
-  final String? contractType; // 'สัญญาซื้อขาย' | 'สัญญาจ้าง' | 'ใบสั่งซื้อ' | 'ใบสั่งจ้าง'
+  final String?
+      contractType; // 'สัญญาซื้อขาย' | 'สัญญาจ้าง' | 'ใบสั่งซื้อ' | 'ใบสั่งจ้าง'
   final double? contractAmount;
   final String? vendorName;
   final String? startDate; // "d MMMM yyyy" พ.ศ.

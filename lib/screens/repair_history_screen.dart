@@ -10,7 +10,8 @@ import '../services/toast_service.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/kpi_card.dart';
-import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction;
 import '../services/asset_repair_export_service.dart';
 import '../widgets/design_system/clearable_text_field.dart';
 
@@ -49,14 +50,18 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
   List<AssetRepairEntry> get _filtered {
     if (_query.trim().isEmpty) return _entries;
     final q = _query.trim().toLowerCase();
-    return _entries.where((e) =>
-        e.assetName.toLowerCase().contains(q) ||
-        (e.assetNumber?.toLowerCase().contains(q) ?? false)).toList();
+    return _entries
+        .where((e) =>
+            e.assetName.toLowerCase().contains(q) ||
+            (e.assetNumber?.toLowerCase().contains(q) ?? false))
+        .toList();
   }
 
   int get _thisYearCount {
     final buddhistYear = (DateTime.now().year + 543).toString();
-    return _entries.where((e) => e.eventDate?.trim().endsWith(buddhistYear) ?? false).length;
+    return _entries
+        .where((e) => e.eventDate?.trim().endsWith(buddhistYear) ?? false)
+        .length;
   }
 
   int get _distinctAssetCount => _entries.map((e) => e.assetId).toSet().length;
@@ -65,7 +70,8 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+        title: const Text('ยืนยันการลบ',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
         content: Text(
           'ต้องการลบประวัติซ่อม "${e.assetName}" วันที่ ${e.eventDate ?? "-"} ใช่หรือไม่?',
           style: const TextStyle(fontSize: 15, height: 1.4),
@@ -75,7 +81,8 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+              textStyle:
+                  const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
             ),
             child: const Text('ยกเลิก'),
           ),
@@ -83,7 +90,8 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: Colors.redAccent,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+              textStyle:
+                  const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
@@ -147,13 +155,17 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.build_outlined, color: BrandAccent.tealOn(context), size: 22),
+                          Icon(Icons.build_outlined,
+                              color: BrandAccent.tealOn(context), size: 22),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text('ประวัติซ่อมครุภัณฑ์',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: AppTypography.heading2,
+                                    fontWeight: AppTypography.weightExtraBold,
+                                    color: colors.onSurface)),
                           ),
                         ],
                       ),
@@ -165,24 +177,34 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
                         children: [
                           Expanded(
                             child: ClearableTextField(
-                              style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                              style: TextStyle(
+                                  fontSize: AppTypography.bodyMedium,
+                                  color: colors.onSurface),
                               decoration: InputDecoration(
                                 isDense: true,
                                 prefixIcon: const Icon(Icons.search, size: 20),
                                 hintText: 'ค้นหาชื่อ/เลขครุภัณฑ์',
-                                hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                hintStyle: TextStyle(
+                                    fontSize: AppTypography.bodyMedium,
+                                    color: colors.onSurfaceVariant),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(RadiusSize.md),
+                                  borderRadius:
+                                      BorderRadius.circular(RadiusSize.md),
                                   borderSide: BorderSide(color: colors.outline),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(RadiusSize.md),
+                                  borderRadius:
+                                      BorderRadius.circular(RadiusSize.md),
                                   borderSide: BorderSide(color: colors.outline),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(RadiusSize.md),
-                                  borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5),
+                                  borderRadius:
+                                      BorderRadius.circular(RadiusSize.md),
+                                  borderSide: BorderSide(
+                                      color: BrandAccent.teal(context),
+                                      width: 1.5),
                                 ),
                               ),
                               onChanged: (v) => setState(() => _query = v),
@@ -190,17 +212,30 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
                           ),
                           const SizedBox(width: 10),
                           OutlinedButton.icon(
-                            onPressed: _entries.isEmpty || _exporting ? null : _exportToExcel,
+                            onPressed: _entries.isEmpty || _exporting
+                                ? null
+                                : _exportToExcel,
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               side: BorderSide(color: colors.outline),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                              textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(RadiusSize.md)),
+                              textStyle: const TextStyle(
+                                  fontSize: 14.5, fontWeight: FontWeight.w700),
                             ),
                             icon: _exporting
-                                ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
-                                : const Icon(Icons.file_download_outlined, size: 18),
-                            label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: colors.onSurfaceVariant))
+                                : const Icon(Icons.file_download_outlined,
+                                    size: 18),
+                            label: Text(
+                                _exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
                           ),
                         ],
                       ),
@@ -211,22 +246,28 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.build_outlined, size: 64, color: colors.onSurfaceVariant),
+                                    Icon(Icons.build_outlined,
+                                        size: 64,
+                                        color: colors.onSurfaceVariant),
                                     const SizedBox(height: 12),
                                     Text(
                                       _entries.isEmpty
                                           ? 'ยังไม่มีประวัติซ่อมครุภัณฑ์\nไปบันทึกที่หน้า "ทะเบียนครุภัณฑ์" ก่อน'
                                           : 'ไม่พบรายการที่ค้นหา',
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
+                                      style: TextStyle(
+                                          color: colors.onSurfaceVariant,
+                                          fontSize: 16),
                                     ),
                                   ],
                                 ),
                               )
                             : ListView.separated(
                                 itemCount: _filtered.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                itemBuilder: (_, i) => _buildRow(context, colors, _filtered[i]),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (_, i) =>
+                                    _buildRow(context, colors, _filtered[i]),
                               ),
                       ),
                     ],
@@ -273,7 +314,8 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
     );
   }
 
-  Widget _buildRow(BuildContext context, ColorScheme colors, AssetRepairEntry e) {
+  Widget _buildRow(
+      BuildContext context, ColorScheme colors, AssetRepairEntry e) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -285,7 +327,8 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.build_outlined, size: 18, color: BrandAccent.tealOn(context)),
+          Icon(Icons.build_outlined,
+              size: 18, color: BrandAccent.tealOn(context)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -295,23 +338,38 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        e.assetNumber != null ? '${e.assetName} (${e.assetNumber})' : e.assetName,
-                        style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, color: colors.onSurface),
+                        e.assetNumber != null
+                            ? '${e.assetName} (${e.assetNumber})'
+                            : e.assetName,
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.body,
+                            color: colors.onSurface),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(e.eventDate ?? '-', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                    Text(e.eventDate ?? '-',
+                        style: TextStyle(
+                            fontSize: AppTypography.caption,
+                            color: colors.onSurfaceVariant)),
                   ],
                 ),
                 if (e.description?.trim().isNotEmpty ?? false) ...[
                   const SizedBox(height: 4),
-                  Text(e.description!, style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(e.description!,
+                      style: TextStyle(
+                          fontSize: AppTypography.bodySmall,
+                          color: colors.onSurfaceVariant),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
                 ],
                 if (e.assetLocation?.trim().isNotEmpty ?? false) ...[
                   const SizedBox(height: 2),
-                  Text('สถานที่: ${e.assetLocation}', style: TextStyle(fontSize: AppTypography.tiny, color: colors.onSurfaceVariant)),
+                  Text('สถานที่: ${e.assetLocation}',
+                      style: TextStyle(
+                          fontSize: AppTypography.tiny,
+                          color: colors.onSurfaceVariant)),
                 ],
               ],
             ),
@@ -319,8 +377,15 @@ class _RepairHistoryScreenState extends State<RepairHistoryScreen> {
           const SizedBox(width: 8),
           DsActionIconButtons(
             actions: [
-              DsRowAction(icon: Icons.inventory_2_outlined, tooltip: 'ดูครุภัณฑ์', onTap: () => widget.onViewAsset(e.assetId)),
-              DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(e), danger: true),
+              DsRowAction(
+                  icon: Icons.inventory_2_outlined,
+                  tooltip: 'ดูครุภัณฑ์',
+                  onTap: () => widget.onViewAsset(e.assetId)),
+              DsRowAction(
+                  icon: Icons.delete_outline,
+                  tooltip: 'ลบ',
+                  onTap: () => _confirmDelete(e),
+                  danger: true),
             ],
           ),
         ],

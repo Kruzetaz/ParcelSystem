@@ -42,10 +42,12 @@ class TravelReimbursementWizardScreen extends StatefulWidget {
   });
 
   @override
-  State<TravelReimbursementWizardScreen> createState() => _TravelReimbursementWizardScreenState();
+  State<TravelReimbursementWizardScreen> createState() =>
+      _TravelReimbursementWizardScreenState();
 }
 
-class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWizardScreen>
+class _TravelReimbursementWizardScreenState
+    extends State<TravelReimbursementWizardScreen>
     with SingleTickerProviderStateMixin {
   final _repo = ProcurementRepository();
   late final TabController _tabController;
@@ -109,7 +111,8 @@ class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWiz
         totalAmountTh: CalcEngine.bahtText(total),
         createdAt: _draft.createdAt ?? DateTime.now().toIso8601String(),
       );
-      final id = await _repo.saveTravelReimbursementWithParticipants(toSave, _participants);
+      final id = await _repo.saveTravelReimbursementWithParticipants(
+          toSave, _participants);
       final saved = toSave.copyWith(id: id);
       setState(() => _draft = saved);
       return saved;
@@ -127,7 +130,9 @@ class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWiz
 
   Future<void> _generateDocuments() async {
     if (_participants.isEmpty) {
-      ToastController.instance.show('ยังไม่มีรายชื่อผู้เดินทาง — เพิ่มอย่างน้อย 1 คนก่อน', isError: true);
+      ToastController.instance.show(
+          'ยังไม่มีรายชื่อผู้เดินทาง — เพิ่มอย่างน้อย 1 คนก่อน',
+          isError: true);
       return;
     }
     setState(() => _generating = true);
@@ -197,8 +202,10 @@ class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWiz
             labelColor: Colors.white,
             unselectedLabelColor: colors.onSurfaceVariant,
             labelPadding: EdgeInsets.zero,
-            labelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            labelStyle:
+                const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+            unselectedLabelStyle:
+                const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
             tabs: [
               _wizardStepTab(1, 'ข้อมูลทั่วไป'),
               _wizardStepTab(2, 'ผู้เดินทางและค่าใช้จ่าย'),
@@ -220,7 +227,8 @@ class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWiz
             child: TabBarView(
               controller: _tabController,
               children: [
-                _Tab1Info(draft: _draft, budgets: _budgets, onChanged: _updateDraft),
+                _Tab1Info(
+                    draft: _draft, budgets: _budgets, onChanged: _updateDraft),
                 _Tab2Participants(
                   participants: _participants,
                   personnel: _personnel,
@@ -236,48 +244,61 @@ class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWiz
           ),
         ),
         Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              border: Border(top: BorderSide(color: colors.outline)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: (_saving || _generating) ? null : _saveOnly,
-                    icon: _saving
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.save_outlined),
-                    label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึก'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colors.primary,
-                      side: BorderSide(color: colors.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                      textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: (_saving || _generating) ? null : _generateDocuments,
-                    icon: _generating
-                        ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
-                        : const Icon(Icons.description_outlined),
-                    label: Text(_generating ? 'กำลังสร้าง...' : 'สร้างเอกสาร Word'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: colors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                      textStyle: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            border: Border(top: BorderSide(color: colors.outline)),
           ),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: (_saving || _generating) ? null : _saveOnly,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.save_outlined),
+                  label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึก'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.primary,
+                    side: BorderSide(color: colors.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    textStyle: const TextStyle(
+                        fontSize: 15.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed:
+                      (_saving || _generating) ? null : _generateDocuments,
+                  icon: _generating
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: colors.onPrimary))
+                      : const Icon(Icons.print_outlined),
+                  label:
+                      Text(_generating ? 'กำลังสร้าง...' : 'สร้างเอกสาร Word'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    textStyle: const TextStyle(
+                        fontSize: 15.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -299,8 +320,15 @@ class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWiz
                 width: 15,
                 height: 15,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: fg, width: 1.2)),
-                child: Text('$step', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: fg, height: 1)),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: fg, width: 1.2)),
+                child: Text('$step',
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: fg,
+                        height: 1)),
               ),
               const SizedBox(width: 6),
               Text(label),
@@ -316,7 +344,8 @@ class _TravelReimbursementWizardScreenState extends State<TravelReimbursementWiz
 // มีที่ว่างในกรอบไว้โชว์ hintText เป็นตัวอย่างข้อความจางๆ ได้พร้อมกันเสมอ —
 // ใช้ hint ทุกที่ที่ค่าที่ต้องกรอกไม่ชัดเจนในตัวเอง (เช่น trip_subject ที่ใน
 // เทมเพลตมีข้อความนำหน้าอยู่แล้ว "ขอเบิกค่าใช้จ่ายในการเดินทางไปราชการ (...)")
-InputDecoration _inputDecoration(BuildContext context, String label, {String? hint}) {
+InputDecoration _inputDecoration(BuildContext context, String label,
+    {String? hint}) {
   final colors = Theme.of(context).colorScheme;
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
   return InputDecoration(
@@ -324,13 +353,21 @@ InputDecoration _inputDecoration(BuildContext context, String label, {String? hi
     hintText: hint,
     floatingLabelBehavior: FloatingLabelBehavior.always,
     labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-    hintStyle: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
+    hintStyle: TextStyle(
+        fontSize: AppTypography.bodyMedium,
+        color: colors.onSurfaceVariant.withValues(alpha: 0.6)),
     filled: true,
     fillColor: colors.surface,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: borderColor, width: 1.3)),
-    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: borderColor, width: 1.3)),
-    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(RadiusSize.md), borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6)),
+    border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        borderSide: BorderSide(color: borderColor, width: 1.3)),
+    enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        borderSide: BorderSide(color: borderColor, width: 1.3)),
+    focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RadiusSize.md),
+        borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6)),
   );
 }
 
@@ -356,9 +393,11 @@ Widget _sectionTitle(ColorScheme colors, String text) => Padding(
 class _Tab1Info extends StatefulWidget {
   final TravelReimbursement draft;
   final List<Budget> budgets;
-  final void Function(TravelReimbursement Function(TravelReimbursement)) onChanged;
+  final void Function(TravelReimbursement Function(TravelReimbursement))
+      onChanged;
 
-  const _Tab1Info({required this.draft, required this.budgets, required this.onChanged});
+  const _Tab1Info(
+      {required this.draft, required this.budgets, required this.onChanged});
 
   @override
   State<_Tab1Info> createState() => _Tab1InfoState();
@@ -391,7 +430,8 @@ class _Tab1InfoState extends State<_Tab1Info> {
     super.dispose();
   }
 
-  Future<void> _pickDate(TextEditingController ctrl, void Function(String) setValue) async {
+  Future<void> _pickDate(
+      TextEditingController ctrl, void Function(String) setValue) async {
     final colors = Theme.of(context).colorScheme;
     final initial = parseThaiDate(ctrl.text) ?? DateTime.now();
     final picked = await pickThaiDate(
@@ -404,14 +444,26 @@ class _Tab1InfoState extends State<_Tab1Info> {
     );
     if (picked == null) return;
     final y = picked.year + 543;
-    final formatted = '${picked.day} ${thaiMonthsAbbrev.isNotEmpty ? _fullMonth(picked.month) : ''} $y';
+    final formatted =
+        '${picked.day} ${thaiMonthsAbbrev.isNotEmpty ? _fullMonth(picked.month) : ''} $y';
     setState(() => ctrl.text = formatted);
     setValue(formatted);
   }
 
   static String _fullMonth(int m) => const [
-        '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+        '',
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม',
       ][m];
 
   @override
@@ -429,41 +481,55 @@ class _Tab1InfoState extends State<_Tab1Info> {
               builder: (context, hovering) => DropdownButtonFormField<int?>(
                 initialValue: widget.draft.budgetId,
                 isExpanded: true,
-                decoration: _inputDecoration(context, 'แผนงบประมาณ/โครงการ', hint: 'ไม่บังคับ ถ้าไม่เกี่ยวกับแผนงบใดเลยเว้นว่างได้').copyWith(
+                decoration: _inputDecoration(context, 'แผนงบประมาณ/โครงการ',
+                        hint: 'ไม่บังคับ ถ้าไม่เกี่ยวกับแผนงบใดเลยเว้นว่างได้')
+                    .copyWith(
                   floatingLabelBehavior: FloatingLabelBehavior.auto,
                   suffixIcon: hovering && widget.draft.budgetId != null
-                      ? clearIconButton(context, () => widget.onChanged((d) => d.copyWith(budgetId: null)))
+                      ? clearIconButton(
+                          context,
+                          () => widget
+                              .onChanged((d) => d.copyWith(budgetId: null)))
                       : null,
                 ),
                 items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ระบุแผนงบ)')),
+                  const DropdownMenuItem<int?>(
+                      value: null, child: Text('(ไม่ระบุแผนงบ)')),
                   for (final b in widget.budgets)
                     DropdownMenuItem(
                       value: b.id,
-                      child: Text(b.projectName ?? '(ไม่มีชื่อโครงการ)', overflow: TextOverflow.ellipsis),
+                      child: Text(b.projectName ?? '(ไม่มีชื่อโครงการ)',
+                          overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: (v) => widget.onChanged((d) => d.copyWith(budgetId: v)),
+                onChanged: (v) =>
+                    widget.onChanged((d) => d.copyWith(budgetId: v)),
               ),
             ),
             const SizedBox(height: 16),
             ClearableTextField(
               controller: _docNumberCtrl,
-              decoration: _inputDecoration(context, 'เลขที่หนังสือ', hint: 'เช่น ศธ 0000/0000'),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(documentNumber: v)),
+              decoration: _inputDecoration(context, 'เลขที่หนังสือ',
+                  hint: 'เช่น ศธ 0000/0000'),
+              onChanged: (v) =>
+                  widget.onChanged((d) => d.copyWith(documentNumber: v)),
             ),
             const SizedBox(height: 16),
             ClearableTextField(
               controller: _subjectCtrl,
               maxLines: 2,
-              decoration: _inputDecoration(context, 'เรื่อง/วัตถุประสงค์การไปราชการ', hint: 'เช่น เข้าร่วมอบรม/ประชุม/สัมมนา...'),
+              decoration: _inputDecoration(
+                  context, 'เรื่อง/วัตถุประสงค์การไปราชการ',
+                  hint: 'เช่น เข้าร่วมอบรม/ประชุม/สัมมนา...'),
               onChanged: (v) => widget.onChanged((d) => d.copyWith(subject: v)),
             ),
             const SizedBox(height: 16),
             ClearableTextField(
               controller: _destinationCtrl,
-              decoration: _inputDecoration(context, 'สถานที่ไปปฏิบัติราชการ', hint: 'เช่น โรงแรม/สถานที่จัดงาน จังหวัด...'),
-              onChanged: (v) => widget.onChanged((d) => d.copyWith(destination: v)),
+              decoration: _inputDecoration(context, 'สถานที่ไปปฏิบัติราชการ',
+                  hint: 'เช่น โรงแรม/สถานที่จัดงาน จังหวัด...'),
+              onChanged: (v) =>
+                  widget.onChanged((d) => d.copyWith(destination: v)),
             ),
             const SizedBox(height: 28),
             _sectionTitle(colors, 'ช่วงเวลาเดินทาง'),
@@ -473,8 +539,13 @@ class _Tab1InfoState extends State<_Tab1Info> {
                   child: ClearableTextField(
                     controller: _startDateCtrl,
                     readOnly: true,
-                    decoration: _inputDecoration(context, 'วันที่เริ่มเดินทาง').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                    onTap: () => _pickDate(_startDateCtrl, (v) => widget.onChanged((d) => d.copyWith(startDate: v))),
+                    decoration: _inputDecoration(context, 'วันที่เริ่มเดินทาง')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    onTap: () => _pickDate(
+                        _startDateCtrl,
+                        (v) =>
+                            widget.onChanged((d) => d.copyWith(startDate: v))),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -482,8 +553,12 @@ class _Tab1InfoState extends State<_Tab1Info> {
                   child: ClearableTextField(
                     controller: _endDateCtrl,
                     readOnly: true,
-                    decoration: _inputDecoration(context, 'วันที่สิ้นสุดการเดินทาง').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                    onTap: () => _pickDate(_endDateCtrl, (v) => widget.onChanged((d) => d.copyWith(endDate: v))),
+                    decoration: _inputDecoration(
+                            context, 'วันที่สิ้นสุดการเดินทาง')
+                        .copyWith(
+                            floatingLabelBehavior: FloatingLabelBehavior.auto),
+                    onTap: () => _pickDate(_endDateCtrl,
+                        (v) => widget.onChanged((d) => d.copyWith(endDate: v))),
                   ),
                 ),
               ],
@@ -504,11 +579,16 @@ class _Tab2Participants extends StatelessWidget {
   final List<Personnel> personnel;
   final void Function(List<TravelParticipant>) onChanged;
 
-  const _Tab2Participants({required this.participants, required this.personnel, required this.onChanged});
+  const _Tab2Participants(
+      {required this.participants,
+      required this.personnel,
+      required this.onChanged});
 
   Future<void> _addPersonnel(BuildContext context) async {
-    final alreadyAddedIds = participants.map((p) => p.personnelId).whereType<int>().toSet();
-    final candidates = personnel.where((p) => !alreadyAddedIds.contains(p.id)).toList();
+    final alreadyAddedIds =
+        participants.map((p) => p.personnelId).whereType<int>().toSet();
+    final candidates =
+        personnel.where((p) => !alreadyAddedIds.contains(p.id)).toList();
     final selected = await showDialog<List<Personnel>>(
       context: context,
       builder: (ctx) => _PersonnelPickerDialog(candidates: candidates),
@@ -516,12 +596,14 @@ class _Tab2Participants extends StatelessWidget {
     if (selected == null || selected.isEmpty) return;
     final next = [...participants];
     for (final p in selected) {
-      next.add(TravelParticipant(personnelId: p.id, participantName: p.name, position: p.position));
+      next.add(TravelParticipant(
+          personnelId: p.id, participantName: p.name, position: p.position));
     }
     onChanged(next);
   }
 
-  static const _headerStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 13);
+  static const _headerStyle =
+      TextStyle(fontWeight: FontWeight.bold, fontSize: 13);
 
   Widget _headerRow(ColorScheme colors) {
     final style = _headerStyle.copyWith(color: colors.onSurfaceVariant);
@@ -539,7 +621,9 @@ class _Tab2Participants extends StatelessWidget {
           const SizedBox(width: 8),
           SizedBox(width: 110, child: Text('ค่าใช้จ่ายอื่น', style: style)),
           const SizedBox(width: 8),
-          SizedBox(width: 100, child: Text('รวม', style: style, textAlign: TextAlign.right)),
+          SizedBox(
+              width: 100,
+              child: Text('รวม', style: style, textAlign: TextAlign.right)),
           const SizedBox(width: 40),
         ],
       ),
@@ -560,23 +644,29 @@ class _Tab2Participants extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: _sectionTitle(colors, 'รายชื่อผู้เดินทาง (${participants.length} คน)')),
+                Expanded(
+                    child: _sectionTitle(colors,
+                        'รายชื่อผู้เดินทาง (${participants.length} คน)')),
                 FilledButton.icon(
                   onPressed: () => _addPersonnel(context),
                   icon: const Icon(Icons.person_add_alt, size: 18),
                   label: const Text('เพิ่มจากทำเนียบบุคลากร'),
                   style: FilledButton.styleFrom(
                     backgroundColor: colors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                    textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(RadiusSize.md)),
+                    textStyle: const TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: participants.isEmpty ? 32 : 8),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 20, vertical: participants.isEmpty ? 32 : 8),
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(RadiusSize.card),
@@ -584,7 +674,9 @@ class _Tab2Participants extends StatelessWidget {
                 boxShadow: AppShadows.light1,
               ),
               child: participants.isEmpty
-                  ? Center(child: Text('ยังไม่มีผู้เดินทาง', style: TextStyle(color: colors.onSurfaceVariant)))
+                  ? Center(
+                      child: Text('ยังไม่มีผู้เดินทาง',
+                          style: TextStyle(color: colors.onSurfaceVariant)))
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -615,10 +707,15 @@ class _Tab2Participants extends StatelessWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              const Text('รวมทั้งสิ้น: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                              const Text('รวมทั้งสิ้น: ',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
                               Text(
                                 '${formatBaht(grandTotal)} บาท',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colors.primary),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: colors.primary),
                               ),
                             ],
                           ),
@@ -636,11 +733,18 @@ class _Tab2Participants extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ยอดรวมสุทธิ', style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
+                  Text('ยอดรวมสุทธิ',
+                      style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          color: colors.onSurfaceVariant)),
                   Text('${formatBaht(grandTotal)} บาท',
-                      style: TextStyle(fontSize: AppTypography.heading1, fontWeight: AppTypography.weightBold)),
+                      style: TextStyle(
+                          fontSize: AppTypography.heading1,
+                          fontWeight: AppTypography.weightBold)),
                   Text('(${CalcEngine.bahtText(grandTotal)})',
-                      style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
+                      style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          color: colors.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -658,7 +762,11 @@ class _ParticipantRow extends StatefulWidget {
   final ValueChanged<TravelParticipant> onChanged;
   final VoidCallback onRemove;
 
-  const _ParticipantRow({required this.index, required this.participant, required this.onChanged, required this.onRemove});
+  const _ParticipantRow(
+      {required this.index,
+      required this.participant,
+      required this.onChanged,
+      required this.onRemove});
 
   @override
   State<_ParticipantRow> createState() => _ParticipantRowState();
@@ -673,10 +781,22 @@ class _ParticipantRowState extends State<_ParticipantRow> {
   @override
   void initState() {
     super.initState();
-    _allowanceCtrl = TextEditingController(text: widget.participant.allowanceAmount == 0 ? '' : widget.participant.allowanceAmount.toString());
-    _accommodationCtrl = TextEditingController(text: widget.participant.accommodationAmount == 0 ? '' : widget.participant.accommodationAmount.toString());
-    _transportCtrl = TextEditingController(text: widget.participant.transportAmount == 0 ? '' : widget.participant.transportAmount.toString());
-    _registrationCtrl = TextEditingController(text: widget.participant.registrationFee == 0 ? '' : widget.participant.registrationFee.toString());
+    _allowanceCtrl = TextEditingController(
+        text: widget.participant.allowanceAmount == 0
+            ? ''
+            : widget.participant.allowanceAmount.toString());
+    _accommodationCtrl = TextEditingController(
+        text: widget.participant.accommodationAmount == 0
+            ? ''
+            : widget.participant.accommodationAmount.toString());
+    _transportCtrl = TextEditingController(
+        text: widget.participant.transportAmount == 0
+            ? ''
+            : widget.participant.transportAmount.toString());
+    _registrationCtrl = TextEditingController(
+        text: widget.participant.registrationFee == 0
+            ? ''
+            : widget.participant.registrationFee.toString());
   }
 
   @override
@@ -702,7 +822,10 @@ class _ParticipantRowState extends State<_ParticipantRow> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(width: 36, child: Text('${widget.index + 1}', style: TextStyle(color: colors.onSurfaceVariant))),
+          SizedBox(
+              width: 36,
+              child: Text('${widget.index + 1}',
+                  style: TextStyle(color: colors.onSurfaceVariant))),
           Expanded(
             flex: 3,
             child: Padding(
@@ -711,9 +834,14 @@ class _ParticipantRowState extends State<_ParticipantRow> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(widget.participant.participantName, style: TextStyle(fontWeight: AppTypography.weightSemiBold)),
+                  Text(widget.participant.participantName,
+                      style:
+                          TextStyle(fontWeight: AppTypography.weightSemiBold)),
                   if (widget.participant.position?.isNotEmpty ?? false)
-                    Text(widget.participant.position!, style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                    Text(widget.participant.position!,
+                        style: TextStyle(
+                            fontSize: AppTypography.caption,
+                            color: colors.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -722,10 +850,12 @@ class _ParticipantRowState extends State<_ParticipantRow> {
             width: 110,
             child: ClearableTextField(
               controller: _allowanceCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.right,
               decoration: _cellDecoration(),
-              onChanged: (v) => widget.onChanged(widget.participant.copyWith(allowanceAmount: double.tryParse(v) ?? 0)),
+              onChanged: (v) => widget.onChanged(widget.participant
+                  .copyWith(allowanceAmount: double.tryParse(v) ?? 0)),
             ),
           ),
           const SizedBox(width: 8),
@@ -733,10 +863,12 @@ class _ParticipantRowState extends State<_ParticipantRow> {
             width: 110,
             child: ClearableTextField(
               controller: _accommodationCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.right,
               decoration: _cellDecoration(),
-              onChanged: (v) => widget.onChanged(widget.participant.copyWith(accommodationAmount: double.tryParse(v) ?? 0)),
+              onChanged: (v) => widget.onChanged(widget.participant
+                  .copyWith(accommodationAmount: double.tryParse(v) ?? 0)),
             ),
           ),
           const SizedBox(width: 8),
@@ -744,10 +876,12 @@ class _ParticipantRowState extends State<_ParticipantRow> {
             width: 110,
             child: ClearableTextField(
               controller: _transportCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.right,
               decoration: _cellDecoration(),
-              onChanged: (v) => widget.onChanged(widget.participant.copyWith(transportAmount: double.tryParse(v) ?? 0)),
+              onChanged: (v) => widget.onChanged(widget.participant
+                  .copyWith(transportAmount: double.tryParse(v) ?? 0)),
             ),
           ),
           const SizedBox(width: 8),
@@ -755,16 +889,20 @@ class _ParticipantRowState extends State<_ParticipantRow> {
             width: 110,
             child: ClearableTextField(
               controller: _registrationCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.right,
               decoration: _cellDecoration(),
-              onChanged: (v) => widget.onChanged(widget.participant.copyWith(registrationFee: double.tryParse(v) ?? 0)),
+              onChanged: (v) => widget.onChanged(widget.participant
+                  .copyWith(registrationFee: double.tryParse(v) ?? 0)),
             ),
           ),
           const SizedBox(width: 8),
           SizedBox(
             width: 100,
-            child: Text(formatBaht(widget.participant.subtotal), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(formatBaht(widget.participant.subtotal),
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           SizedBox(
             width: 40,
@@ -821,10 +959,14 @@ class _PersonnelPickerDialogState extends State<_PersonnelPickerDialog> {
               ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('ยกเลิก')),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก')),
         FilledButton(
           onPressed: () {
-            final chosen = widget.candidates.where((p) => _selected.contains(p.id)).toList();
+            final chosen = widget.candidates
+                .where((p) => _selected.contains(p.id))
+                .toList();
             Navigator.pop(context, chosen);
           },
           child: const Text('เพิ่ม'),
@@ -840,7 +982,8 @@ class _PersonnelPickerDialogState extends State<_PersonnelPickerDialog> {
 class _Tab3Form1Details extends StatefulWidget {
   final TravelReimbursement draft;
   final List<Personnel> personnel;
-  final void Function(TravelReimbursement Function(TravelReimbursement)) onChanged;
+  final void Function(TravelReimbursement Function(TravelReimbursement))
+      onChanged;
 
   const _Tab3Form1Details({
     required this.draft,
@@ -870,10 +1013,14 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
   @override
   void initState() {
     super.initState();
-    _allowanceTypeCtrl = TextEditingController(text: widget.draft.allowanceType);
-    _accommodationTypeCtrl = TextEditingController(text: widget.draft.accommodationType);
-    _transportTypeCtrl = TextEditingController(text: widget.draft.transportType);
-    _otherExpenseTypeCtrl = TextEditingController(text: widget.draft.otherExpenseType);
+    _allowanceTypeCtrl =
+        TextEditingController(text: widget.draft.allowanceType);
+    _accommodationTypeCtrl =
+        TextEditingController(text: widget.draft.accommodationType);
+    _transportTypeCtrl =
+        TextEditingController(text: widget.draft.transportType);
+    _otherExpenseTypeCtrl =
+        TextEditingController(text: widget.draft.otherExpenseType);
   }
 
   @override
@@ -901,18 +1048,21 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
                 DSFilterChip(
                   label: 'ที่พัก',
                   isSelected: widget.draft.departsFromHome,
-                  onTap: () => widget.onChanged((d) => d.copyWith(departsFromHome: true)),
+                  onTap: () => widget
+                      .onChanged((d) => d.copyWith(departsFromHome: true)),
                 ),
                 const SizedBox(width: 12),
                 DSFilterChip(
                   label: 'สำนักงาน',
                   isSelected: !widget.draft.departsFromHome,
-                  onTap: () => widget.onChanged((d) => d.copyWith(departsFromHome: false)),
+                  onTap: () => widget
+                      .onChanged((d) => d.copyWith(departsFromHome: false)),
                 ),
               ],
             ),
             const SizedBox(height: 28),
-            _sectionTitle(colors, 'ผู้ขอเบิก (ติ๊ก ☑ ข้าพเจ้า/และคณะ ในเอกสารตามตัวเลือกนี้)'),
+            _sectionTitle(colors,
+                'ผู้ขอเบิก (ติ๊ก ☑ ข้าพเจ้า/และคณะ ในเอกสารตามตัวเลือกนี้)'),
             Wrap(
               spacing: 12,
               runSpacing: 8,
@@ -920,12 +1070,14 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
                 DSFilterChip(
                   label: 'ข้าพเจ้าคนเดียว',
                   isSelected: !widget.draft.isAdvancePayer,
-                  onTap: () => widget.onChanged((d) => d.copyWith(isAdvancePayer: false, advancePayerPersonnelId: null)),
+                  onTap: () => widget.onChanged((d) => d.copyWith(
+                      isAdvancePayer: false, advancePayerPersonnelId: null)),
                 ),
                 DSFilterChip(
                   label: 'ข้าพเจ้าและคณะ (มีผู้สำรองจ่ายเงินแทน)',
                   isSelected: widget.draft.isAdvancePayer,
-                  onTap: () => widget.onChanged((d) => d.copyWith(isAdvancePayer: true)),
+                  onTap: () =>
+                      widget.onChanged((d) => d.copyWith(isAdvancePayer: true)),
                 ),
               ],
             ),
@@ -935,17 +1087,28 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
                 builder: (context, hovering) => DropdownButtonFormField<int?>(
                   initialValue: widget.draft.advancePayerPersonnelId,
                   isExpanded: true,
-                  decoration: _inputDecoration(context, 'ผู้สำรองจ่าย/หัวหน้าคณะ').copyWith(
+                  decoration:
+                      _inputDecoration(context, 'ผู้สำรองจ่าย/หัวหน้าคณะ')
+                          .copyWith(
                     floatingLabelBehavior: FloatingLabelBehavior.auto,
-                    suffixIcon: hovering && widget.draft.advancePayerPersonnelId != null
-                        ? clearIconButton(context, () => widget.onChanged((d) => d.copyWith(advancePayerPersonnelId: null)))
-                        : null,
+                    suffixIcon:
+                        hovering && widget.draft.advancePayerPersonnelId != null
+                            ? clearIconButton(
+                                context,
+                                () => widget.onChanged((d) =>
+                                    d.copyWith(advancePayerPersonnelId: null)))
+                            : null,
                   ),
                   items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('(ยังไม่เลือก)')),
-                    for (final p in widget.personnel) DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)),
+                    const DropdownMenuItem<int?>(
+                        value: null, child: Text('(ยังไม่เลือก)')),
+                    for (final p in widget.personnel)
+                      DropdownMenuItem(
+                          value: p.id,
+                          child: Text(p.name, overflow: TextOverflow.ellipsis)),
                   ],
-                  onChanged: (v) => widget.onChanged((d) => d.copyWith(advancePayerPersonnelId: v)),
+                  onChanged: (v) => widget
+                      .onChanged((d) => d.copyWith(advancePayerPersonnelId: v)),
                 ),
               ),
             ] else ...[
@@ -954,17 +1117,29 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
                 builder: (context, hovering) => DropdownButtonFormField<int?>(
                   initialValue: widget.draft.requesterPersonnelId,
                   isExpanded: true,
-                  decoration: _inputDecoration(context, 'ผู้ขอเบิก/ผู้รับเงิน').copyWith(
+                  decoration: _inputDecoration(context, 'ผู้ขอเบิก/ผู้รับเงิน')
+                      .copyWith(
                     floatingLabelBehavior: FloatingLabelBehavior.auto,
-                    suffixIcon: hovering && widget.draft.requesterPersonnelId != null
-                        ? clearIconButton(context, () => widget.onChanged((d) => d.copyWith(requesterPersonnelId: null)))
+                    suffixIcon: hovering &&
+                            widget.draft.requesterPersonnelId != null
+                        ? clearIconButton(
+                            context,
+                            () => widget.onChanged(
+                                (d) => d.copyWith(requesterPersonnelId: null)))
                         : null,
                   ),
                   items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('(ยังไม่เลือก — ใช้ผู้เดินทางคนแรกในตาราง)')),
-                    for (final p in widget.personnel) DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)),
+                    const DropdownMenuItem<int?>(
+                        value: null,
+                        child:
+                            Text('(ยังไม่เลือก — ใช้ผู้เดินทางคนแรกในตาราง)')),
+                    for (final p in widget.personnel)
+                      DropdownMenuItem(
+                          value: p.id,
+                          child: Text(p.name, overflow: TextOverflow.ellipsis)),
                   ],
-                  onChanged: (v) => widget.onChanged((d) => d.copyWith(requesterPersonnelId: v)),
+                  onChanged: (v) => widget
+                      .onChanged((d) => d.copyWith(requesterPersonnelId: v)),
                 ),
               ),
             ],
@@ -974,39 +1149,58 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
               builder: (context, hovering) => DropdownButtonFormField<int?>(
                 initialValue: widget.draft.checkerPersonnelId,
                 isExpanded: true,
-                decoration: _inputDecoration(context, 'ผู้ตรวจสอบหลักฐานการเบิกจ่าย').copyWith(
+                decoration:
+                    _inputDecoration(context, 'ผู้ตรวจสอบหลักฐานการเบิกจ่าย')
+                        .copyWith(
                   floatingLabelBehavior: FloatingLabelBehavior.auto,
-                  suffixIcon: hovering && widget.draft.checkerPersonnelId != null
-                      ? clearIconButton(context, () => widget.onChanged((d) => d.copyWith(checkerPersonnelId: null)))
-                      : null,
+                  suffixIcon:
+                      hovering && widget.draft.checkerPersonnelId != null
+                          ? clearIconButton(
+                              context,
+                              () => widget.onChanged(
+                                  (d) => d.copyWith(checkerPersonnelId: null)))
+                          : null,
                 ),
                 items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('(ยังไม่เลือก)')),
-                  for (final p in widget.personnel) DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)),
+                  const DropdownMenuItem<int?>(
+                      value: null, child: Text('(ยังไม่เลือก)')),
+                  for (final p in widget.personnel)
+                    DropdownMenuItem(
+                        value: p.id,
+                        child: Text(p.name, overflow: TextOverflow.ellipsis)),
                 ],
-                onChanged: (v) => widget.onChanged((d) => d.copyWith(checkerPersonnelId: v)),
+                onChanged: (v) =>
+                    widget.onChanged((d) => d.copyWith(checkerPersonnelId: v)),
               ),
             ),
             const SizedBox(height: 28),
             _sectionTitle(colors, 'อัตราการเบิก (ประเภท) แต่ละหมวด'),
-            Text('ตามแบบ ๘๗๐๘ ส่วนที่ 1 — เว้นว่างช่องไหนได้ ถ้าจะปริ้นเอกสารแล้วเขียนกรอกเองด้วยมือ',
-                style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+            Text(
+                'ตามแบบ ๘๗๐๘ ส่วนที่ 1 — เว้นว่างช่องไหนได้ ถ้าจะปริ้นเอกสารแล้วเขียนกรอกเองด้วยมือ',
+                style: TextStyle(
+                    fontSize: AppTypography.caption,
+                    color: colors.onSurfaceVariant)),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: ClearableTextField(
                     controller: _allowanceTypeCtrl,
-                    decoration: _inputDecoration(context, 'ประเภทค่าเบี้ยเลี้ยง', hint: 'เช่น ระดับชำนาญการ'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(allowanceType: v)),
+                    decoration: _inputDecoration(
+                        context, 'ประเภทค่าเบี้ยเลี้ยง',
+                        hint: 'เช่น ระดับชำนาญการ'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(allowanceType: v)),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ClearableTextField(
                     controller: _accommodationTypeCtrl,
-                    decoration: _inputDecoration(context, 'ประเภทค่าเช่าที่พัก', hint: 'เช่น ระดับชำนาญการ'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(accommodationType: v)),
+                    decoration: _inputDecoration(context, 'ประเภทค่าเช่าที่พัก',
+                        hint: 'เช่น ระดับชำนาญการ'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(accommodationType: v)),
                   ),
                 ),
               ],
@@ -1017,16 +1211,21 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _transportTypeCtrl,
-                    decoration: _inputDecoration(context, 'ประเภทค่าพาหนะ', hint: 'เช่น รถยนต์ส่วนตัว'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(transportType: v)),
+                    decoration: _inputDecoration(context, 'ประเภทค่าพาหนะ',
+                        hint: 'เช่น รถยนต์ส่วนตัว'),
+                    onChanged: (v) =>
+                        widget.onChanged((d) => d.copyWith(transportType: v)),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ClearableTextField(
                     controller: _otherExpenseTypeCtrl,
-                    decoration: _inputDecoration(context, 'ประเภทค่าใช้จ่ายอื่น', hint: 'เช่น ค่าลงทะเบียน'),
-                    onChanged: (v) => widget.onChanged((d) => d.copyWith(otherExpenseType: v)),
+                    decoration: _inputDecoration(
+                        context, 'ประเภทค่าใช้จ่ายอื่น',
+                        hint: 'เช่น ค่าลงทะเบียน'),
+                    onChanged: (v) => widget
+                        .onChanged((d) => d.copyWith(otherExpenseType: v)),
                   ),
                 ),
               ],
@@ -1035,7 +1234,9 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
             _sectionTitle(colors, '📌 ไกด์แนะนำเอกสารประกอบชุดเบิกจ่าย'),
             Text(
               'นอกจากเอกสารที่ระบบสร้างให้ ต้องรวบรวมเอกสารเหล่านี้มาแนบเย็บเล่มเพิ่ม:',
-              style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant),
+              style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             for (final item in _checklistItems)
@@ -1056,4 +1257,3 @@ class _Tab3Form1DetailsState extends State<_Tab3Form1Details> {
     );
   }
 }
-

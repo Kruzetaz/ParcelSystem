@@ -71,7 +71,8 @@ class FeatureAccessService {
   /// service ด้วย ไม่ใช่เชื่อแค่ว่า UI ล็อกเมนู/routing กันไว้แล้วเท่านั้น
   void requireModule(String moduleKey, String moduleLabel) {
     if (!hasModule(moduleKey)) {
-      throw FeatureLockedException('โมดูล$moduleLabelยังไม่ได้ปลดล็อกในแพ็กเกจนี้');
+      throw FeatureLockedException(
+          'โมดูล$moduleLabelยังไม่ได้ปลดล็อกในแพ็กเกจนี้');
     }
   }
 }

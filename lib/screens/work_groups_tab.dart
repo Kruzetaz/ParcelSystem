@@ -31,14 +31,16 @@ const _dialogFieldStyle = TextStyle(fontSize: 17);
 /// InputDecorationTheme ของธีมทั้งหมด ผลคือช่องกรอกมีเส้นขอบดำเถื่อนตายตัว
 /// ไม่ตอบสนองธีมสว่าง/มืด — เปลี่ยนมาใช้สูตร `_dialogFieldDecoration` เดียวกับ
 /// ที่ใช้แก้ปัญหานี้ในหน้าอื่น (contracts_screen, guarantees_screen ฯลฯ) แทน
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+InputDecoration _dialogFieldDecoration(BuildContext context,
+    {required String label, String? hint}) {
   final colors = Theme.of(context).colorScheme;
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
   return InputDecoration(
     labelText: label,
     hintText: hint,
     floatingLabelBehavior: FloatingLabelBehavior.always,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
+    labelStyle: _dialogLabelStyle.copyWith(
+        color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(RadiusSize.md),
@@ -388,7 +390,9 @@ class _WorkGroupFormDialogState extends State<_WorkGroupFormDialog> {
                   child: ClearableTextField(
                     controller: _nameCtrl,
                     style: _dialogFieldStyle,
-                    decoration: _dialogFieldDecoration(context, label: 'ชื่อกลุ่มงาน/ฝ่าย *', hint: 'เช่น ฝ่ายบริหารงานทั่วไป'),
+                    decoration: _dialogFieldDecoration(context,
+                        label: 'ชื่อกลุ่มงาน/ฝ่าย *',
+                        hint: 'เช่น ฝ่ายบริหารงานทั่วไป'),
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? 'กรุณากรอกชื่อกลุ่มงาน'
                         : null,
@@ -400,7 +404,8 @@ class _WorkGroupFormDialogState extends State<_WorkGroupFormDialog> {
                     fieldKey: 'workgroup.headName',
                     presetOptions: _personnel.map((p) => p.name).toList(),
                     controller: _headNameCtrl,
-                    decoration: _dialogFieldDecoration(context, label: 'หัวหน้ากลุ่มงาน', hint: 'เช่น นายสมชาย ใจดี'),
+                    decoration: _dialogFieldDecoration(context,
+                        label: 'หัวหน้ากลุ่มงาน', hint: 'เช่น นายสมชาย ใจดี'),
                   ),
                 ),
                 SwitchListTile(

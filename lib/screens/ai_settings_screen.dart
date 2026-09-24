@@ -290,15 +290,17 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   }
 
   InputDecoration _fieldDecoration(BuildContext context,
-      {required String label, Widget? suffixIcon, Widget? prefixIcon, String? hint}) {
+      {required String label,
+      Widget? suffixIcon,
+      Widget? prefixIcon,
+      String? hint}) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
       labelStyle: const TextStyle(
-          fontSize: AppTypography.bodyMedium,
-          fontWeight: FontWeight.w700),
+          fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700),
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),

@@ -24,7 +24,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeController.instance, FontScaleController.instance]),
+      listenable: Listenable.merge(
+          [ThemeController.instance, FontScaleController.instance]),
       builder: (context, _) {
         return MaterialApp(
           title: 'ระบบจัดซื้อจัดจ้าง',

@@ -12,6 +12,7 @@ import '../models/school_branch.dart';
 import '../models/learning_material_record.dart';
 import '../models/learning_material_grade.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/design_system/status_badge.dart' show DSFilterChip;
@@ -21,7 +22,8 @@ import '../widgets/design_system/clearable_text_field.dart';
 class LearningMaterialsScreen extends StatefulWidget {
   const LearningMaterialsScreen({super.key});
   @override
-  State<LearningMaterialsScreen> createState() => _LearningMaterialsScreenState();
+  State<LearningMaterialsScreen> createState() =>
+      _LearningMaterialsScreenState();
 }
 
 class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
@@ -29,8 +31,12 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   bool _loading = true;
   List<SchoolBranch> _branches = [];
   List<LearningMaterialGrade> _grades = [];
-  int? _selectedBranchId;
-  String _category = learningMaterialCategories.first;
+  // จำสาขา/ประเภทที่เลือกไว้ล่าสุดในเซสชันนี้ กันรีเซ็ตกลับค่าเริ่มต้นทุกครั้ง
+  // ที่สลับหน้าออกแล้วกลับมา (ยังมี validation กับรายชื่อสาขาจริงใน _load() อยู่)
+  int? _selectedBranchId =
+      UiSessionState.instance.read<int?>('learning_materials_branch_id', null);
+  String _category = UiSessionState.instance
+      .read('learning_materials_category', learningMaterialCategories.first);
 
   // ระเบียนของสาขาที่กำลังเลือกดู (สำหรับตาราง) — คีย์ด้วยชื่อชั้น
   Map<String, LearningMaterialRecord> _recordsByGrade = {};
@@ -74,7 +80,8 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
 
   LearningMaterialRecord _recordFor(String grade) =>
       _recordsByGrade[grade] ??
-      LearningMaterialRecord(branchId: _selectedBranchId!, category: _category, gradeLevel: grade);
+      LearningMaterialRecord(
+          branchId: _selectedBranchId!, category: _category, gradeLevel: grade);
 
   Future<void> _saveRecord(LearningMaterialRecord r) async {
     setState(() => _recordsByGrade[r.gradeLevel] = r);
@@ -88,12 +95,15 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   }
 
   Future<void> _manageBranches() async {
-    await showDialog(context: context, builder: (_) => _BranchManagerDialog(repo: _repo, branches: _branches));
+    await showDialog(
+        context: context,
+        builder: (_) => _BranchManagerDialog(repo: _repo, branches: _branches));
     final branches = await _repo.getAllBranches();
     if (!mounted) return;
     setState(() {
       _branches = branches;
-      if (_selectedBranchId != null && !branches.any((b) => b.id == _selectedBranchId)) {
+      if (_selectedBranchId != null &&
+          !branches.any((b) => b.id == _selectedBranchId)) {
         _selectedBranchId = branches.isNotEmpty ? branches.first.id : null;
       }
       _selectedBranchId ??= branches.isNotEmpty ? branches.first.id : null;
@@ -102,7 +112,9 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   }
 
   Future<void> _manageGrades() async {
-    await showDialog(context: context, builder: (_) => _GradeManagerDialog(repo: _repo, grades: _grades));
+    await showDialog(
+        context: context,
+        builder: (_) => _GradeManagerDialog(repo: _repo, grades: _grades));
     final grades = await _repo.getAllLearningMaterialGrades();
     if (!mounted) return;
     setState(() => _grades = grades);
@@ -111,10 +123,18 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
 
   Future<void> _editRow(String grade) async {
     final current = _recordFor(grade);
-    final studentCtrl = TextEditingController(text: current.studentCount == 0 ? '' : '${current.studentCount}');
-    final orderedCtrl = TextEditingController(text: current.orderedCount == 0 ? '' : '${current.orderedCount}');
-    final unitPriceCtrl = TextEditingController(text: current.unitPrice == null ? '' : current.unitPrice!.toStringAsFixed(2));
-    final actualAmountCtrl = TextEditingController(text: current.actualAmount == null ? '' : current.actualAmount!.toStringAsFixed(2));
+    final studentCtrl = TextEditingController(
+        text: current.studentCount == 0 ? '' : '${current.studentCount}');
+    final orderedCtrl = TextEditingController(
+        text: current.orderedCount == 0 ? '' : '${current.orderedCount}');
+    final unitPriceCtrl = TextEditingController(
+        text: current.unitPrice == null
+            ? ''
+            : current.unitPrice!.toStringAsFixed(2));
+    final actualAmountCtrl = TextEditingController(
+        text: current.actualAmount == null
+            ? ''
+            : current.actualAmount!.toStringAsFixed(2));
     final noteCtrl = TextEditingController(text: current.note ?? '');
 
     final save = await showDialog<bool>(
@@ -138,7 +158,8 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                           labelText: 'จำนวนนักเรียน',
                           hintText: 'เช่น 30',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
-                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          labelStyle: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700),
                           isDense: true,
                         ),
                       ),
@@ -152,7 +173,8 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                           labelText: 'จำนวนที่สั่งซื้อ',
                           hintText: 'เช่น 30',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
-                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          labelStyle: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700),
                           isDense: true,
                         ),
                       ),
@@ -165,12 +187,14 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                     Expanded(
                       child: ClearableTextField(
                         controller: unitPriceCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         decoration: const InputDecoration(
                           labelText: 'ราคาต่อหัว (บาท)',
                           hintText: 'เช่น 150.00',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
-                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          labelStyle: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700),
                           isDense: true,
                         ),
                       ),
@@ -179,12 +203,14 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                     Expanded(
                       child: ClearableTextField(
                         controller: actualAmountCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         decoration: const InputDecoration(
                           labelText: 'จัดซื้อจริง (บาท)',
                           hintText: 'เช่น 4500.00',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
-                          labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          labelStyle: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700),
                           isDense: true,
                         ),
                       ),
@@ -199,7 +225,8 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                     labelText: 'หมายเหตุ',
                     hintText: 'เช่น สั่งซื้อเพิ่มเติมระหว่างเทอม',
                     floatingLabelBehavior: FloatingLabelBehavior.always,
-                    labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    labelStyle:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                     isDense: true,
                   ),
                 ),
@@ -208,8 +235,12 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('บันทึก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('บันทึก')),
         ],
       ),
     );
@@ -255,19 +286,27 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.menu_book_outlined, color: BrandAccent.tealOn(context), size: 22),
+                Icon(Icons.menu_book_outlined,
+                    color: BrandAccent.tealOn(context), size: 22),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text('ทะเบียนหนังสือเรียน/อุปกรณ์การเรียน',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                      style: TextStyle(
+                          fontSize: AppTypography.heading2,
+                          fontWeight: AppTypography.weightExtraBold,
+                          color: colors.onSurface)),
                 ),
                 SegmentedButton<String>(
-                  segments: learningMaterialCategories.map((c) => ButtonSegment(value: c, label: Text(c))).toList(),
+                  segments: learningMaterialCategories
+                      .map((c) => ButtonSegment(value: c, label: Text(c)))
+                      .toList(),
                   selected: {_category},
                   onSelectionChanged: (s) {
                     setState(() => _category = s.first);
+                    UiSessionState.instance
+                        .write('learning_materials_category', _category);
                     _loadRecords();
                   },
                 ),
@@ -286,8 +325,11 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
               ],
             ),
             const SizedBox(height: 4),
-            Text('จำนวนนักเรียน x ราคาต่อหัว = งบที่ต้องใช้ เทียบกับเงินที่จัดซื้อจริง เพื่อเช็คว่าขาด/เกินงบไปเท่าไหร่',
-                style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurfaceVariant)),
+            Text(
+                'จำนวนนักเรียน x ราคาต่อหัว = งบที่ต้องใช้ เทียบกับเงินที่จัดซื้อจริง เพื่อเช็คว่าขาด/เกินงบไปเท่าไหร่',
+                style: TextStyle(
+                    fontSize: AppTypography.bodyMedium,
+                    color: colors.onSurfaceVariant)),
             const SizedBox(height: 16),
             _buildOverviewCard(colors),
             if (_branches.length > 1) ...[
@@ -301,10 +343,14 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.location_off_outlined, size: 64, color: colors.onSurfaceVariant),
+                      Icon(Icons.location_off_outlined,
+                          size: 64, color: colors.onSurfaceVariant),
                       const SizedBox(height: 12),
-                      Text('ยังไม่มีสาขาในระบบ กด "จัดการสาขา" เพื่อเพิ่มสาขาแรก',
-                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4)),
+                      Text(
+                          'ยังไม่มีสาขาในระบบ กด "จัดการสาขา" เพื่อเพิ่มสาขาแรก',
+                          style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: AppTypography.heading4)),
                     ],
                   ),
                 ),
@@ -321,10 +367,13 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   }
 
   Widget _buildOverviewCard(ColorScheme colors) {
-    final totalRequired = _allRecordsForCategory.fold<double>(0, (s, r) => s + r.requiredBudget);
-    final totalActual = _allRecordsForCategory.fold<double>(0, (s, r) => s + (r.actualAmount ?? 0));
+    final totalRequired =
+        _allRecordsForCategory.fold<double>(0, (s, r) => s + r.requiredBudget);
+    final totalActual = _allRecordsForCategory.fold<double>(
+        0, (s, r) => s + (r.actualAmount ?? 0));
     final totalDiff = totalActual - totalRequired;
-    final shortageGrades = _allRecordsForCategory.where((r) => r.diff < 0).length;
+    final shortageGrades =
+        _allRecordsForCategory.where((r) => r.diff < 0).length;
     final overBudget = totalDiff < 0;
 
     return Container(
@@ -337,11 +386,20 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
       ),
       child: Row(
         children: [
-          Expanded(child: _overviewStat('ภาพรวมทั้งโรงเรียน ($_category)', '${_branches.length} สาขา', colors.onSurfaceVariant, colors)),
+          Expanded(
+              child: _overviewStat('ภาพรวมทั้งโรงเรียน ($_category)',
+                  '${_branches.length} สาขา', colors.onSurfaceVariant, colors)),
           Container(width: 1, height: 34, color: colors.outlineVariant),
-          Expanded(child: _overviewStat('งบที่ต้องใช้รวม', '${formatBaht(totalRequired)} บาท', colors.onSurface, colors)),
+          Expanded(
+              child: _overviewStat(
+                  'งบที่ต้องใช้รวม',
+                  '${formatBaht(totalRequired)} บาท',
+                  colors.onSurface,
+                  colors)),
           Container(width: 1, height: 34, color: colors.outlineVariant),
-          Expanded(child: _overviewStat('จัดซื้อจริงรวม', '${formatBaht(totalActual)} บาท', colors.onSurface, colors)),
+          Expanded(
+              child: _overviewStat('จัดซื้อจริงรวม',
+                  '${formatBaht(totalActual)} บาท', colors.onSurface, colors)),
           Container(width: 1, height: 34, color: colors.outlineVariant),
           Expanded(
             child: _overviewStat(
@@ -352,21 +410,40 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
             ),
           ),
           Container(width: 1, height: 34, color: colors.outlineVariant),
-          Expanded(child: _overviewStat('ชั้นที่จำนวนขาด', '$shortageGrades ชั้น', shortageGrades > 0 ? Colors.orange : BrandAccent.green(context), colors)),
+          Expanded(
+              child: _overviewStat(
+                  'ชั้นที่จำนวนขาด',
+                  '$shortageGrades ชั้น',
+                  shortageGrades > 0
+                      ? Colors.orange
+                      : BrandAccent.green(context),
+                  colors)),
         ],
       ),
     );
   }
 
-  Widget _overviewStat(String label, String value, Color valueColor, ColorScheme colors) {
+  Widget _overviewStat(
+      String label, String value, Color valueColor, ColorScheme colors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: AppTypography.caption,
+                  color: colors.onSurfaceVariant)),
           const SizedBox(height: 4),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w800, color: valueColor)),
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor)),
         ],
       ),
     );
@@ -375,7 +452,10 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   /// สรุปแยกตามสาขา (ของหมวดหมู่ที่กำลังดูอยู่) — แถวละสาขา กดแล้วสลับไปดู/
   /// แก้ไขตารางของสาขานั้นได้ทันที
   Widget _buildBranchSummaryTable(ColorScheme colors) {
-    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.caption, color: colors.onSurfaceVariant);
+    final headerStyle = TextStyle(
+        fontWeight: AppTypography.weightBold,
+        fontSize: AppTypography.caption,
+        color: colors.onSurfaceVariant);
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
@@ -387,25 +467,40 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
-            child: Text('สรุปแยกตามสาขา ($_category)', style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall, color: colors.onSurface)),
+            child: Text('สรุปแยกตามสาขา ($_category)',
+                style: TextStyle(
+                    fontWeight: AppTypography.weightBold,
+                    fontSize: AppTypography.bodySmall,
+                    color: colors.onSurface)),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               children: [
                 Expanded(flex: 2, child: Text('สาขา', style: headerStyle)),
-                Expanded(child: Text('งบที่ต้องใช้', style: headerStyle, textAlign: TextAlign.right)),
-                Expanded(child: Text('จัดซื้อจริง', style: headerStyle, textAlign: TextAlign.right)),
-                Expanded(child: Text('ส่วนต่างงบ', style: headerStyle, textAlign: TextAlign.right)),
-                Expanded(child: Text('ชั้นที่ขาด', style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(
+                    child: Text('งบที่ต้องใช้',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(
+                    child: Text('จัดซื้อจริง',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(
+                    child: Text('ส่วนต่างงบ',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                Expanded(
+                    child: Text('ชั้นที่ขาด',
+                        style: headerStyle, textAlign: TextAlign.right)),
               ],
             ),
           ),
           const Divider(height: 8),
           ..._branches.map((b) {
-            final recs = _allRecordsForCategory.where((r) => r.branchId == b.id);
-            final required = recs.fold<double>(0, (s, r) => s + r.requiredBudget);
-            final actual = recs.fold<double>(0, (s, r) => s + (r.actualAmount ?? 0));
+            final recs =
+                _allRecordsForCategory.where((r) => r.branchId == b.id);
+            final required =
+                recs.fold<double>(0, (s, r) => s + r.requiredBudget);
+            final actual =
+                recs.fold<double>(0, (s, r) => s + (r.actualAmount ?? 0));
             final diff = actual - required;
             final shortage = recs.where((r) => r.diff < 0).length;
             final over = diff < 0;
@@ -413,25 +508,57 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
             return InkWell(
               onTap: () {
                 setState(() => _selectedBranchId = b.id);
+                UiSessionState.instance
+                    .write('learning_materials_branch_id', b.id);
                 _loadRecords();
               },
               child: Container(
-                color: selected ? BrandAccent.teal(context).withValues(alpha: 0.06) : null,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                color: selected
+                    ? BrandAccent.teal(context).withValues(alpha: 0.06)
+                    : null,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 child: Row(
                   children: [
-                    Expanded(flex: 2, child: Text(b.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: selected ? FontWeight.w800 : FontWeight.w500))),
-                    Expanded(child: Text(formatBaht(required), textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodySmall))),
-                    Expanded(child: Text(formatBaht(actual), textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodySmall))),
+                    Expanded(
+                        flex: 2,
+                        child: Text(b.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: AppTypography.bodySmall,
+                                fontWeight: selected
+                                    ? FontWeight.w800
+                                    : FontWeight.w500))),
+                    Expanded(
+                        child: Text(formatBaht(required),
+                            textAlign: TextAlign.right,
+                            style:
+                                TextStyle(fontSize: AppTypography.bodySmall))),
+                    Expanded(
+                        child: Text(formatBaht(actual),
+                            textAlign: TextAlign.right,
+                            style:
+                                TextStyle(fontSize: AppTypography.bodySmall))),
                     Expanded(
                       child: Text(formatBaht(diff.abs()),
                           textAlign: TextAlign.right,
-                          style: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: FontWeight.w700, color: over ? Colors.orange : BrandAccent.green(context))),
+                          style: TextStyle(
+                              fontSize: AppTypography.bodySmall,
+                              fontWeight: FontWeight.w700,
+                              color: over
+                                  ? Colors.orange
+                                  : BrandAccent.green(context))),
                     ),
                     Expanded(
                       child: Text('$shortage ชั้น',
                           textAlign: TextAlign.right,
-                          style: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: FontWeight.w700, color: shortage > 0 ? Colors.orange : BrandAccent.green(context))),
+                          style: TextStyle(
+                              fontSize: AppTypography.bodySmall,
+                              fontWeight: FontWeight.w700,
+                              color: shortage > 0
+                                  ? Colors.orange
+                                  : BrandAccent.green(context))),
                     ),
                   ],
                 ),
@@ -455,6 +582,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
           isSelected: selected,
           onTap: () {
             setState(() => _selectedBranchId = b.id);
+            UiSessionState.instance.write('learning_materials_branch_id', b.id);
             _loadRecords();
           },
         );
@@ -463,7 +591,10 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   }
 
   Widget _buildTable(ColorScheme colors) {
-    final headerStyle = TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant);
+    final headerStyle = TextStyle(
+        fontWeight: AppTypography.weightBold,
+        fontSize: AppTypography.bodySmall,
+        color: colors.onSurfaceVariant);
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
@@ -476,17 +607,41 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 1.5))),
+            decoration: BoxDecoration(
+                border: Border(
+                    bottom:
+                        BorderSide(color: colors.outlineVariant, width: 1.5))),
             child: Row(
               children: [
                 SizedBox(width: 60, child: Text('ชั้น', style: headerStyle)),
-                SizedBox(width: 90, child: Text('นักเรียน', style: headerStyle, textAlign: TextAlign.right)),
-                SizedBox(width: 90, child: Text('สั่งซื้อ', style: headerStyle, textAlign: TextAlign.right)),
-                SizedBox(width: 90, child: Text('ส่วนต่าง', style: headerStyle, textAlign: TextAlign.right)),
-                SizedBox(width: 100, child: Text('ราคา/หัว', style: headerStyle, textAlign: TextAlign.right)),
-                SizedBox(width: 120, child: Text('งบที่ต้องใช้', style: headerStyle, textAlign: TextAlign.right)),
-                SizedBox(width: 120, child: Text('จัดซื้อจริง', style: headerStyle, textAlign: TextAlign.right)),
-                SizedBox(width: 110, child: Text('ส่วนต่างงบ', style: headerStyle, textAlign: TextAlign.right)),
+                SizedBox(
+                    width: 90,
+                    child: Text('นักเรียน',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                SizedBox(
+                    width: 90,
+                    child: Text('สั่งซื้อ',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                SizedBox(
+                    width: 90,
+                    child: Text('ส่วนต่าง',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                SizedBox(
+                    width: 100,
+                    child: Text('ราคา/หัว',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                SizedBox(
+                    width: 120,
+                    child: Text('งบที่ต้องใช้',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                SizedBox(
+                    width: 120,
+                    child: Text('จัดซื้อจริง',
+                        style: headerStyle, textAlign: TextAlign.right)),
+                SizedBox(
+                    width: 110,
+                    child: Text('ส่วนต่างงบ',
+                        style: headerStyle, textAlign: TextAlign.right)),
                 const Expanded(child: Text('')),
                 const SizedBox(width: 40),
               ],
@@ -495,7 +650,8 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
           Expanded(
             child: _grades.isEmpty
                 ? Center(
-                    child: Text('ยังไม่มีชั้นเรียนในระบบ กด "จัดการชั้นเรียน" เพื่อเพิ่ม',
+                    child: Text(
+                        'ยังไม่มีชั้นเรียนในระบบ กด "จัดการชั้นเรียน" เพื่อเพิ่ม',
                         style: TextStyle(color: colors.onSurfaceVariant)),
                   )
                 : ListView.builder(
@@ -515,35 +671,74 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
     final overBudget = r.budgetDiff < 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant))),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colors.outlineVariant))),
       child: Row(
         children: [
-          SizedBox(width: 60, child: Text(grade, style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700))),
-          SizedBox(width: 90, child: Text('${r.studentCount}', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
-          SizedBox(width: 90, child: Text('${r.orderedCount}', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 60,
+              child: Text(grade,
+                  style: TextStyle(
+                      fontSize: AppTypography.bodyMedium,
+                      fontWeight: FontWeight.w700))),
+          SizedBox(
+              width: 90,
+              child: Text('${r.studentCount}',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 90,
+              child: Text('${r.orderedCount}',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
           SizedBox(
             width: 90,
             child: Text(
               r.diff == 0 ? '0' : (r.diff > 0 ? '+${r.diff}' : '${r.diff}'),
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700, color: qtyShort ? Colors.orange : BrandAccent.green(context)),
+              style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  fontWeight: FontWeight.w700,
+                  color: qtyShort ? Colors.orange : BrandAccent.green(context)),
             ),
           ),
-          SizedBox(width: 100, child: Text(r.unitPrice != null ? formatBaht(r.unitPrice) : '-', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
-          SizedBox(width: 120, child: Text(formatBaht(r.requiredBudget), textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
-          SizedBox(width: 120, child: Text(r.actualAmount != null ? formatBaht(r.actualAmount) : '-', textAlign: TextAlign.right, style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 100,
+              child: Text(r.unitPrice != null ? formatBaht(r.unitPrice) : '-',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 120,
+              child: Text(formatBaht(r.requiredBudget),
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
+          SizedBox(
+              width: 120,
+              child: Text(
+                  r.actualAmount != null ? formatBaht(r.actualAmount) : '-',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: AppTypography.bodyMedium))),
           SizedBox(
             width: 110,
             child: Text(
               formatBaht(r.budgetDiff.abs()),
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: AppTypography.bodyMedium, fontWeight: FontWeight.w700, color: overBudget ? Colors.orange : BrandAccent.green(context)),
+              style: TextStyle(
+                  fontSize: AppTypography.bodyMedium,
+                  fontWeight: FontWeight.w700,
+                  color:
+                      overBudget ? Colors.orange : BrandAccent.green(context)),
             ),
           ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(left: 10),
-              child: Text(r.note?.isNotEmpty == true ? r.note! : '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+              child: Text(r.note?.isNotEmpty == true ? r.note! : '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppTypography.caption,
+                      color: colors.onSurfaceVariant)),
             ),
           ),
           SizedBox(
@@ -589,9 +784,11 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
   Future<void> _add() async {
     final name = _newBranchCtrl.text.trim();
     if (name.isEmpty) return;
-    final id = await widget.repo.insertBranch(SchoolBranch(name: name, sortOrder: _branches.length));
+    final id = await widget.repo
+        .insertBranch(SchoolBranch(name: name, sortOrder: _branches.length));
     setState(() {
-      _branches.add(SchoolBranch(id: id, name: name, sortOrder: _branches.length));
+      _branches
+          .add(SchoolBranch(id: id, name: name, sortOrder: _branches.length));
       _newBranchCtrl.clear();
     });
   }
@@ -604,8 +801,11 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
         title: const Text('แก้ไขชื่อสาขา'),
         content: ClearableTextField(controller: ctrl, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text.trim()), child: const Text('บันทึก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: const Text('บันทึก')),
         ],
       ),
     );
@@ -624,9 +824,12 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ลบสาขานี้?'),
-        content: Text('ลบสาขา "${b.name}" — ข้อมูลหนังสือเรียน/อุปกรณ์การเรียนของสาขานี้ทั้งหมดจะถูกลบไปด้วย'),
+        content: Text(
+            'ลบสาขา "${b.name}" — ข้อมูลหนังสือเรียน/อุปกรณ์การเรียนของสาขานี้ทั้งหมดจะถูกลบไปด้วย'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -663,8 +866,14 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () => _rename(b)),
-                              IconButton(icon: const Icon(Icons.delete_outline, size: 18), onPressed: () => _delete(b)),
+                              IconButton(
+                                  icon:
+                                      const Icon(Icons.edit_outlined, size: 18),
+                                  onPressed: () => _rename(b)),
+                              IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      size: 18),
+                                  onPressed: () => _delete(b)),
                             ],
                           ),
                         );
@@ -677,7 +886,8 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _newBranchCtrl,
-                    decoration: const InputDecoration(hintText: 'ชื่อสาขาใหม่', isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: 'ชื่อสาขาใหม่', isDense: true),
                     onSubmitted: (_) => _add(),
                   ),
                 ),
@@ -689,7 +899,8 @@ class _BranchManagerDialogState extends State<_BranchManagerDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('ปิด')),
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: const Text('ปิด')),
       ],
     );
   }
@@ -725,9 +936,11 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
   Future<void> _add() async {
     final name = _newGradeCtrl.text.trim();
     if (name.isEmpty) return;
-    final id = await widget.repo.insertLearningMaterialGrade(LearningMaterialGrade(name: name, sortOrder: _grades.length));
+    final id = await widget.repo.insertLearningMaterialGrade(
+        LearningMaterialGrade(name: name, sortOrder: _grades.length));
     setState(() {
-      _grades.add(LearningMaterialGrade(id: id, name: name, sortOrder: _grades.length));
+      _grades.add(
+          LearningMaterialGrade(id: id, name: name, sortOrder: _grades.length));
       _newGradeCtrl.clear();
     });
   }
@@ -740,8 +953,11 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
         title: const Text('แก้ไขชื่อชั้น'),
         content: ClearableTextField(controller: ctrl, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text.trim()), child: const Text('บันทึก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: const Text('บันทึก')),
         ],
       ),
     );
@@ -759,9 +975,12 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ลบชั้นนี้?'),
-        content: Text('ลบชั้น "${g.name}" — ข้อมูลหนังสือเรียน/อุปกรณ์การเรียนของชั้นนี้ทุกสาขาจะถูกลบไปด้วย'),
+        content: Text(
+            'ลบชั้น "${g.name}" — ข้อมูลหนังสือเรียน/อุปกรณ์การเรียนของชั้นนี้ทุกสาขาจะถูกลบไปด้วย'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -798,8 +1017,14 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () => _rename(g)),
-                              IconButton(icon: const Icon(Icons.delete_outline, size: 18), onPressed: () => _delete(g)),
+                              IconButton(
+                                  icon:
+                                      const Icon(Icons.edit_outlined, size: 18),
+                                  onPressed: () => _rename(g)),
+                              IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      size: 18),
+                                  onPressed: () => _delete(g)),
                             ],
                           ),
                         );
@@ -812,7 +1037,8 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
                 Expanded(
                   child: ClearableTextField(
                     controller: _newGradeCtrl,
-                    decoration: const InputDecoration(hintText: 'ชื่อชั้นใหม่ เช่น ป.7', isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: 'ชื่อชั้นใหม่ เช่น ป.7', isDense: true),
                     onSubmitted: (_) => _add(),
                   ),
                 ),
@@ -824,7 +1050,8 @@ class _GradeManagerDialogState extends State<_GradeManagerDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('ปิด')),
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: const Text('ปิด')),
       ],
     );
   }

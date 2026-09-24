@@ -51,13 +51,14 @@ class SelectionBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          _pillButton(context, label: 'เลือกทั้งหมด ($totalCount)', onTap: onSelectAll),
+          _pillButton(context,
+              label: 'เลือกทั้งหมด ($totalCount)', onTap: onSelectAll),
           if (onGenerateDocuments != null) ...[
             const SizedBox(width: 8),
             _pillButton(
               context,
               label: 'สร้างเอกสาร',
-              icon: Icons.description_outlined,
+              icon: Icons.print_outlined,
               onTap: onGenerateDocuments!,
               emphasized: true,
             ),
@@ -95,7 +96,9 @@ class SelectionBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 11, color: emphasized ? Colors.white : onPrimaryContainer),
+            Icon(icon,
+                size: 11,
+                color: emphasized ? Colors.white : onPrimaryContainer),
             const SizedBox(width: 4),
           ],
           Text(

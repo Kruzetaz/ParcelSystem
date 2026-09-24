@@ -11,7 +11,8 @@ class BudgetExportService {
   /// [actualRemainingById] คือยอด "คงเหลือจริง" ที่คำนวณสดจากออร์เดอร์ที่เสร็จ
   /// สมบูรณ์แล้ว (คิดโดยหน้าจอ ไม่ใช่คอลัมน์ remaining_amount ในฐานข้อมูลซึ่งไม่
   /// เคยถูกหักลดตามการใช้จ่ายจริงเลย) — ให้ไฟล์ export ตรงกับตัวเลขที่เห็นบนจอ
-  static Future<File> export(List<Budget> budgets, Map<int, double> actualRemainingById) async {
+  static Future<File> export(
+      List<Budget> budgets, Map<int, double> actualRemainingById) async {
     final excel = xls.Excel.createExcel();
     final sheet = excel[excel.getDefaultSheet() ?? 'Sheet1'];
 
@@ -30,7 +31,9 @@ class BudgetExportService {
 
     for (var i = 0; i < budgets.length; i++) {
       final b = budgets[i];
-      final remaining = b.id != null ? (actualRemainingById[b.id] ?? b.allocatedAmount ?? 0) : (b.allocatedAmount ?? 0);
+      final remaining = b.id != null
+          ? (actualRemainingById[b.id] ?? b.allocatedAmount ?? 0)
+          : (b.allocatedAmount ?? 0);
       sheet.appendRow([
         xls.IntCellValue(i + 1),
         xls.TextCellValue(b.fiscalYear),
@@ -39,7 +42,9 @@ class BudgetExportService {
         xls.TextCellValue(b.activityName ?? '-'),
         xls.TextCellValue(b.egpNumber ?? '-'),
         xls.TextCellValue(b.responsiblePerson ?? '-'),
-        b.allocatedAmount != null ? xls.DoubleCellValue(b.allocatedAmount!) : xls.TextCellValue('-'),
+        b.allocatedAmount != null
+            ? xls.DoubleCellValue(b.allocatedAmount!)
+            : xls.TextCellValue('-'),
         xls.DoubleCellValue(remaining),
         xls.TextCellValue(b.budgetSource),
       ]);
@@ -61,7 +66,8 @@ class BudgetExportService {
     return file;
   }
 
-  static Future<void> exportAndOpen(List<Budget> budgets, Map<int, double> actualRemainingById) async {
+  static Future<void> exportAndOpen(
+      List<Budget> budgets, Map<int, double> actualRemainingById) async {
     final file = await export(budgets, actualRemainingById);
     await _openFile(file.path);
   }

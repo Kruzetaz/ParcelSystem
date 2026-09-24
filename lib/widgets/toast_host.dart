@@ -129,55 +129,60 @@ class _ToastCardState extends State<_ToastCard>
             shadowColor: Colors.black.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             color: colors.surface,
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colors.outlineVariant),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: visual.color, shape: BoxShape.circle),
-                    child: item.type == ToastType.loading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : Icon(visual.icon, color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.title,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                                color: colors.onSurface)),
-                        const SizedBox(height: 2),
-                        Text(item.message,
-                            style: TextStyle(
-                                fontSize: 13, color: colors.onSurfaceVariant)),
-                      ],
+            child: InkWell(
+              onTap: item.onTap,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colors.outlineVariant),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          color: visual.color, shape: BoxShape.circle),
+                      child: item.type == ToastType.loading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : Icon(visual.icon, color: Colors.white, size: 18),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () => ToastController.instance.dismiss(item.id),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Icon(Icons.close,
-                        color: colors.onSurfaceVariant, size: 18),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.title,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  color: colors.onSurface)),
+                          const SizedBox(height: 2),
+                          Text(item.message,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: colors.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => ToastController.instance.dismiss(item.id),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Icon(Icons.close,
+                          color: colors.onSurfaceVariant, size: 18),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

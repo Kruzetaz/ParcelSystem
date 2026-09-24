@@ -8,6 +8,7 @@ import '../models/budget.dart';
 import '../models/procurement_item.dart';
 import '../models/procurement_order.dart';
 import '../models/school_settings.dart';
+import '../services/procurement_import_service.dart';
 import '../theme/design_tokens.dart';
 import '../utils/calc_engine.dart';
 import '../utils/thai_text_similarity.dart';
@@ -21,10 +22,15 @@ class ImportAttempt {
   final ProcurementOrder? order;
   final List<ProcurementItem> items;
   final String? errorMessage;
+  // เก็บ path ไฟล์ต้นฉบับไว้ด้วย (ถ้ามี) — ใช้ตอนกด "ลองใหม่" ไฟล์ที่อ่านไม่
+  // สำเร็จ (เช่น โดน rate limit ของ AI ชั่วคราว) โดยไม่ต้องให้ผู้ใช้เลือกไฟล์
+  // ทั้งชุดใหม่ทั้งหมดอีกรอบ
+  final String? filePath;
 
-  const ImportAttempt.success(this.fileName, this.order, this.items)
+  const ImportAttempt.success(this.fileName, this.order, this.items,
+      [this.filePath])
       : errorMessage = null;
-  const ImportAttempt.failure(this.fileName, this.errorMessage)
+  const ImportAttempt.failure(this.fileName, this.errorMessage, [this.filePath])
       : order = null,
         items = const [];
 
@@ -353,6 +359,7 @@ class _ProcurementImportPreviewDialogState
     extends State<_ProcurementImportPreviewDialog> {
   late List<_EditableProject> _projects;
   late List<ImportAttempt> _failed;
+  final Set<ImportAttempt> _retryingAttempts = {};
 
   @override
   void initState() {
@@ -378,6 +385,73 @@ class _ProcurementImportPreviewDialogState
       _projects[index].dispose();
       _projects.removeAt(index);
     });
+  }
+
+  /// ลองอ่านไฟล์ที่อ่านไม่สำเร็จใหม่อีกครั้ง (เช่น โดน rate limit ของ AI
+  /// ชั่วคราว) โดยไม่ต้องให้ผู้ใช้เลือกไฟล์ทั้งชุดใหม่ — ใช้ path เดิมที่เก็บไว้
+  Future<void> _retryFile(ImportAttempt attempt) async {
+    if (attempt.filePath == null) return;
+    setState(() => _retryingAttempts.add(attempt));
+    try {
+      final parsed = await ProcurementImportService.instance
+          .importFromFile(attempt.filePath!);
+      if (!mounted) return;
+      setState(() {
+        _retryingAttempts.remove(attempt);
+        _failed.remove(attempt);
+        for (final p in parsed) {
+          _projects.add(_EditableProject(attempt.fileName, p.order, p.items,
+              widget.availableBudgets, widget.school));
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _retryingAttempts.remove(attempt);
+        final idx = _failed.indexOf(attempt);
+        if (idx != -1) {
+          _failed[idx] =
+              ImportAttempt.failure(attempt.fileName, '$e', attempt.filePath);
+        }
+      });
+    }
+  }
+
+  Widget _buildFailedRow(
+      BuildContext context, ColorScheme colors, ImportAttempt f) {
+    final retrying = _retryingAttempts.contains(f);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text('${f.fileName} (${f.errorMessage})',
+                style: TextStyle(
+                    fontSize: AppTypography.caption,
+                    color: BrandAccent.red(context))),
+          ),
+          if (f.filePath != null) ...[
+            const SizedBox(width: 8),
+            retrying
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: BrandAccent.red(context)))
+                : InkWell(
+                    onTap: () => _retryFile(f),
+                    child: Text('ลองใหม่',
+                        style: TextStyle(
+                            fontSize: AppTypography.caption,
+                            fontWeight: AppTypography.weightSemiBold,
+                            color: BrandAccent.teal(context),
+                            decoration: TextDecoration.underline)),
+                  ),
+          ],
+        ],
+      ),
+    );
   }
 
   static const _buttonTextStyle =
@@ -431,11 +505,18 @@ class _ProcurementImportPreviewDialogState
                     color: BrandAccent.red(context).withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(RadiusSize.sm),
                   ),
-                  child: Text(
-                    'อ่านไม่สำเร็จ ${_failed.length} ไฟล์: ${_failed.map((f) => '${f.fileName} (${f.errorMessage})').join(', ')}',
-                    style: TextStyle(
-                        fontSize: AppTypography.bodySmall,
-                        color: BrandAccent.red(context)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('อ่านไม่สำเร็จ ${_failed.length} ไฟล์',
+                          style: TextStyle(
+                              fontSize: AppTypography.bodySmall,
+                              fontWeight: AppTypography.weightSemiBold,
+                              color: BrandAccent.red(context))),
+                      for (final f in _failed)
+                        _buildFailedRow(context, colors, f),
+                    ],
                   ),
                 ),
               ],
@@ -519,10 +600,11 @@ class _ProcurementImportPreviewDialogState
               ),
               const SizedBox(width: 8),
               SizedBox(
-                width: 90,
+                width: 120,
                 child: DropdownButtonFormField<String>(
                   initialValue: p.orderType,
                   isDense: true,
+                  isExpanded: true,
                   decoration: _dec('ประเภท'),
                   style: _fieldStyle.copyWith(color: colors.onSurface),
                   items: const [

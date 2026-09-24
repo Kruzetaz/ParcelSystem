@@ -3,6 +3,7 @@
 // ตรงกับ .card ใน mockup
 
 import 'package:flutter/material.dart';
+import '../../services/ui_session_state.dart';
 import '../../theme/design_tokens.dart';
 
 /// การ์ดพื้นฐานที่ใช้ทั่วทั้งระบบ
@@ -16,6 +17,7 @@ class AppCard extends StatelessWidget {
     this.padding,
     this.collapsible = false,
     this.initiallyExpanded = true,
+    this.sessionKey,
   });
 
   final String? title;
@@ -28,6 +30,10 @@ class AppCard extends StatelessWidget {
   final EdgeInsets? padding;
   final bool collapsible;
   final bool initiallyExpanded;
+  // ถ้าระบุไว้ จะจำสถานะพับ/กางไว้ตลอดอายุแอปผ่าน UiSessionState (ดู
+  // collapsible_sidebar.dart สำหรับเหตุผลเดียวกัน) — ใช้ได้เฉพาะตอน
+  // collapsible: true เท่านั้น
+  final String? sessionKey;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +47,7 @@ class AppCard extends StatelessWidget {
         titleAction: titleAction,
         initiallyExpanded: initiallyExpanded,
         padding: padding,
+        sessionKey: sessionKey,
         child: child,
       );
     }
@@ -149,6 +156,7 @@ class _CollapsibleCard extends StatefulWidget {
     this.titleAction,
     required this.initiallyExpanded,
     this.padding,
+    this.sessionKey,
     required this.child,
   });
 
@@ -157,6 +165,7 @@ class _CollapsibleCard extends StatefulWidget {
   final Widget? titleAction;
   final bool initiallyExpanded;
   final EdgeInsets? padding;
+  final String? sessionKey;
   final Widget child;
 
   @override
@@ -169,11 +178,17 @@ class _CollapsibleCardState extends State<_CollapsibleCard> {
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.initiallyExpanded;
+    _isExpanded = widget.sessionKey != null
+        ? UiSessionState.instance
+            .read(widget.sessionKey!, widget.initiallyExpanded)
+        : widget.initiallyExpanded;
   }
 
   void _toggle() {
     setState(() => _isExpanded = !_isExpanded);
+    if (widget.sessionKey != null) {
+      UiSessionState.instance.write(widget.sessionKey!, _isExpanded);
+    }
   }
 
   @override
@@ -214,7 +229,8 @@ class _CollapsibleCardState extends State<_CollapsibleCard> {
             ),
           if (_isExpanded)
             Padding(
-              padding: widget.padding ?? const EdgeInsets.all(Dimensions.cardPadding),
+              padding: widget.padding ??
+                  const EdgeInsets.all(Dimensions.cardPadding),
               child: widget.child,
             ),
         ],

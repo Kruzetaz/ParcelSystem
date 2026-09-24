@@ -12,27 +12,33 @@ import '../services/toast_service.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/thai_date_picker.dart';
+import '../services/ui_session_state.dart';
 import '../theme/design_tokens.dart';
-import '../widgets/design_system/status_badge.dart' show StatusBadge, BadgeVariant, DSFilterChip;
-import '../widgets/design_system/data_table_shell.dart' show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/status_badge.dart'
+    show StatusBadge, BadgeVariant, DSFilterChip;
+import '../widgets/design_system/data_table_shell.dart'
+    show DsActionIconButtons, DsRowAction;
 import '../widgets/design_system/hover_clear_button.dart';
 import '../widgets/design_system/clearable_text_field.dart';
 
 const _dialogTitleStyle = TextStyle(fontSize: 19, fontWeight: FontWeight.w800);
 const _dialogContentStyle = TextStyle(fontSize: 15, height: 1.4);
-const _dialogButtonTextStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+const _dialogButtonTextStyle =
+    TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
 const _dialogButtonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 const _dialogFieldStyle = TextStyle(fontSize: 17);
 const _dialogLabelStyle = TextStyle(fontSize: 15);
 
-InputDecoration _dialogFieldDecoration(BuildContext context, {required String label, String? hint}) {
+InputDecoration _dialogFieldDecoration(BuildContext context,
+    {required String label, String? hint}) {
   final colors = Theme.of(context).colorScheme;
   final borderColor = colors.onSurfaceVariant.withValues(alpha: 0.45);
   return InputDecoration(
     labelText: label,
     hintText: hint,
     floatingLabelBehavior: FloatingLabelBehavior.always,
-    labelStyle: _dialogLabelStyle.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
+    labelStyle: _dialogLabelStyle.copyWith(
+        color: colors.onSurfaceVariant, fontWeight: FontWeight.w700),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     border: OutlineInputBorder(
@@ -50,7 +56,12 @@ InputDecoration _dialogFieldDecoration(BuildContext context, {required String la
   );
 }
 
-const _guaranteeTypes = ['หลักประกันซอง', 'หลักประกันสัญญา', 'เงินสด', 'หนังสือค้ำประกันธนาคาร'];
+const _guaranteeTypes = [
+  'หลักประกันซอง',
+  'หลักประกันสัญญา',
+  'เงินสด',
+  'หนังสือค้ำประกันธนาคาร'
+];
 
 // ตามระเบียบกระทรวงการคลังว่าด้วยการจัดซื้อจัดจ้างฯ พ.ศ. 2560 ข้อ 168 + มาตรา 97 —
 // สัญญาวงเงิน ≥ 100,000 บาท ต้องวางหลักประกันสัญญา (เกณฑ์ทั่วไป 5% ของวงเงิน)
@@ -58,11 +69,23 @@ const _guaranteeTypes = ['หลักประกันซอง', 'หลั�
 const _guaranteeRequiredThreshold = 100000.0;
 const _guaranteeRate = 0.05;
 const _thaiMonths = [
-  '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  '',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ];
 
-String _formatThai(DateTime d) => '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
+String _formatThai(DateTime d) =>
+    '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
 
 class GuaranteesScreen extends StatefulWidget {
   const GuaranteesScreen({super.key});
@@ -76,7 +99,10 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
   List<Contract> _contracts = [];
   bool _loading = true;
   bool _exporting = false;
-  String? _selectedType; // null = ทั้งหมด
+  // จำตัวกรองที่เลือกไว้ล่าสุดในเซสชันนี้ กันรีเซ็ตกลับ "ทั้งหมด" ทุกครั้งที่
+  // สลับหน้าออกแล้วกลับมา
+  String? _selectedType =
+      UiSessionState.instance.read<String?>('guarantees_type_filter', null);
 
   @override
   void initState() {
@@ -111,7 +137,8 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
   /// สัญญาที่วงเงินถึงเกณฑ์ต้องวางหลักประกัน แต่ยังไม่มีหลักประกันอ้างอิงมาที่
   /// สัญญานั้น (ผ่าน contract_id) — แจ้งเตือนให้ผู้ใช้ไปบันทึกให้ครบ
   List<Contract> get _contractsMissingGuarantee {
-    final coveredContractIds = _guarantees.map((g) => g.contractId).whereType<int>().toSet();
+    final coveredContractIds =
+        _guarantees.map((g) => g.contractId).whereType<int>().toSet();
     return _contracts
         .where((c) =>
             c.id != null &&
@@ -120,16 +147,21 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
         .toList();
   }
 
-  List<Guarantee> get _filtered =>
-      _selectedType == null ? _guarantees : _guarantees.where((g) => g.guaranteeType == _selectedType).toList();
+  List<Guarantee> get _filtered => _selectedType == null
+      ? _guarantees
+      : _guarantees.where((g) => g.guaranteeType == _selectedType).toList();
 
-  double get _totalHeld => _guarantees.where((g) => g.status == 'ถืออยู่').fold(0, (s, g) => s + (g.amount ?? 0));
+  double get _totalHeld => _guarantees
+      .where((g) => g.status == 'ถืออยู่')
+      .fold(0, (s, g) => s + (g.amount ?? 0));
 
-  Future<void> _openForm({Guarantee? existing, Contract? prefillContract}) async {
+  Future<void> _openForm(
+      {Guarantee? existing, Contract? prefillContract}) async {
     final saved = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _GuaranteeFormDialog(existing: existing, prefillContract: prefillContract),
+      builder: (_) => _GuaranteeFormDialog(
+          existing: existing, prefillContract: prefillContract),
     );
     if (saved == true) _load();
   }
@@ -139,15 +171,22 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ยืนยันการลบ', style: _dialogTitleStyle),
-        content: Text('ต้องการลบหลักประกันของ "${g.counterpartyName ?? "-"}" ใช่หรือไม่?', style: _dialogContentStyle),
+        content: Text(
+            'ต้องการลบหลักประกันของ "${g.counterpartyName ?? "-"}" ใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ลบ'),
           ),
@@ -165,16 +204,22 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('คืนหลักประกัน', style: _dialogTitleStyle),
-        content: Text('ยืนยันคืนหลักประกันของ "${g.counterpartyName ?? "-"}" '
-            '(${g.amount != null ? formatBaht(g.amount) : "-"} บาท) ใช่หรือไม่?', style: _dialogContentStyle),
+        content: Text(
+            'ยืนยันคืนหลักประกันของ "${g.counterpartyName ?? "-"}" '
+            '(${g.amount != null ? formatBaht(g.amount) : "-"} บาท) ใช่หรือไม่?',
+            style: _dialogContentStyle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: TextButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             child: const Text('ยกเลิก'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+            style: FilledButton.styleFrom(
+                padding: _dialogButtonPadding,
+                textStyle: _dialogButtonTextStyle),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('ยืนยันคืน'),
           ),
@@ -182,7 +227,8 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
       ),
     );
     if (confirmed != true || g.id == null) return;
-    await _repo.updateGuarantee(g.copyWith(status: 'คืนแล้ว', returnedDate: _formatThai(DateTime.now())));
+    await _repo.updateGuarantee(g.copyWith(
+        status: 'คืนแล้ว', returnedDate: _formatThai(DateTime.now())));
     _load();
   }
 
@@ -232,27 +278,47 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.shield_outlined, color: BrandAccent.tealOn(context), size: 22),
+                              Icon(Icons.shield_outlined,
+                                  color: BrandAccent.tealOn(context), size: 22),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text('หลักประกันสัญญา',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: AppTypography.heading2, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: AppTypography.heading2,
+                                        fontWeight:
+                                            AppTypography.weightExtraBold,
+                                        color: colors.onSurface)),
                               ),
                               const SizedBox(width: 8),
                               OutlinedButton.icon(
-                                onPressed: _guarantees.isEmpty || _exporting ? null : _exportToExcel,
+                                onPressed: _guarantees.isEmpty || _exporting
+                                    ? null
+                                    : _exportToExcel,
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 12),
                                   side: BorderSide(color: colors.outline),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RadiusSize.md)),
-                                  textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(RadiusSize.md)),
+                                  textStyle: const TextStyle(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w700),
                                 ),
                                 icon: _exporting
-                                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurfaceVariant))
-                                    : const Icon(Icons.file_download_outlined, size: 18),
-                                label: Text(_exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'),
+                                    ? SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: colors.onSurfaceVariant))
+                                    : const Icon(Icons.file_download_outlined,
+                                        size: 18),
+                                label: Text(_exporting
+                                    ? 'กำลังส่งออก...'
+                                    : 'ส่งออก Excel'),
                               ),
                             ],
                           ),
@@ -271,12 +337,18 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.shield_outlined, size: 64, color: colors.onSurfaceVariant),
+                                        Icon(Icons.shield_outlined,
+                                            size: 64,
+                                            color: colors.onSurfaceVariant),
                                         const SizedBox(height: 12),
                                         Text(
-                                          _guarantees.isEmpty ? 'ยังไม่มีหลักประกัน\nกด "เพิ่มหลักประกัน" เพื่อเริ่มต้น' : 'ไม่พบรายการในประเภทนี้',
+                                          _guarantees.isEmpty
+                                              ? 'ยังไม่มีหลักประกัน\nกด "เพิ่มหลักประกัน" เพื่อเริ่มต้น'
+                                              : 'ไม่พบรายการในประเภทนี้',
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(color: colors.onSurfaceVariant, fontSize: AppTypography.heading4),
+                                          style: TextStyle(
+                                              color: colors.onSurfaceVariant,
+                                              fontSize: AppTypography.heading4),
                                         ),
                                       ],
                                     ),
@@ -284,8 +356,10 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                                 : ListView.separated(
                                     itemCount: _filtered.length,
                                     padding: const EdgeInsets.only(bottom: 80),
-                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                    itemBuilder: (_, i) => _buildCard(context, colors, _filtered[i]),
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 8),
+                                    itemBuilder: (_, i) => _buildCard(
+                                        context, colors, _filtered[i]),
                                   ),
                           ),
                         ],
@@ -316,7 +390,8 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
       decoration: BoxDecoration(
         color: BrandAccent.teal(context).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(RadiusSize.card),
-        border: Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: BrandAccent.teal(context).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -326,9 +401,15 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ยอดหลักประกันที่ถืออยู่ในปัจจุบัน', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                Text('ยอดหลักประกันที่ถืออยู่ในปัจจุบัน',
+                    style: TextStyle(
+                        fontSize: AppTypography.caption,
+                        color: colors.onSurfaceVariant)),
                 Text('${formatBaht(_totalHeld)} บาท',
-                  style: TextStyle(fontSize: AppTypography.heading3, fontWeight: AppTypography.weightExtraBold, color: colors.onSurface)),
+                    style: TextStyle(
+                        fontSize: AppTypography.heading3,
+                        fontWeight: AppTypography.weightExtraBold,
+                        color: colors.onSurface)),
               ],
             ),
           ),
@@ -337,9 +418,11 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
     );
   }
 
-  Widget _buildMissingGuaranteeBanner(BuildContext context, ColorScheme colors) {
+  Widget _buildMissingGuaranteeBanner(
+      BuildContext context, ColorScheme colors) {
     final contracts = _contractsMissingGuarantee;
-    final amberBg = Color.alphaBlend(BrandColors.amber.withValues(alpha: 0.12), colors.surface);
+    final amberBg = Color.alphaBlend(
+        BrandColors.amber.withValues(alpha: 0.12), colors.surface);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -352,12 +435,16 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_outlined, color: BrandAccent.tertiary(context), size: 20),
+              Icon(Icons.warning_amber_outlined,
+                  color: BrandAccent.tertiary(context), size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'พบ ${contracts.length} สัญญาที่วงเงินถึงเกณฑ์ต้องวางหลักประกัน แต่ยังไม่ได้บันทึก',
-                  style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.body, color: colors.onSurface),
+                  style: TextStyle(
+                      fontWeight: AppTypography.weightBold,
+                      fontSize: AppTypography.body,
+                      color: colors.onSurface),
                 ),
               ),
             ],
@@ -367,7 +454,9 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
             'ตามระเบียบฯ สัญญาวงเงิน ≥ ${_guaranteeRequiredThreshold.toStringAsFixed(0)} บาท ทั่วไปต้องวางหลักประกัน '
             '(ประมาณ ${(_guaranteeRate * 100).toStringAsFixed(0)}% ของวงเงิน) — เป็นคำแนะนำเบื้องต้นเท่านั้น '
             'โปรดตรวจสอบเงื่อนไขในสัญญาจริงอีกครั้ง',
-            style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: AppTypography.bodySmall,
+                color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           for (final c in contracts.take(5))
@@ -379,14 +468,19 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                     child: Text(
                       '${c.contractNumber ?? "(ไม่มีเลขที่)"} — ${c.vendorName ?? "-"} '
                       '(${formatBaht(c.contractAmount ?? 0)} บาท)',
-                      style: TextStyle(fontSize: AppTypography.bodyMedium, color: colors.onSurface),
+                      style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          color: colors.onSurface),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   FilledButton.tonal(
                     onPressed: () => _openForm(prefillContract: c),
-                    style: FilledButton.styleFrom(textStyle: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold)),
+                    style: FilledButton.styleFrom(
+                        textStyle: TextStyle(
+                            fontSize: AppTypography.bodySmall,
+                            fontWeight: AppTypography.weightBold)),
                     child: const Text('ไปบันทึก'),
                   ),
                 ],
@@ -395,7 +489,10 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
           if (contracts.length > 5)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('และอีก ${contracts.length - 5} รายการ', style: TextStyle(fontSize: AppTypography.bodySmall, color: colors.onSurfaceVariant)),
+              child: Text('และอีก ${contracts.length - 5} รายการ',
+                  style: TextStyle(
+                      fontSize: AppTypography.bodySmall,
+                      color: colors.onSurfaceVariant)),
             ),
         ],
       ),
@@ -410,7 +507,10 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
         child: DSFilterChip(
           label: label,
           isSelected: selected,
-          onTap: () => setState(() => _selectedType = value),
+          onTap: () => setState(() {
+            _selectedType = value;
+            UiSessionState.instance.write('guarantees_type_filter', value);
+          }),
         ),
       );
     }
@@ -450,33 +550,50 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                     Row(children: [
                       if (g.guaranteeType != null) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: BrandAccent.teal(context).withValues(alpha: 0.1),
+                            color: BrandAccent.teal(context)
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(RadiusSize.sm),
                           ),
                           child: Text(g.guaranteeType!,
-                            style: TextStyle(fontSize: AppTypography.caption, color: BrandAccent.tealOn(context), fontWeight: AppTypography.weightSemiBold)),
+                              style: TextStyle(
+                                  fontSize: AppTypography.caption,
+                                  color: BrandAccent.tealOn(context),
+                                  fontWeight: AppTypography.weightSemiBold)),
                         ),
                         const SizedBox(width: 8),
                       ],
                       StatusBadge(
                         label: g.status,
-                        variant: isHeld ? BadgeVariant.warning : BadgeVariant.success,
+                        variant: isHeld
+                            ? BadgeVariant.warning
+                            : BadgeVariant.success,
                         compact: true,
                       ),
                     ]),
                     const SizedBox(height: 6),
                     Text(g.counterpartyName ?? '(ไม่ระบุคู่สัญญา)',
-                      style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.heading4, color: colors.onSurface),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.heading4,
+                            color: colors.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                     if (g.startDate != null || g.expiryDate != null) ...[
                       const SizedBox(height: 2),
-                      Text('${g.startDate ?? "-"} ถึง ${g.expiryDate ?? "-"}', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                      Text('${g.startDate ?? "-"} ถึง ${g.expiryDate ?? "-"}',
+                          style: TextStyle(
+                              fontSize: AppTypography.caption,
+                              color: colors.onSurfaceVariant)),
                     ],
                     if (g.returnedDate != null) ...[
                       const SizedBox(height: 2),
-                      Text('คืนเมื่อ ${g.returnedDate}', style: TextStyle(fontSize: AppTypography.caption, color: colors.onSurfaceVariant)),
+                      Text('คืนเมื่อ ${g.returnedDate}',
+                          style: TextStyle(
+                              fontSize: AppTypography.caption,
+                              color: colors.onSurfaceVariant)),
                     ],
                   ],
                 ),
@@ -486,11 +603,17 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
                 children: [
                   if (g.amount != null)
                     Text('${formatBaht(g.amount)} บาท',
-                      style: TextStyle(fontWeight: AppTypography.weightBold, fontSize: AppTypography.bodyMedium, color: BrandAccent.tealOn(context))),
+                        style: TextStyle(
+                            fontWeight: AppTypography.weightBold,
+                            fontSize: AppTypography.bodyMedium,
+                            color: BrandAccent.tealOn(context))),
                   if (isHeld)
                     TextButton(
                       onPressed: () => _returnGuarantee(g),
-                      style: TextButton.styleFrom(textStyle: TextStyle(fontSize: AppTypography.bodySmall, fontWeight: AppTypography.weightBold)),
+                      style: TextButton.styleFrom(
+                          textStyle: TextStyle(
+                              fontSize: AppTypography.bodySmall,
+                              fontWeight: AppTypography.weightBold)),
                       child: const Text('คืนหลักประกัน'),
                     ),
                 ],
@@ -498,7 +621,11 @@ class _GuaranteesScreenState extends State<GuaranteesScreen> {
               const SizedBox(width: 4),
               DsActionIconButtons(
                 actions: [
-                  DsRowAction(icon: Icons.delete_outline, tooltip: 'ลบ', onTap: () => _confirmDelete(g), danger: true),
+                  DsRowAction(
+                      icon: Icons.delete_outline,
+                      tooltip: 'ลบ',
+                      onTap: () => _confirmDelete(g),
+                      danger: true),
                 ],
               ),
             ],
@@ -535,12 +662,17 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
     super.initState();
     final g = widget.existing;
     final prefill = widget.prefillContract;
-    _counterpartyCtrl = TextEditingController(text: g?.counterpartyName ?? prefill?.vendorName ?? '');
+    _counterpartyCtrl = TextEditingController(
+        text: g?.counterpartyName ?? prefill?.vendorName ?? '');
     _amountCtrl = TextEditingController(
       text: g?.amount?.toStringAsFixed(2) ??
-          (prefill != null ? ((prefill.contractAmount ?? 0) * _guaranteeRate).toStringAsFixed(2) : ''),
+          (prefill != null
+              ? ((prefill.contractAmount ?? 0) * _guaranteeRate)
+                  .toStringAsFixed(2)
+              : ''),
     );
-    _guaranteeType = g?.guaranteeType ?? (prefill != null ? 'หลักประกันสัญญา' : null);
+    _guaranteeType =
+        g?.guaranteeType ?? (prefill != null ? 'หลักประกันสัญญา' : null);
     _startDate = g?.startDate;
     _expiryDate = g?.expiryDate;
     _contractId = g?.contractId ?? prefill?.id;
@@ -587,7 +719,9 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
     final g = Guarantee(
       id: widget.existing?.id,
       guaranteeType: _guaranteeType,
-      counterpartyName: _counterpartyCtrl.text.trim().isEmpty ? null : _counterpartyCtrl.text.trim(),
+      counterpartyName: _counterpartyCtrl.text.trim().isEmpty
+          ? null
+          : _counterpartyCtrl.text.trim(),
       amount: double.tryParse(_amountCtrl.text.trim()),
       startDate: _startDate,
       expiryDate: _expiryDate,
@@ -609,7 +743,8 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'แก้ไขหลักประกัน' : 'เพิ่มหลักประกัน', style: _dialogTitleStyle),
+      title: Text(isEdit ? 'แก้ไขหลักประกัน' : 'เพิ่มหลักประกัน',
+          style: _dialogTitleStyle),
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(
@@ -621,10 +756,15 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                 child: DropdownButtonFormField<String?>(
                   initialValue: _guaranteeType,
                   style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                  decoration: _dialogFieldDecoration(context, label: 'ประเภทหลักประกัน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
+                  decoration: _dialogFieldDecoration(context,
+                          label: 'ประเภทหลักประกัน')
+                      .copyWith(
+                          floatingLabelBehavior: FloatingLabelBehavior.auto),
                   items: [
-                    const DropdownMenuItem<String?>(value: null, child: Text('(ไม่ระบุ)')),
-                    ..._guaranteeTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))),
+                    const DropdownMenuItem<String?>(
+                        value: null, child: Text('(ไม่ระบุ)')),
+                    ..._guaranteeTypes
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t))),
                   ],
                   onChanged: (v) => setState(() => _guaranteeType = v),
                 ),
@@ -636,21 +776,27 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                     initialValue: _contractId,
                     isExpanded: true,
                     style: _dialogFieldStyle.copyWith(color: colors.onSurface),
-                    decoration: _dialogFieldDecoration(context, label: 'ผูกกับสัญญา').copyWith(
+                    decoration:
+                        _dialogFieldDecoration(context, label: 'ผูกกับสัญญา')
+                            .copyWith(
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       suffixIcon: hovering && _contractId != null
-                          ? clearIconButton(context, () => setState(() => _contractId = null))
+                          ? clearIconButton(
+                              context, () => setState(() => _contractId = null))
                           : null,
                     ),
                     items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('(ไม่ผูกกับสัญญา)')),
-                      ..._contracts.where((c) => c.id != null).map((c) => DropdownMenuItem<int?>(
-                            value: c.id,
-                            child: Text(
-                              '${c.contractNumber ?? "เอกสาร #${c.id}"} — ${c.vendorName ?? "-"}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          )),
+                      const DropdownMenuItem<int?>(
+                          value: null, child: Text('(ไม่ผูกกับสัญญา)')),
+                      ..._contracts
+                          .where((c) => c.id != null)
+                          .map((c) => DropdownMenuItem<int?>(
+                                value: c.id,
+                                child: Text(
+                                  '${c.contractNumber ?? "เอกสาร #${c.id}"} — ${c.vendorName ?? "-"}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )),
                     ],
                     onChanged: (v) => setState(() => _contractId = v),
                   ),
@@ -661,7 +807,9 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                 child: ClearableTextField(
                   controller: _counterpartyCtrl,
                   style: _dialogFieldStyle,
-                  decoration: _dialogFieldDecoration(context, label: 'ผู้เสนอราคา/คู่สัญญา', hint: 'เช่น บริษัท เอบีซี จำกัด'),
+                  decoration: _dialogFieldDecoration(context,
+                      label: 'ผู้เสนอราคา/คู่สัญญา',
+                      hint: 'เช่น บริษัท เอบีซี จำกัด'),
                 ),
               ),
               Padding(
@@ -670,7 +818,8 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                   controller: _amountCtrl,
                   style: _dialogFieldStyle,
                   keyboardType: TextInputType.number,
-                  decoration: _dialogFieldDecoration(context, label: 'วงเงินค้ำประกัน (บาท)', hint: 'เช่น 50000.00'),
+                  decoration: _dialogFieldDecoration(context,
+                      label: 'วงเงินค้ำประกัน (บาท)', hint: 'เช่น 50000.00'),
                 ),
               ),
               Row(
@@ -680,8 +829,13 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                       onTap: () => _pickDate(isStart: true),
                       borderRadius: BorderRadius.circular(RadiusSize.md),
                       child: InputDecorator(
-                        decoration: _dialogFieldDecoration(context, label: 'วันที่เริ่มค้ำประกัน').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                        child: Text(_startDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                        decoration: _dialogFieldDecoration(context,
+                                label: 'วันที่เริ่มค้ำประกัน')
+                            .copyWith(
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.auto),
+                        child: Text(_startDate ?? 'เลือกวันที่',
+                            style: _dialogFieldStyle),
                       ),
                     ),
                   ),
@@ -691,8 +845,13 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
                       onTap: () => _pickDate(isStart: false),
                       borderRadius: BorderRadius.circular(RadiusSize.md),
                       child: InputDecorator(
-                        decoration: _dialogFieldDecoration(context, label: 'วันหมดอายุ').copyWith(floatingLabelBehavior: FloatingLabelBehavior.auto),
-                        child: Text(_expiryDate ?? 'เลือกวันที่', style: _dialogFieldStyle),
+                        decoration:
+                            _dialogFieldDecoration(context, label: 'วันหมดอายุ')
+                                .copyWith(
+                                    floatingLabelBehavior:
+                                        FloatingLabelBehavior.auto),
+                        child: Text(_expiryDate ?? 'เลือกวันที่',
+                            style: _dialogFieldStyle),
                       ),
                     ),
                   ),
@@ -705,14 +864,22 @@ class _GuaranteeFormDialogState extends State<_GuaranteeFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
-          style: TextButton.styleFrom(padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: TextButton.styleFrom(
+              padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
           child: const Text('ยกเลิก'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colors.primary, padding: _dialogButtonPadding, textStyle: _dialogButtonTextStyle),
+          style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              padding: _dialogButtonPadding,
+              textStyle: _dialogButtonTextStyle),
           onPressed: _saving ? null : _save,
           child: _saving
-              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: colors.onPrimary))
               : Text(isEdit ? 'บันทึก' : 'เพิ่ม'),
         ),
       ],

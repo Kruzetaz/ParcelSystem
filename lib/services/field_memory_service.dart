@@ -19,7 +19,8 @@ class FieldMemoryService {
     if (_cache.containsKey(fieldKey)) return _cache[fieldKey]!;
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('$_prefixKey$fieldKey');
-    final list = raw == null ? <String>[] : List<String>.from(jsonDecode(raw) as List);
+    final list =
+        raw == null ? <String>[] : List<String>.from(jsonDecode(raw) as List);
     _cache[fieldKey] = list;
     return list;
   }

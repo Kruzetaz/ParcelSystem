@@ -51,7 +51,8 @@ class AssetRepairExportService {
   }
 
   static Future<void> exportAndOpen(List<AssetRepairEntry> entries) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.assetManagement, 'ประวัติซ่อมครุภัณฑ์');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.assetManagement, 'ประวัติซ่อมครุภัณฑ์');
     final file = await export(entries);
     await _openFile(file.path);
   }

@@ -26,7 +26,10 @@ class MonthlyProcurementSummaryExportService {
     final excel = xls.Excel.createExcel();
     final sheet = excel[excel.getDefaultSheet() ?? 'Sheet1'];
 
-    sheet.appendRow([xls.TextCellValue('แบบสรุปผลการจัดซื้อจัดจ้าง (รอบเดือน $monthLabel พ.ศ. $buddhistYearLabel)')]);
+    sheet.appendRow([
+      xls.TextCellValue(
+          'แบบสรุปผลการจัดซื้อจัดจ้าง (รอบเดือน $monthLabel พ.ศ. $buddhistYearLabel)')
+    ]);
     sheet.appendRow([xls.TextCellValue(schoolName)]);
     sheet.appendRow([]);
     sheet.appendRow([
@@ -43,9 +46,12 @@ class MonthlyProcurementSummaryExportService {
 
     for (var i = 0; i < orders.length; i++) {
       final o = orders[i];
-      final subject = (o.procurementSubject?.trim().isNotEmpty ?? false) ? o.procurementSubject! : (o.projectName ?? '-');
+      final subject = (o.procurementSubject?.trim().isNotEmpty ?? false)
+          ? o.procurementSubject!
+          : (o.projectName ?? '-');
       final amount = o.currentOrderPrice ?? o.allocatedAmount ?? 0;
-      final vendorAndPrice = '${o.vendorName ?? "-"} / ${amount.toStringAsFixed(2)}';
+      final vendorAndPrice =
+          '${o.vendorName ?? "-"} / ${amount.toStringAsFixed(2)}';
       final docLabel = o.orderType == 'จ้าง' ? 'ใบสั่งจ้าง' : 'ใบสั่งซื้อ';
       final contractRef = (o.orderNumber?.trim().isNotEmpty ?? false)
           ? '$docLabel เลขที่ ${o.orderNumber} ลงวันที่ ${o.dateContractSigned ?? o.dateOrderCreated ?? "-"}'
@@ -73,7 +79,8 @@ class MonthlyProcurementSummaryExportService {
     if (!outputDir.existsSync()) outputDir.createSync(recursive: true);
 
     final stamp = DateTime.now();
-    final fileName = 'แบบสรุปผลการจัดซื้อจัดจ้าง_${monthLabel}_$buddhistYearLabel'
+    final fileName =
+        'แบบสรุปผลการจัดซื้อจัดจ้าง_${monthLabel}_$buddhistYearLabel'
         '_${stamp.year}${_pad(stamp.month)}${_pad(stamp.day)}${_pad(stamp.hour)}${_pad(stamp.minute)}.xlsx';
     final file = File('${outputDir.path}/$fileName');
     await file.writeAsBytes(bytes);
@@ -86,7 +93,8 @@ class MonthlyProcurementSummaryExportService {
     required String buddhistYearLabel,
     required String schoolName,
   }) async {
-    FeatureAccessService.instance.requireModule(FeatureModules.reports, 'รายงาน/สตง.');
+    FeatureAccessService.instance
+        .requireModule(FeatureModules.reports, 'รายงาน/สตง.');
     final file = await export(
       orders: orders,
       monthLabel: monthLabel,

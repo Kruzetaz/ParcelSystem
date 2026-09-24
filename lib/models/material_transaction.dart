@@ -38,7 +38,8 @@ class MaterialTransaction {
         'note': note,
       };
 
-  factory MaterialTransaction.fromMap(Map<String, dynamic> m) => MaterialTransaction(
+  factory MaterialTransaction.fromMap(Map<String, dynamic> m) =>
+      MaterialTransaction(
         id: m['id'] as int?,
         materialId: m['material_id'] as int,
         transactionDate: m['transaction_date'] as String?,

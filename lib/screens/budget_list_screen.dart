@@ -16,6 +16,7 @@ import '../services/budget_export_service.dart';
 import '../services/budget_import_service.dart';
 import '../services/fiscal_year_controller.dart';
 import '../services/toast_service.dart';
+import '../services/ui_session_state.dart';
 import '../widgets/budget_import_dialog.dart';
 import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
@@ -78,13 +79,18 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   bool _importing = false;
   bool _exporting = false;
 
-  _BudgetViewMode _viewMode = _BudgetViewMode.card;
+  _BudgetViewMode _viewMode = UiSessionState.instance
+      .read('budget_list_view_mode', _BudgetViewMode.card);
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  String? _selectedDepartment; // null = ทั้งหมด — ใช้ค่าจาก groupName
-  String? _selectedProject; // null = ทั้งหมด — ใช้ค่าจาก projectName
-  String? _selectedSource; // null = ทั้งหมด — ใช้ค่าจาก budgetSource
-  Set<String> _visibleColumns = _budgetTableOptionalColumns.toSet();
+  String? _selectedDepartment = UiSessionState.instance.read<String?>(
+      'budget_list_department', null); // null = ทั้งหมด — ใช้ค่าจาก groupName
+  String? _selectedProject = UiSessionState.instance.read<String?>(
+      'budget_list_project', null); // null = ทั้งหมด — ใช้ค่าจาก projectName
+  String? _selectedSource = UiSessionState.instance.read<String?>(
+      'budget_list_source', null); // null = ทั้งหมด — ใช้ค่าจาก budgetSource
+  Set<String> _visibleColumns = UiSessionState.instance
+      .read('budget_list_visible_columns', _budgetTableOptionalColumns.toSet());
 
   // โหมด "กำหนดค่าหลายโครงการพร้อมกัน" — ใช้ enum เดียวสลับระหว่างกำหนด
   // "ฝ่าย/แผนงาน" (เลือกได้แค่ระดับโครงการ — ทุกกิจกรรมย่อยได้ค่าเดียวกันเสมอ)
@@ -935,8 +941,11 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                           ColumnVisibilityMenu(
                             allColumns: _budgetTableOptionalColumns,
                             visibleColumns: _visibleColumns,
-                            onChanged: (v) =>
-                                setState(() => _visibleColumns = v),
+                            onChanged: (v) {
+                              setState(() => _visibleColumns = v);
+                              UiSessionState.instance
+                                  .write('budget_list_visible_columns', v);
+                            },
                           ),
                         ],
                       ],
@@ -1105,10 +1114,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             options: _departmentOptions,
             onChanged: (v) => setState(() {
               _selectedDepartment = v;
+              UiSessionState.instance.write('budget_list_department', v);
               // ถ้าโครงการที่เลือกไว้ไม่อยู่ในฝ่ายใหม่ ให้เคลียร์ตัวกรองโครงการทิ้ง
               if (_selectedProject != null &&
                   !_projectOptions.contains(_selectedProject)) {
                 _selectedProject = null;
+                UiSessionState.instance.write('budget_list_project', null);
               }
             }),
           ),
@@ -1121,7 +1132,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             hint: 'โครงการ (ทั้งหมด)',
             value: _selectedProject,
             options: _projectOptions,
-            onChanged: (v) => setState(() => _selectedProject = v),
+            onChanged: (v) {
+              setState(() => _selectedProject = v);
+              UiSessionState.instance.write('budget_list_project', v);
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -1132,7 +1146,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             hint: 'แหล่งงบ (ทั้งหมด)',
             value: _selectedSource,
             options: budgetSources,
-            onChanged: (v) => setState(() => _selectedSource = v),
+            onChanged: (v) {
+              setState(() => _selectedSource = v);
+              UiSessionState.instance.write('budget_list_source', v);
+            },
           ),
         ),
       ],
@@ -1208,7 +1225,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       ColorScheme colors, _BudgetViewMode mode, IconData icon, String label) {
     final active = _viewMode == mode;
     return InkWell(
-      onTap: () => setState(() => _viewMode = mode),
+      onTap: () {
+        setState(() => _viewMode = mode);
+        UiSessionState.instance.write('budget_list_view_mode', mode);
+      },
       borderRadius: BorderRadius.circular(RadiusSize.sm),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

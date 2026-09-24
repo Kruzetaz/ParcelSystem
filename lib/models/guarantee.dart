@@ -4,7 +4,8 @@
 
 class Guarantee {
   final int? id;
-  final String? guaranteeType; // 'หลักประกันซอง' | 'หลักประกันสัญญา' | 'เงินสด' | 'หนังสือค้ำประกันธนาคาร'
+  final String?
+      guaranteeType; // 'หลักประกันซอง' | 'หลักประกันสัญญา' | 'เงินสด' | 'หนังสือค้ำประกันธนาคาร'
   final String? counterpartyName;
   final double? amount;
   final String? startDate;

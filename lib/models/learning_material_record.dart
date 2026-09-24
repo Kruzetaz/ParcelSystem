@@ -9,7 +9,17 @@ const learningMaterialCategories = ['หนังสือเรียน', 'อ
 /// ระดับชั้นมาตรฐาน อ.2 - ม.3 — ใช้ร่วมกันทุกสาขา สาขาไหนไม่มีชั้นนั้นจริง
 /// (เช่น สาขาที่เปิดสอนถึงแค่ ป.6) ก็แค่เว้นจำนวนนักเรียน/สั่งซื้อไว้เป็น 0
 const learningMaterialGradeLevels = [
-  'อ.2', 'อ.3', 'ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6', 'ม.1', 'ม.2', 'ม.3',
+  'อ.2',
+  'อ.3',
+  'ป.1',
+  'ป.2',
+  'ป.3',
+  'ป.4',
+  'ป.5',
+  'ป.6',
+  'ม.1',
+  'ม.2',
+  'ม.3',
 ];
 
 class LearningMaterialRecord {
@@ -63,7 +73,8 @@ class LearningMaterialRecord {
         'note': note,
       };
 
-  factory LearningMaterialRecord.fromMap(Map<String, dynamic> m) => LearningMaterialRecord(
+  factory LearningMaterialRecord.fromMap(Map<String, dynamic> m) =>
+      LearningMaterialRecord(
         id: m['id'] as int?,
         branchId: m['branch_id'] as int,
         category: m['category'] as String,
