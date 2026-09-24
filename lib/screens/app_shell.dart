@@ -206,8 +206,17 @@ class _AppShellState extends State<AppShell> {
   // null ให้อัตโนมัติ กันตัวกรองเก่าค้างตอนกดเข้าแดชบอร์ดทางปกติภายหลัง
   String? _pendingDashboardFilter;
 
+  // ตัวกรอง "รายการที่ขาด" ที่จะส่งให้หน้าปลายทางใช้ตอนเปิดขึ้นมา — ตั้งไว้
+  // เฉพาะตอนกดลิงก์ในเช็คลิสต์ สตง. (หน้ารายงาน) ผ่านพารามิเตอร์ checklistGap
+  // ของ _requestModeChange ด้านล่าง ทุกทางเข้าอื่นที่ไม่ได้ส่งพารามิเตอร์นี้มา
+  // จะเคลียร์ค่านี้เป็น null ให้อัตโนมัติ กันตัวกรองเก่าค้างตอนกดเข้าหน้าเดิม
+  // ทางปกติภายหลัง — ดูรายชื่อ key ที่รองรับใน _buildContent()
+  String? _pendingChecklistGap;
+
   Future<void> _requestModeChange(AppMode newMode,
-      {ProcurementOrder? editingOrder, String? dashboardFilter}) async {
+      {ProcurementOrder? editingOrder,
+      String? dashboardFilter,
+      String? checklistGap}) async {
     // Security level: กันซ้ำตอน routing จริง — ไม่ใช่แค่ล็อกไอคอนที่ sidebar
     // เผื่อมีทางเข้าอื่นที่ไม่ผ่านการกดเมนู (shortcut/ปุ่มลัดจากหน้าอื่น ฯลฯ)
     //
@@ -247,6 +256,7 @@ class _AppShellState extends State<AppShell> {
       _mode = newMode;
       _editingOrder = editingOrder;
       _pendingDashboardFilter = dashboardFilter;
+      _pendingChecklistGap = checklistGap;
       _wizardIsDirty = false;
       _wizardAiBusy = false;
       _budgetsAiBusy = false;
@@ -335,38 +345,51 @@ class _AppShellState extends State<AppShell> {
   }
 
   // Wrapper for DashboardScreenV2 that expects String instead of AppMode
+  // ตารางแปลงชื่อ mode แบบ string (ใช้ข้ามขอบ widget tree เช่นปุ่มลัดใน
+  // Dashboard/หน้ารายงาน) กลับเป็น AppMode จริง — ใช้ร่วมกันทั้ง
+  // _onDashboardNavigateV2 และ _onChecklistGapTap
+  static const _navModeMap = {
+    'dashboard': AppMode.dashboard,
+    'budgets': AppMode.budgets,
+    'settings': AppMode.settings,
+    'ai_settings': AppMode.aiSettings,
+    'tor': AppMode.tor,
+    'contracts': AppMode.contracts,
+    'reports': AppMode.reports,
+    'inspections': AppMode.inspections,
+    'document_hub': AppMode.documentHub,
+    'travel_reimbursement': AppMode.travelReimbursement,
+    'easy_wizard': AppMode.easyWizard,
+    'procurement_calendar': AppMode.procurementCalendar,
+    'guarantees': AppMode.guarantees,
+    'installment_contracts': AppMode.installmentContracts,
+    'order_register': AppMode.orderRegister,
+    'control_log': AppMode.controlLog,
+    'delivery_note_register': AppMode.deliveryNoteRegister,
+    'expenditure_register': AppMode.expenditureRegister,
+    'document_checklist': AppMode.documentChecklist,
+    'learning_materials': AppMode.learningMaterials,
+    'fixed_assets': AppMode.fixedAssets,
+    'repair_history': AppMode.repairHistory,
+    'materials': AppMode.materials,
+    'annual_count': AppMode.annualCount,
+    'staff_appointment': AppMode.staffAppointment,
+    'disposals': AppMode.disposals,
+  };
+
   void _onDashboardNavigateV2(String modeStr) {
-    final modeMap = {
-      'dashboard': AppMode.dashboard,
-      'budgets': AppMode.budgets,
-      'settings': AppMode.settings,
-      'ai_settings': AppMode.aiSettings,
-      'tor': AppMode.tor,
-      'contracts': AppMode.contracts,
-      'reports': AppMode.reports,
-      'inspections': AppMode.inspections,
-      'document_hub': AppMode.documentHub,
-      'travel_reimbursement': AppMode.travelReimbursement,
-      'easy_wizard': AppMode.easyWizard,
-      'procurement_calendar': AppMode.procurementCalendar,
-      'guarantees': AppMode.guarantees,
-      'installment_contracts': AppMode.installmentContracts,
-      'order_register': AppMode.orderRegister,
-      'control_log': AppMode.controlLog,
-      'delivery_note_register': AppMode.deliveryNoteRegister,
-      'expenditure_register': AppMode.expenditureRegister,
-      'document_checklist': AppMode.documentChecklist,
-      'learning_materials': AppMode.learningMaterials,
-      'fixed_assets': AppMode.fixedAssets,
-      'repair_history': AppMode.repairHistory,
-      'materials': AppMode.materials,
-      'annual_count': AppMode.annualCount,
-      'staff_appointment': AppMode.staffAppointment,
-      'disposals': AppMode.disposals,
-    };
-    final mode = modeMap[modeStr];
+    final mode = _navModeMap[modeStr];
     if (mode != null) {
       _requestModeChange(mode);
+    }
+  }
+
+  // ปุ่มลัด "ดูรายการที่ขาด" ในเช็คลิสต์ สตง. (หน้ารายงาน) — พาไปหน้าปลายทาง
+  // พร้อมกรองเฉพาะรายการที่ข้อมูลยังไม่ครบตาม gapKey ที่ระบุ
+  void _onChecklistGapTap(String modeStr, String gapKey) {
+    final mode = _navModeMap[modeStr];
+    if (mode != null) {
+      _requestModeChange(mode, checklistGap: gapKey);
     }
   }
 
@@ -583,11 +606,20 @@ class _AppShellState extends State<AppShell> {
       case AppMode.easyWizard:
         return EasyWizardScreen(onCreated: _onEasyWizardCreated);
       case AppMode.budgets:
-        return BudgetListScreen(onAiBusyChanged: _onBudgetsAiBusyChanged);
+        return BudgetListScreen(
+          onAiBusyChanged: _onBudgetsAiBusyChanged,
+          initialOnlyMissingAmount:
+              _pendingChecklistGap == 'budget_missing_amount',
+        );
       case AppMode.tor:
-        return const TorScreen();
+        return TorScreen(
+          initialOnlyMissingSpec: _pendingChecklistGap == 'tor_missing_spec',
+        );
       case AppMode.contracts:
-        return const ContractsScreen();
+        return ContractsScreen(
+          initialOnlyMissingDates:
+              _pendingChecklistGap == 'contract_missing_dates',
+        );
       case AppMode.guarantees:
         return const GuaranteesScreen();
       case AppMode.inspections:
@@ -602,7 +634,13 @@ class _AppShellState extends State<AppShell> {
       case AppMode.travelReimbursement:
         return const TravelReimbursementScreen();
       case AppMode.orderRegister:
-        return const OrderRegisterScreen();
+        return OrderRegisterScreen(
+          initialGapFilter: switch (_pendingChecklistGap) {
+            'order_missing_number' => OrderRegisterGapFilter.missingNumber,
+            'order_missing_vendor' => OrderRegisterGapFilter.missingVendor,
+            _ => null,
+          },
+        );
       case AppMode.controlLog:
         return ControlLogScreen(
             onGenerateDocument: _onGenerateDocumentForOrder);
@@ -618,6 +656,8 @@ class _AppShellState extends State<AppShell> {
         return FixedAssetsScreen(
           key: ValueKey('fixed_assets_$_fixedAssetsInitialSelectedId'),
           initialSelectedId: _fixedAssetsInitialSelectedId,
+          initialOnlyMissingAssetNumber:
+              _pendingChecklistGap == 'asset_missing_number',
         );
       case AppMode.repairHistory:
         return RepairHistoryScreen(onViewAsset: _onViewAssetFromRepairHistory);
@@ -630,7 +670,7 @@ class _AppShellState extends State<AppShell> {
       case AppMode.disposals:
         return const DisposalsScreen();
       case AppMode.reports:
-        return const ReportsScreen();
+        return ReportsScreen(onNavigateToGap: _onChecklistGapTap);
       case AppMode.settings:
         return const SettingsScreen();
       case AppMode.aiSettings:
@@ -1536,7 +1576,7 @@ class _AppShellState extends State<AppShell> {
                                         .withValues(alpha: 0.4)),
                               ),
                               child: Text(
-                                'v3.2 Retamp',
+                                'v4.1 Update',
                                 style: TextStyle(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w700,

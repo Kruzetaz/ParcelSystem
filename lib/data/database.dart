@@ -17,7 +17,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int _version = 49;
+  static const int _version = 50;
 
   Database? _db;
 
@@ -944,6 +944,24 @@ class AppDatabase {
             );
           } catch (_) {}
         }
+        if (oldVersion < 50) {
+          // ไฟล์สแกนใบเสนอราคาจากร้านค้า — 1 โครงการอาจมีหลายใบเสนอราคา
+          // (เทียบราคาหลายเจ้า) จึงแยกเป็นตารางของตัวเอง เก็บแค่ path ไฟล์ที่
+          // คัดลอกไว้ในเครื่อง (โฟลเดอร์ QuotationFiles) ไม่อัปโหลด cloud
+          // เหมือนรูปครุภัณฑ์
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS quotation_attachments (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              order_id INTEGER,
+              vendor_name TEXT,
+              file_path TEXT,
+              original_file_name TEXT,
+              uploaded_at TEXT,
+              note TEXT,
+              FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+            )
+          ''');
+        }
       },
     );
   }
@@ -1365,6 +1383,20 @@ class AppDatabase {
         delivery_date TEXT,
         items_description TEXT,
         received_by TEXT,
+        note TEXT,
+        FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
+      )
+    ''');
+
+    // ── ไฟล์สแกนใบเสนอราคา ──────────────────────────────────────────
+    await db.execute('''
+      CREATE TABLE quotation_attachments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER,
+        vendor_name TEXT,
+        file_path TEXT,
+        original_file_name TEXT,
+        uploaded_at TEXT,
         note TEXT,
         FOREIGN KEY (order_id) REFERENCES procurement_orders(id)
       )

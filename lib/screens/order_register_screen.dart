@@ -20,6 +20,8 @@ import '../utils/thai_date.dart';
 import '../utils/thai_numerals.dart';
 import '../widgets/guide_panel.dart';
 import '../widgets/column_visibility_menu.dart';
+import '../widgets/design_system/gap_filter_banner.dart';
+import '../widgets/design_system/status_badge.dart' show DSFilterChip;
 import '../widgets/procurement_import_dialog.dart';
 import '../theme/design_tokens.dart';
 
@@ -41,8 +43,14 @@ const _orderRegisterOptionalColumns = [
   'วันส่งเบิกเงิน',
 ];
 
+enum OrderRegisterGapFilter { missingNumber, missingVendor }
+
 class OrderRegisterScreen extends StatefulWidget {
-  const OrderRegisterScreen({super.key});
+  // เปิดมาจากลิงก์ "ดูรายการที่ขาด" ในเช็คลิสต์ สตง. (หน้ารายงาน) — กรองเฉพาะ
+  // โครงการที่ยังขาดข้อมูลตามชนิดที่ระบุไว้อัตโนมัติตอนเปิดหน้า
+  final OrderRegisterGapFilter? initialGapFilter;
+
+  const OrderRegisterScreen({super.key, this.initialGapFilter});
   @override
   State<OrderRegisterScreen> createState() => _OrderRegisterScreenState();
 }
@@ -54,6 +62,7 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
   bool _loading = true;
   String? _fiscalYearFilter =
       UiSessionState.instance.read<String?>('order_register_fiscal_year', null);
+  late OrderRegisterGapFilter? _gapFilter = widget.initialGapFilter;
 
   final _purchaseScrollCtrl = ScrollController();
   final _hireScrollCtrl = ScrollController();
@@ -106,9 +115,20 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
       .toList()
     ..sort();
 
-  List<ProcurementOrder> get _filtered => _fiscalYearFilter == null
-      ? _orders
-      : _orders.where((o) => o.fiscalYear == _fiscalYearFilter).toList();
+  List<ProcurementOrder> get _filtered => _orders.where((o) {
+        if (_fiscalYearFilter != null && o.fiscalYear != _fiscalYearFilter) {
+          return false;
+        }
+        if (_gapFilter == OrderRegisterGapFilter.missingNumber &&
+            (o.procurementNumber ?? '').isNotEmpty) {
+          return false;
+        }
+        if (_gapFilter == OrderRegisterGapFilter.missingVendor &&
+            (o.vendorName ?? '').isNotEmpty) {
+          return false;
+        }
+        return true;
+      }).toList();
 
   List<ProcurementOrder> get _purchases =>
       _sortedByDate(_filtered.where((o) => o.orderType != 'จ้าง'));
@@ -460,7 +480,45 @@ class _OrderRegisterScreenState extends State<OrderRegisterScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+                  // ตัวกรอง "เฉพาะที่ยังขาดเลขที่/ผู้ขาย" ยังอยู่ให้กดสลับเปิด/ปิด
+                  // เองได้ตลอด ไม่ใช่แค่ตอนกดลิงก์ "ดูรายการที่ขาด" จากหน้ารายงาน
+                  // สตง. เท่านั้น (เลือกอันหนึ่งจะปิดอีกอันให้อัตโนมัติ)
+                  Wrap(spacing: 8, runSpacing: 6, children: [
+                    DSFilterChip(
+                      label: 'เฉพาะที่ยังไม่มีเลขที่เอกสาร',
+                      icon: Icons.filter_alt_outlined,
+                      isSelected:
+                          _gapFilter == OrderRegisterGapFilter.missingNumber,
+                      onTap: () => setState(() {
+                        _gapFilter =
+                            _gapFilter == OrderRegisterGapFilter.missingNumber
+                                ? null
+                                : OrderRegisterGapFilter.missingNumber;
+                      }),
+                    ),
+                    DSFilterChip(
+                      label: 'เฉพาะที่ยังไม่มีชื่อผู้ขาย/ผู้รับจ้าง',
+                      icon: Icons.filter_alt_outlined,
+                      isSelected:
+                          _gapFilter == OrderRegisterGapFilter.missingVendor,
+                      onTap: () => setState(() {
+                        _gapFilter =
+                            _gapFilter == OrderRegisterGapFilter.missingVendor
+                                ? null
+                                : OrderRegisterGapFilter.missingVendor;
+                      }),
+                    ),
+                  ]),
+                  const SizedBox(height: 10),
+                  if (_gapFilter != null)
+                    GapFilterBanner(
+                      message: _gapFilter ==
+                              OrderRegisterGapFilter.missingNumber
+                          ? 'แสดงเฉพาะโครงการที่ยังไม่มีเลขที่เอกสาร'
+                          : 'แสดงเฉพาะโครงการที่ยังไม่มีชื่อผู้ขาย/ผู้รับจ้าง',
+                      onClear: () => setState(() => _gapFilter = null),
+                    ),
                   Expanded(
                     child: _orders.isEmpty
                         ? Center(

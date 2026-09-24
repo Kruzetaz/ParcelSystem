@@ -14,6 +14,7 @@ import '../models/contract.dart';
 import '../models/guarantee.dart';
 import '../models/inspection.dart';
 import '../models/delivery_note.dart';
+import '../models/quotation_attachment.dart';
 import '../models/fixed_asset.dart';
 import '../models/asset_event.dart';
 import '../models/asset_repair_entry.dart';
@@ -393,6 +394,58 @@ class ProcurementRepository {
         description: contract.contractNumber ?? 'สัญญา #${contract.id}');
   }
 
+  /// เติม "วันที่เริ่ม-สิ้นสุดสัญญา" ให้สัญญาเดิมที่ผูกกับโครงการอยู่แล้วแต่ยัง
+  /// ไม่เคยมีค่าสองช่องนี้ (เช่น สัญญาที่บันทึกไว้ก่อนมีการดึงค่าอัตโนมัติ) —
+  /// ดึงจาก "วันทำสัญญา"/"วันครบกำหนดส่งมอบ" ของโครงการที่ผูกอยู่ตรงๆ ไม่ทับ
+  /// ค่าที่มีอยู่แล้ว เรียกครั้งเดียวตอนเปิดหน้ารายงาน/สตง. หรือหน้าบริหารสัญญา
+  /// กันผู้ใช้ต้องไล่เปิด-บันทึกทีละโครงการเองถึงจะนับในเช็คลิสต์ สตง.
+  Future<int> syncContractDatesFromLinkedOrders() async {
+    if (!FeatureAccessService.instance
+        .hasModule(FeatureModules.contractManagement)) {
+      return 0;
+    }
+    final db = await _db.database;
+    final startCount = await db.rawUpdate('''
+      UPDATE contracts
+      SET start_date = (
+        SELECT o.date_contract_signed FROM procurement_orders o
+        WHERE o.id = contracts.order_id
+      )
+      WHERE order_id IS NOT NULL
+        AND (start_date IS NULL OR start_date = '')
+        AND EXISTS (
+          SELECT 1 FROM procurement_orders o
+          WHERE o.id = contracts.order_id
+            AND o.date_contract_signed IS NOT NULL
+            AND o.date_contract_signed != ''
+        )
+    ''');
+    final endCount = await db.rawUpdate('''
+      UPDATE contracts
+      SET end_date = (
+        SELECT o.date_deadline FROM procurement_orders o
+        WHERE o.id = contracts.order_id
+      )
+      WHERE order_id IS NOT NULL
+        AND (end_date IS NULL OR end_date = '')
+        AND EXISTS (
+          SELECT 1 FROM procurement_orders o
+          WHERE o.id = contracts.order_id
+            AND o.date_deadline IS NOT NULL
+            AND o.date_deadline != ''
+        )
+    ''');
+    final total = startCount + endCount;
+    if (total > 0) {
+      await AuditService.instance.log(db,
+          action: 'แก้ไข',
+          tableLabel: 'บริหารสัญญา',
+          description:
+              'ซิงก์วันที่เริ่ม-สิ้นสุดสัญญาจากโครงการที่ผูกไว้อัตโนมัติ ($total ช่อง)');
+    }
+    return total;
+  }
+
   /// [fiscalYear] กรองเฉพาะสัญญาที่ผูกกับโครงการของปีงบนั้น — สัญญาที่ยังไม่ได้
   /// ผูกโครงการ (order_id ว่าง) โชว์เสมอทุกปีงบเหมือนกัน (ดูเหตุผลเดียวกับ
   /// getAllTorDocuments ด้านบน)
@@ -570,6 +623,36 @@ class ProcurementRepository {
         action: 'ลบ',
         tableLabel: 'ทะเบียนคุมใบส่งของ',
         description: 'ใบส่งของ #$id');
+  }
+
+  // ─────────────────────────────────────────
+  // QUOTATION ATTACHMENTS (ไฟล์สแกนใบเสนอราคา) — 1 โครงการอาจมีหลายใบเสนอราคา
+  // ─────────────────────────────────────────
+
+  Future<int> insertQuotationAttachment(QuotationAttachment a) async {
+    _requireModule(FeatureModules.procurement, 'ใบเสนอราคา');
+    final db = await _db.database;
+    final id = await db.insert('quotation_attachments', a.toMap());
+    await AuditService.instance.log(db,
+        action: 'สร้าง',
+        tableLabel: 'ใบเสนอราคา',
+        description: a.vendorName ?? 'ใบเสนอราคา #$id');
+    return id;
+  }
+
+  Future<List<QuotationAttachment>> getQuotationAttachmentsForOrder(
+      int orderId) async {
+    final db = await _db.database;
+    final rows = await db.query('quotation_attachments',
+        where: 'order_id = ?', whereArgs: [orderId], orderBy: 'id DESC');
+    return rows.map(QuotationAttachment.fromMap).toList();
+  }
+
+  Future<void> deleteQuotationAttachment(int id) async {
+    final db = await _db.database;
+    await db.delete('quotation_attachments', where: 'id = ?', whereArgs: [id]);
+    await AuditService.instance.log(db,
+        action: 'ลบ', tableLabel: 'ใบเสนอราคา', description: 'ใบเสนอราคา #$id');
   }
 
   // ─────────────────────────────────────────

@@ -52,7 +52,11 @@ int? _monthIndexFromThaiDate(String? text) {
 }
 
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key});
+  // เปิดหน้าปลายทาง (mode) กรองเฉพาะรายการที่ข้อมูลยังไม่ครบ (gapKey) — ใช้กับ
+  // ลิงก์ "ดูรายการที่ขาด" ในเช็คลิสต์ สตง. ด้านล่าง
+  final void Function(String mode, String gapKey) onNavigateToGap;
+
+  const ReportsScreen({super.key, required this.onNavigateToGap});
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
 }
@@ -78,6 +82,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    // เติมวันที่เริ่ม-สิ้นสุดสัญญาที่ยังขาดจากโครงการที่ผูกไว้ก่อนคำนวณคะแนน —
+    // กันผู้ใช้ต้องไล่เปิด-บันทึกทีละสัญญาเองถึงจะถูกนับใน Ready Score
+    await _repo.syncContractDatesFromLinkedOrders();
     final orders = await _repo.getAllOrders();
     final budgets = await _repo.getAllBudgets();
     final tors = await _repo.getAllTorDocuments();
@@ -111,31 +118,43 @@ class _ReportsScreenState extends State<ReportsScreen> {
         'แผนงบประมาณมีวงเงินระบุครบ',
         budgets.where((b) => b.allocatedAmount != null).length,
         budgets.length,
+        gapMode: 'budgets',
+        gapKey: 'budget_missing_amount',
       ),
       _ChecklistItem(
         'เอกสารจัดซื้อจัดจ้างมีเลขที่เอกสารครบ',
         orders.where((o) => (o.procurementNumber ?? '').isNotEmpty).length,
         orders.length,
+        gapMode: 'order_register',
+        gapKey: 'order_missing_number',
       ),
       _ChecklistItem(
         'เอกสารจัดซื้อจัดจ้างมีชื่อผู้ขาย/ผู้รับจ้างครบ',
         orders.where((o) => (o.vendorName ?? '').isNotEmpty).length,
         orders.length,
+        gapMode: 'order_register',
+        gapKey: 'order_missing_vendor',
       ),
       _ChecklistItem(
         'TOR/คุณลักษณะเฉพาะมีรายละเอียดสเปกครบ',
         tors.where((t) => (t.specificationText ?? '').isNotEmpty).length,
         tors.length,
+        gapMode: 'tor',
+        gapKey: 'tor_missing_spec',
       ),
       _ChecklistItem(
         'สัญญามีวันที่เริ่ม-สิ้นสุดครบ',
         contracts.where((c) => c.startDate != null && c.endDate != null).length,
         contracts.length,
+        gapMode: 'contracts',
+        gapKey: 'contract_missing_dates',
       ),
       _ChecklistItem(
         'ครุภัณฑ์มีเลขครุภัณฑ์ครบ',
         assets.where((a) => (a.assetNumber ?? '').isNotEmpty).length,
         assets.length,
+        gapMode: 'fixed_assets',
+        gapKey: 'asset_missing_number',
       ),
     ];
 
@@ -515,6 +534,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         : (item.ratio > 0.5
             ? BrandAccent.tertiary(context)
             : BrandAccent.red(context));
+    final canJump =
+        item.ratio < 1 && item.gapMode != null && item.gapKey != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -526,6 +547,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: Text(item.label,
                   style: TextStyle(
                       fontSize: AppTypography.body, color: colors.onSurface))),
+          if (canJump) ...[
+            TextButton.icon(
+              onPressed: () =>
+                  widget.onNavigateToGap(item.gapMode!, item.gapKey!),
+              icon: const Icon(Icons.arrow_forward, size: 15),
+              label: const Text('ดูรายการที่ขาด'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                visualDensity: VisualDensity.compact,
+                textStyle: const TextStyle(
+                    fontSize: 12.5, fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
           Text('${item.completed}/${item.total}',
               style: TextStyle(
                   fontSize: AppTypography.bodyMedium,
@@ -604,6 +640,11 @@ class _ChecklistItem {
   final String label;
   final int completed;
   final int total;
-  _ChecklistItem(this.label, this.completed, this.total);
+  // หน้าปลายทาง/ตัวกรองที่จะใช้ตอนกดลิงก์ "ดูรายการที่ขาด" — null ถ้าเช็คนี้
+  // ยังไม่มีหน้าปลายทางให้พาไป
+  final String? gapMode;
+  final String? gapKey;
+  _ChecklistItem(this.label, this.completed, this.total,
+      {this.gapMode, this.gapKey});
   double get ratio => total == 0 ? 1.0 : completed / total;
 }

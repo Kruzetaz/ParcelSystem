@@ -29,6 +29,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/feature_access_service.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/design_system/hover_marquee_text.dart';
 import '../widgets/upsell_dialog.dart';
 
 // เดิม 212 กว้างเกินไปสำหรับป้ายสั้นๆ (เหลือพื้นที่ว่างขวามือเยอะ) แต่ 196
@@ -736,14 +737,12 @@ class _SidebarItemTileState extends State<_SidebarItemTile> {
                         alignment: Alignment.centerLeft,
                         child: Padding(
                           padding: const EdgeInsets.only(left: 9),
-                          child: Text(
-                            widget.label,
-                            maxLines: 1,
-                            softWrap: false,
-                            // ellipsis แทน clip — ป้ายยาวสุด (เช่น "ทะเบียนคุมเลข
-                            // บันทึก/TOR") บางจอ/สเกลฟอนต์อาจยังไม่พอดีเป๊ะ ขึ้น "…"
-                            // ให้ดูตั้งใจแทนที่จะตัดกลางคำแบบสุ่มดูเหมือนบั๊ก
-                            overflow: TextOverflow.ellipsis,
+                          // ป้ายยาวสุด (เช่น "ทะเบียนคุมเลขบันทึก/TOR") ถูกตัดด้วย
+                          // ellipsis ตอนพื้นที่ไม่พอ — เอาเมาส์ไปชี้ค้างแล้วให้
+                          // ข้อความเลื่อนไปมาอ่านจนจบแทน (HoverMarqueeText เช็คเอง
+                          // ว่าข้อความสั้นพอไม่ล้นก็จะไม่ขยับ)
+                          child: HoverMarqueeText(
+                            text: widget.label,
                             style: TextStyle(
                               color: fg,
                               // ตัวหนาเฉพาะตอนเลือกอยู่/ชี้เมาส์อยู่ — ปกติเป็นตัว

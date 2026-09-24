@@ -21,6 +21,7 @@ import '../widgets/guide_panel.dart';
 import '../widgets/standard_price_picker_dialog.dart';
 import '../widgets/thai_date_picker.dart';
 import '../theme/design_tokens.dart';
+import '../widgets/design_system/gap_filter_banner.dart';
 import '../widgets/design_system/kpi_card.dart';
 import '../widgets/design_system/status_badge.dart'
     show StatusBadge, BadgeVariant, DSFilterChip;
@@ -115,8 +116,14 @@ Future<String> _copyPhotoLocally(String sourcePath) async {
 class FixedAssetsScreen extends StatefulWidget {
   // เปิดมาจากปุ่มลัด "ดูครุภัณฑ์" ในหน้าประวัติซ่อม — ให้เลือกชิ้นนี้ไว้ล่วงหน้า
   final int? initialSelectedId;
+  // เปิดมาจากลิงก์ "ดูรายการที่ขาด" ในเช็คลิสต์ สตง. (หน้ารายงาน) — กรองเฉพาะ
+  // ครุภัณฑ์ที่ยังไม่มีเลขครุภัณฑ์ไว้ให้อัตโนมัติตอนเปิดหน้า
+  final bool initialOnlyMissingAssetNumber;
 
-  const FixedAssetsScreen({super.key, this.initialSelectedId});
+  const FixedAssetsScreen(
+      {super.key,
+      this.initialSelectedId,
+      this.initialOnlyMissingAssetNumber = false});
   @override
   State<FixedAssetsScreen> createState() => _FixedAssetsScreenState();
 }
@@ -138,6 +145,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
   // ตัวสลับปีงบหลักจะเสี่ยงทำให้ครุภัณฑ์ "หายไป" จากสายตาโดยไม่ได้ตั้งใจ) —
   // default ว่าง = โชว์ทุกปี ผู้ใช้ต้องเลือกเองถึงจะกรอง
   String? _acquiredYearFilter;
+  late bool _onlyMissingAssetNumber = widget.initialOnlyMissingAssetNumber;
 
   @override
   void initState() {
@@ -164,6 +172,7 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       .where((a) =>
           _acquiredYearFilter == null ||
           _acquiredYearOf(a) == _acquiredYearFilter)
+      .where((a) => !_onlyMissingAssetNumber || (a.assetNumber ?? '').isEmpty)
       .toList();
 
   /// ปีที่ได้มา (พ.ศ.) ของครุภัณฑ์ชิ้นนี้ — ดึงตรงจากส่วนท้ายสตริงวันที่ (เช่น
@@ -403,6 +412,12 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
                       const SizedBox(height: 16),
                       _buildSummaryCards(context, colors),
                       const SizedBox(height: 16),
+                      if (_onlyMissingAssetNumber)
+                        GapFilterBanner(
+                          message: 'แสดงเฉพาะครุภัณฑ์ที่ยังไม่มีเลขครุภัณฑ์',
+                          onClear: () =>
+                              setState(() => _onlyMissingAssetNumber = false),
+                        ),
                       Expanded(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,7 +599,17 @@ class _FixedAssetsScreenState extends State<FixedAssetsScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(children: [
         chip('ทั้งหมด', null),
-        for (final s in _assetStatuses) chip(s, s)
+        for (final s in _assetStatuses) chip(s, s),
+        const SizedBox(width: 6),
+        // ตัวกรอง "เฉพาะที่ยังไม่มีเลขครุภัณฑ์" ยังอยู่ให้กดสลับเปิด/ปิดเองได้
+        // ตลอด ไม่ใช่แค่ตอนกดลิงก์ "ดูรายการที่ขาด" จากหน้ารายงาน สตง.
+        DSFilterChip(
+          label: 'เฉพาะที่ยังไม่มีเลขครุภัณฑ์',
+          icon: Icons.filter_alt_outlined,
+          isSelected: _onlyMissingAssetNumber,
+          onTap: () => setState(
+              () => _onlyMissingAssetNumber = !_onlyMissingAssetNumber),
+        ),
       ]),
     );
   }

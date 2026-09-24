@@ -144,7 +144,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                               ),
                             ),
                             Text(
-                              'v3.2 Retamp · พัฒนาโดย Acha Srangkannork',
+                              'v4.1 Update · พัฒนาโดย Acha Srangkannork',
                               style: TextStyle(
                                   color: colors.onSurfaceVariant,
                                   fontSize: AppTypography.bodySmall),

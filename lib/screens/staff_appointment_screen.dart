@@ -519,7 +519,7 @@ class _StaffAppointmentFormDialogState
               controller: _nameCtrls[i],
               presetOptions: _personnel.map((p) => p.name).toList(),
               decoration: _dialogFieldDecoration(context,
-                      label: 'ชื่อ-สกุล', hint: 'เช่น นายพิทยา สุขแจ่ม')
+                      label: 'ชื่อ-สกุล', hint: 'เช่น นายสมชาย ใจดี')
                   .copyWith(
                 suffixIcon: PopupMenuButton<Personnel>(
                   icon: Icon(Icons.people_alt_outlined,

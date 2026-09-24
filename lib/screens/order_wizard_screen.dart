@@ -13,9 +13,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../data/procurement_repository.dart';
 import '../models/budget.dart';
 import '../models/procurement_order.dart';
+import '../models/quotation_attachment.dart';
 import '../models/vendor.dart';
 import '../models/personnel.dart';
 import '../models/procurement_item.dart';
@@ -25,6 +28,7 @@ import '../services/fiscal_year_controller.dart';
 import '../services/gemini_service.dart';
 import '../services/toast_service.dart';
 import '../theme/design_tokens.dart';
+import '../utils/app_folder_name.dart';
 import '../utils/calc_engine.dart';
 import '../utils/money_format.dart';
 import '../widgets/items_table_editor.dart';
@@ -72,6 +76,35 @@ InputDecoration _dialogFieldDecoration(BuildContext context,
       borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.6),
     ),
   );
+}
+
+/// คัดลอกไฟล์สแกนใบเสนอราคาที่ผู้ใช้เลือกมาเก็บไว้ในเครื่อง (local storage) —
+/// เหมือนรูปครุภัณฑ์ใน fixed_assets_screen.dart ไม่อัปโหลด cloud
+Future<String> _copyQuotationFileLocally(String sourcePath) async {
+  final docsDir = await getApplicationDocumentsDirectory();
+  final folderName = await getSchoolDocumentsFolderName();
+  final quotesDir =
+      Directory(p.join(docsDir.path, folderName, 'QuotationFiles'));
+  if (!quotesDir.existsSync()) quotesDir.createSync(recursive: true);
+  final ext = p.extension(sourcePath);
+  final destPath = p.join(
+      quotesDir.path, 'quote_${DateTime.now().microsecondsSinceEpoch}$ext');
+  await File(sourcePath).copy(destPath);
+  return destPath;
+}
+
+/// เปิดไฟล์ที่แนบไว้ด้วยโปรแกรมเริ่มต้นของเครื่อง (รูปภาพ/PDF) — ใช้แพทเทิร์น
+/// เดียวกับที่ export service อื่นๆ ในแอปเปิดไฟล์ .xlsx/.docx ที่สร้างเสร็จแล้ว
+Future<void> _openAttachedFile(String path) async {
+  try {
+    if (Platform.isMacOS) {
+      await Process.run('open', [path]);
+    } else if (Platform.isWindows) {
+      await Process.run('cmd', ['/c', 'start', '', path]);
+    } else if (Platform.isLinux) {
+      await Process.run('xdg-open', [path]);
+    }
+  } catch (_) {}
 }
 
 /// ปุ่มฟีเจอร์ AI (ช่วยเขียนเหตุผล / อ่านจากใบเสร็จ) — ใส่กรอบสีม่วงเด่นแยกจาก
@@ -151,6 +184,12 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
   double _itemsSubtotal = 0;
   final _itemsTableController = ItemsTableEditorController();
 
+  // ไฟล์สแกนใบเสนอราคา — ถ้าโครงการยังไม่เคยบันทึก (id ว่าง) จะเก็บพักไว้ใน
+  // หน่วยความจำก่อน (ไฟล์คัดลอกลงเครื่องแล้วแต่ยังไม่ insert ลง DB) แล้วค่อย
+  // บันทึกจริงตอนกด "บันทึก"/"สร้างเอกสาร Word" ครั้งแรกพร้อมกับตัวโครงการ —
+  // เหมือนวิธีจัดการ _items ด้านบน (พักไว้ในหน่วยความจำจนกว่าจะมี order id จริง)
+  List<QuotationAttachment> _quotationAttachments = [];
+
   bool _saving = false;
   bool _generatingDoc = false;
 
@@ -165,6 +204,7 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
     _draft = widget.existingOrder ?? const ProcurementOrder();
     if (widget.existingOrder?.id != null) {
       _loadItems(widget.existingOrder!.id!);
+      _loadQuotationAttachments(widget.existingOrder!.id!);
     }
   }
 
@@ -175,6 +215,70 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
       _items = items;
       _itemsSubtotal = items.fold<double>(0, (sum, i) => sum + i.computedTotal);
     });
+  }
+
+  Future<void> _loadQuotationAttachments(int orderId) async {
+    final attachments = await _repo.getQuotationAttachmentsForOrder(orderId);
+    if (!mounted) return;
+    setState(() => _quotationAttachments = attachments);
+  }
+
+  /// เลือกไฟล์สแกนใบเสนอราคา (PDF/รูปภาพ) แล้วคัดลอกเก็บในเครื่อง — ถ้าโครงการ
+  /// มี id แล้ว (เคยบันทึกแล้ว) จะ insert ลง DB ทันที ถ้ายังไม่มี id จะพักไว้ใน
+  /// หน่วยความจำก่อน แล้วไปบันทึกจริงพร้อมกันตอนกด "บันทึก" ครั้งแรก
+  Future<void> _pickQuotationFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      dialogTitle: 'เลือกไฟล์สแกนใบเสนอราคา',
+    );
+    final picked = result?.files.single;
+    if (picked?.path == null) return;
+    try {
+      final savedPath = await _copyQuotationFileLocally(picked!.path!);
+      final now = DateTime.now();
+      final attachment = QuotationAttachment(
+        orderId: _draft.id,
+        vendorName: _draft.vendorName?.trim().isNotEmpty ?? false
+            ? _draft.vendorName
+            : _draft.vendorOwner,
+        filePath: savedPath,
+        originalFileName: picked.name,
+        uploadedAt:
+            '${now.day} ${_thaiMonthNames[now.month]} ${now.year + 543}',
+      );
+      if (_draft.id != null) {
+        final id = await _repo.insertQuotationAttachment(attachment);
+        setState(() => _quotationAttachments = [
+              attachment.copyWith(id: id),
+              ..._quotationAttachments,
+            ]);
+      } else {
+        setState(() => _quotationAttachments = [
+              attachment,
+              ..._quotationAttachments,
+            ]);
+        _markDirty();
+      }
+      if (!mounted) return;
+      showAppToast('แนบไฟล์ใบเสนอราคาแล้ว');
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast('แนบไฟล์ไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
+  /// ลบไฟล์แนบ — ถ้าเคยบันทึกลง DB แล้ว (มี id) ลบออกจาก DB ด้วย ไม่ใช่แค่ใน
+  /// หน้าจอ ถ้ายังพักอยู่ในหน่วยความจำ (ยังไม่บันทึกโครงการ) ลบออกจากลิสต์เฉยๆ
+  Future<void> _removeQuotationAttachment(QuotationAttachment a) async {
+    if (a.id != null) {
+      await _repo.deleteQuotationAttachment(a.id!);
+    } else {
+      _markDirty();
+    }
+    if (!mounted) return;
+    setState(() => _quotationAttachments =
+        _quotationAttachments.where((x) => x != a).toList());
   }
 
   @override
@@ -351,6 +455,22 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
         : orderToSave;
     setState(() => _draft = orderToSave);
 
+    // บันทึกไฟล์แนบใบเสนอราคาที่พักไว้ในหน่วยความจำ (เลือกไฟล์ไว้ก่อนกด
+    // "บันทึก" ครั้งแรก ตอนนั้น order ยังไม่มี id) ลง DB จริงตอนนี้ที่มี
+    // order.id แน่นอนแล้ว — ตัวที่เคย insert ไปแล้ว (มี id) ไม่ต้องทำซ้ำ
+    final pendingAttachments =
+        _quotationAttachments.where((a) => a.id == null).toList();
+    if (pendingAttachments.isNotEmpty) {
+      final updated = List<QuotationAttachment>.from(_quotationAttachments);
+      for (final pending in pendingAttachments) {
+        final withOrderId = pending.copyWith(orderId: orderToSave.id);
+        final newId = await _repo.insertQuotationAttachment(withOrderId);
+        final idx = updated.indexOf(pending);
+        updated[idx] = withOrderId.copyWith(id: newId);
+      }
+      setState(() => _quotationAttachments = updated);
+    }
+
     // จำข้อมูลร้านค้าไว้ให้เลือกใช้ซ้ำได้ในเอกสารครั้งถัดไป — ร้านที่ไม่มีชื่อร้าน
     // (มีแค่ชื่อเจ้าของ) ใช้ชื่อเจ้าของแทนเป็นชื่อที่บันทึกไว้ค้นหา/เลือกซ้ำได้
     final vendorDisplayName =
@@ -473,7 +593,10 @@ class _OrderWizardScreenState extends State<OrderWizardScreen>
               _Tab3VendorTerms(
                   draft: _draft,
                   onChanged: _updateDraft,
-                  itemsSubtotal: _itemsSubtotal),
+                  itemsSubtotal: _itemsSubtotal,
+                  quotationAttachments: _quotationAttachments,
+                  onAddQuotation: _pickQuotationFile,
+                  onRemoveQuotation: _removeQuotationAttachment),
               _Tab4Items(
                 initialItems: _items,
                 itemsController: _itemsTableController,
@@ -1531,8 +1654,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _ownerPositionCtrl,
-                    decoration:
-                        _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                    decoration: _inputDecoration('ตำแหน่ง',
+                        hint: 'เช่น ครู วิทยฐานะชำนาญการ'),
                     onChanged: (v) =>
                         widget.onChanged((d) => d.copyWith(ownerPosition: v)),
                   ),
@@ -1574,8 +1697,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _specCreatorPositionCtrl,
-                    decoration:
-                        _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                    decoration: _inputDecoration('ตำแหน่ง',
+                        hint: 'เช่น ครู วิทยฐานะชำนาญการ'),
                     onChanged: (v) => widget
                         .onChanged((d) => d.copyWith(specCreatorPosition: v)),
                   ),
@@ -1627,8 +1750,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                     fieldKey: 'wizard.personPosition',
                     presetOptions: commonPositions,
                     controller: _inspector1PosCtrl,
-                    decoration:
-                        _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                    decoration: _inputDecoration('ตำแหน่ง',
+                        hint: 'เช่น ครู วิทยฐานะชำนาญการ'),
                     onChanged: (v) =>
                         widget.onChanged((d) => d.copyWith(inspector1Pos: v)),
                   ),
@@ -1667,8 +1790,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personPosition',
                       presetOptions: commonPositions,
                       controller: _inspector2PosCtrl,
-                      decoration:
-                          _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                      decoration: _inputDecoration('ตำแหน่ง',
+                          hint: 'เช่น ครู วิทยฐานะชำนาญการ'),
                       onChanged: (v) =>
                           widget.onChanged((d) => d.copyWith(inspector2Pos: v)),
                     ),
@@ -1706,8 +1829,8 @@ class _Tab2OfficersState extends State<_Tab2Officers> {
                       fieldKey: 'wizard.personPosition',
                       presetOptions: commonPositions,
                       controller: _inspector3PosCtrl,
-                      decoration:
-                          _inputDecoration('ตำแหน่ง', hint: 'เช่น ครู คศ.2'),
+                      decoration: _inputDecoration('ตำแหน่ง',
+                          hint: 'เช่น ครู วิทยฐานะชำนาญการ'),
                       onChanged: (v) =>
                           widget.onChanged((d) => d.copyWith(inspector3Pos: v)),
                     ),
@@ -1881,11 +2004,17 @@ class _Tab3VendorTerms extends StatefulWidget {
   final ProcurementOrder draft;
   final void Function(ProcurementOrder Function(ProcurementOrder)) onChanged;
   final double itemsSubtotal;
+  final List<QuotationAttachment> quotationAttachments;
+  final VoidCallback onAddQuotation;
+  final void Function(QuotationAttachment) onRemoveQuotation;
 
   const _Tab3VendorTerms(
       {required this.draft,
       required this.onChanged,
-      required this.itemsSubtotal});
+      required this.itemsSubtotal,
+      required this.quotationAttachments,
+      required this.onAddQuotation,
+      required this.onRemoveQuotation});
 
   @override
   State<_Tab3VendorTerms> createState() => _Tab3VendorTermsState();
@@ -2164,7 +2293,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                     fieldKey: 'vendor.addressNo',
                     controller: _vendorAddressNoCtrl,
                     decoration: _inputDecoration('เลขที่ตั้ง/ที่อยู่').copyWith(
-                      hintText: 'เช่น 123 หมู่ 4 ถนนราชมนตรี',
+                      hintText: 'เช่น 123 หมู่ 4 ถนนสุขุมวิท',
                     ),
                     onChanged: (v) =>
                         widget.onChanged((d) => d.copyWith(vendorAddressNo: v)),
@@ -2190,8 +2319,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.district',
                     controller: _vendorDistrictCtrl,
-                    decoration:
-                        _inputDecoration('อำเภอ/เขต', hint: 'เช่น เมืองลำพูน'),
+                    decoration: _inputDecoration('อำเภอ/เขต',
+                        hint: 'เช่น เมืองสุโขทัย'),
                     onChanged: (v) =>
                         widget.onChanged((d) => d.copyWith(vendorDistrict: v)),
                   ),
@@ -2201,7 +2330,8 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                   child: MemoryTextField(
                     fieldKey: 'address.province',
                     controller: _vendorProvinceCtrl,
-                    decoration: _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
+                    decoration:
+                        _inputDecoration('จังหวัด', hint: 'เช่น สุโขทัย'),
                     onChanged: (v) =>
                         widget.onChanged((d) => d.copyWith(vendorProvince: v)),
                   ),
@@ -2212,7 +2342,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                     fieldKey: 'address.postalCode',
                     controller: _vendorPostalCodeCtrl,
                     decoration:
-                        _inputDecoration('รหัสไปรษณีย์', hint: 'เช่น 51000'),
+                        _inputDecoration('รหัสไปรษณีย์', hint: 'เช่น 64000'),
                     onChanged: (v) => widget
                         .onChanged((d) => d.copyWith(vendorPostalCode: v)),
                   ),
@@ -2227,7 +2357,7 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                     fieldKey: 'vendor.phone',
                     controller: _vendorPhoneCtrl,
                     decoration: _inputDecoration('เบอร์โทรศัพท์',
-                        hint: 'เช่น 053-511111'),
+                        hint: 'เช่น 055-123456'),
                     onChanged: (v) =>
                         widget.onChanged((d) => d.copyWith(vendorPhone: v)),
                   ),
@@ -2245,6 +2375,9 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+            _sectionTitle(colors, 'ใบเสนอราคา (แนบไฟล์สแกน)'),
+            _buildQuotationAttachments(context, colors),
             const SizedBox(height: 24),
             _sectionTitle(colors, 'ข้อมูลหลักฐาน/เอกสารที่ใช้ตรวจรับพัสดุ'),
             Row(
@@ -2468,6 +2601,84 @@ class _Tab3VendorTermsState extends State<_Tab3VendorTerms> {
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(RadiusSize.md),
           borderSide: BorderSide(color: BrandAccent.teal(context), width: 1.5)),
+    );
+  }
+
+  /// การ์ดใบเสนอราคาที่แนบไว้ + ปุ่ม "แนบไฟล์" — รองรับหลายไฟล์ต่อโครงการ
+  /// (เทียบราคาหลายเจ้า) เหมือนแพทเทิร์นทะเบียนคุมใบส่งของ
+  Widget _buildQuotationAttachments(BuildContext context, ColorScheme colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.quotationAttachments.isNotEmpty)
+          ...widget.quotationAttachments.map((a) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: colors.outline),
+                  borderRadius: BorderRadius.circular(RadiusSize.md),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                        p.extension(a.filePath).toLowerCase() == '.pdf'
+                            ? Icons.picture_as_pdf_outlined
+                            : Icons.image_outlined,
+                        size: 20,
+                        color: colors.onSurfaceVariant),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(a.originalFileName ?? p.basename(a.filePath),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 14)),
+                          if (a.vendorName?.trim().isNotEmpty ?? false)
+                            Text(
+                                '${a.vendorName}${a.uploadedAt != null ? ' · ${a.uploadedAt}' : ''}',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: colors.onSurfaceVariant))
+                          else if (a.uploadedAt != null)
+                            Text(a.uploadedAt!,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: colors.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      tooltip: 'เปิดไฟล์',
+                      onPressed: () => _openAttachedFile(a.filePath),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete_outline,
+                          size: 18, color: BrandAccent.red(context)),
+                      tooltip: 'ลบไฟล์แนบ',
+                      onPressed: () => widget.onRemoveQuotation(a),
+                    ),
+                  ],
+                ),
+              )),
+        OutlinedButton.icon(
+          onPressed: widget.onAddQuotation,
+          icon: const Icon(Icons.attach_file, size: 18),
+          label: const Text('แนบไฟล์ใบเสนอราคา'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            side: BorderSide(color: colors.outline),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(RadiusSize.md)),
+            textStyle:
+                const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
     );
   }
 }

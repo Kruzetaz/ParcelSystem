@@ -14,9 +14,10 @@ import '../utils/money_format.dart';
 import '../widgets/guide_panel.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/status_badge.dart'
-    show StatusBadge, BadgeVariant;
+    show StatusBadge, BadgeVariant, DSFilterChip;
 import '../widgets/design_system/data_table_shell.dart'
     show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/gap_filter_banner.dart';
 import '../widgets/design_system/hover_clear_button.dart';
 import '../widgets/design_system/clearable_text_field.dart';
 
@@ -78,7 +79,11 @@ String _todayThai() {
 }
 
 class TorScreen extends StatefulWidget {
-  const TorScreen({super.key});
+  // เปิดมาจากลิงก์ "ดูรายการที่ขาด" ในเช็คลิสต์ สตง. (หน้ารายงาน) — กรองเฉพาะ
+  // TOR ที่ยังไม่มีรายละเอียดสเปกไว้ให้อัตโนมัติตอนเปิดหน้า
+  final bool initialOnlyMissingSpec;
+
+  const TorScreen({super.key, this.initialOnlyMissingSpec = false});
   @override
   State<TorScreen> createState() => _TorScreenState();
 }
@@ -89,6 +94,11 @@ class _TorScreenState extends State<TorScreen> {
   Map<int, ProcurementOrder> _ordersById = {};
   bool _loading = true;
   int? _exportingId;
+  late bool _onlyMissingSpec = widget.initialOnlyMissingSpec;
+
+  List<TorDocument> get _filteredDocs => _onlyMissingSpec
+      ? _docs.where((d) => (d.specificationText ?? '').isEmpty).toList()
+      : _docs;
 
   @override
   void initState() {
@@ -231,11 +241,25 @@ class _TorScreenState extends State<TorScreen> {
                                             AppTypography.weightExtraBold,
                                         color: colors.onSurface)),
                               ),
+                              DSFilterChip(
+                                label: 'เฉพาะที่ยังไม่มีรายละเอียดสเปก',
+                                icon: Icons.filter_alt_outlined,
+                                isSelected: _onlyMissingSpec,
+                                onTap: () => setState(
+                                    () => _onlyMissingSpec = !_onlyMissingSpec),
+                              ),
                             ],
                           ),
+                          if (_onlyMissingSpec)
+                            GapFilterBanner(
+                              message:
+                                  'แสดงเฉพาะ TOR ที่ยังไม่มีรายละเอียดสเปก',
+                              onClear: () =>
+                                  setState(() => _onlyMissingSpec = false),
+                            ),
                           const SizedBox(height: 16),
                           Expanded(
-                            child: _docs.isEmpty
+                            child: _filteredDocs.isEmpty
                                 ? Center(
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
@@ -255,12 +279,12 @@ class _TorScreenState extends State<TorScreen> {
                                     ),
                                   )
                                 : ListView.separated(
-                                    itemCount: _docs.length,
+                                    itemCount: _filteredDocs.length,
                                     padding: const EdgeInsets.only(bottom: 80),
                                     separatorBuilder: (_, __) =>
                                         const SizedBox(height: 8),
-                                    itemBuilder: (_, i) =>
-                                        _buildCard(context, colors, _docs[i]),
+                                    itemBuilder: (_, i) => _buildCard(
+                                        context, colors, _filteredDocs[i]),
                                   ),
                           ),
                         ],

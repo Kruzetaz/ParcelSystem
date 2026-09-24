@@ -15,9 +15,10 @@ import '../widgets/thai_date_picker.dart';
 import '../services/toast_service.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/status_badge.dart'
-    show StatusBadge, BadgeVariant;
+    show StatusBadge, BadgeVariant, DSFilterChip;
 import '../widgets/design_system/data_table_shell.dart'
     show DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/gap_filter_banner.dart';
 import '../widgets/design_system/hover_clear_button.dart';
 import '../widgets/design_system/clearable_text_field.dart';
 
@@ -84,7 +85,11 @@ String _formatThai(DateTime d) =>
     '${d.day} ${_thaiMonths[d.month]} ${d.year + 543}';
 
 class ContractsScreen extends StatefulWidget {
-  const ContractsScreen({super.key});
+  // เปิดมาจากลิงก์ "ดูรายการที่ขาด" ในเช็คลิสต์ สตง. (หน้ารายงาน) — กรองเฉพาะ
+  // สัญญาที่ยังไม่มีวันที่เริ่ม-สิ้นสุดไว้ให้อัตโนมัติตอนเปิดหน้า
+  final bool initialOnlyMissingDates;
+
+  const ContractsScreen({super.key, this.initialOnlyMissingDates = false});
   @override
   State<ContractsScreen> createState() => _ContractsScreenState();
 }
@@ -95,6 +100,13 @@ class _ContractsScreenState extends State<ContractsScreen> {
   Map<int, ProcurementOrder> _ordersById = {};
   bool _loading = true;
   int? _exportingId;
+  late bool _onlyMissingDates = widget.initialOnlyMissingDates;
+
+  List<Contract> get _filteredContracts => _onlyMissingDates
+      ? _contracts
+          .where((c) => c.startDate == null || c.endDate == null)
+          .toList()
+      : _contracts;
 
   @override
   void initState() {
@@ -113,6 +125,9 @@ class _ContractsScreenState extends State<ContractsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    // เติมวันที่เริ่ม-สิ้นสุดสัญญาที่ยังขาดจากโครงการที่ผูกไว้ก่อนโหลดรายการ —
+    // กันสัญญาเดิมที่ผูกโครงการไว้แล้วแต่ยังไม่เคยมีค่าสองช่องนี้ค้างว่างอยู่
+    await _repo.syncContractDatesFromLinkedOrders();
     final contracts = await _repo.getAllContracts(
         fiscalYear: FiscalYearController.instance.viewingYear);
     final orders = await _repo.getAllOrders();
@@ -269,13 +284,31 @@ class _ContractsScreenState extends State<ContractsScreen> {
                                             AppTypography.weightExtraBold,
                                         color: colors.onSurface)),
                               ),
+                              // ตัวกรอง "เฉพาะที่ยังไม่มีวันที่เริ่ม-สิ้นสุด" ยังอยู่
+                              // ให้กดสลับเปิด/ปิดเองได้ตลอด ไม่ใช่แค่ตอนกดลิงก์
+                              // "ดูรายการที่ขาด" จากหน้ารายงาน สตง. เท่านั้น (เดิม
+                              // กดล้างแล้วไม่มีทางกรองกลับได้เลยนอกจากสลับหน้าไป-มา)
+                              DSFilterChip(
+                                label: 'เฉพาะที่ยังไม่มีวันที่เริ่ม-สิ้นสุด',
+                                icon: Icons.filter_alt_outlined,
+                                isSelected: _onlyMissingDates,
+                                onTap: () => setState(() =>
+                                    _onlyMissingDates = !_onlyMissingDates),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
                           _buildSummaryBar(context, colors),
                           const SizedBox(height: 16),
+                          if (_onlyMissingDates)
+                            GapFilterBanner(
+                              message:
+                                  'แสดงเฉพาะสัญญาที่ยังไม่มีวันที่เริ่ม-สิ้นสุด',
+                              onClear: () =>
+                                  setState(() => _onlyMissingDates = false),
+                            ),
                           Expanded(
-                            child: _contracts.isEmpty
+                            child: _filteredContracts.isEmpty
                                 ? Center(
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
@@ -295,12 +328,12 @@ class _ContractsScreenState extends State<ContractsScreen> {
                                     ),
                                   )
                                 : ListView.separated(
-                                    itemCount: _contracts.length,
+                                    itemCount: _filteredContracts.length,
                                     padding: const EdgeInsets.only(bottom: 80),
                                     separatorBuilder: (_, __) =>
                                         const SizedBox(height: 8),
                                     itemBuilder: (_, i) => _buildCard(
-                                        context, colors, _contracts[i]),
+                                        context, colors, _filteredContracts[i]),
                                   ),
                           ),
                         ],
@@ -619,6 +652,18 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
     _orderId = c?.orderId;
     _startDate = c?.startDate;
     _endDate = c?.endDate;
+    // สัญญาเดิมที่ผูกกับโครงการอยู่แล้วแต่ยังไม่เคยมี "วันที่สิ้นสุดสัญญา" (เช่น
+    // สัญญาที่บันทึกไว้ก่อนจะมีการดึงค่านี้อัตโนมัติ) — เติมให้จาก "วันครบกำหนด
+    // ส่งมอบ" ของโครงการที่ผูกอยู่ให้เลยตอนเปิดฟอร์มแก้ไข ไม่ต้องรอให้ผู้ใช้กด
+    // เลือกโครงการซ้ำในดรอปดาวน์ถึงจะได้ค่า
+    if ((_endDate?.trim().isEmpty ?? true) && _orderId != null) {
+      for (final o in widget.orders) {
+        if (o.id == _orderId && (o.dateDeadline?.trim().isNotEmpty ?? false)) {
+          _endDate = o.dateDeadline;
+          break;
+        }
+      }
+    }
   }
 
   @override
@@ -649,8 +694,15 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
     if (order == null) return;
     final selectedOrder = order;
     setState(() {
-      if (selectedOrder.contractControlNumber?.trim().isNotEmpty ?? false) {
-        _contractNumberCtrl.text = selectedOrder.contractControlNumber!;
+      // "เลขที่สัญญา" ดึงจาก "เลขที่ควบคุมสัญญา" (แท็บ 5 ของ wizard) ก่อน ถ้า
+      // ไม่มี (โรงเรียนที่ใช้เลขเดียวกันตลอดทั้งโครงการ ไม่แยกเลขที่จัดซื้อกับ
+      // เลขที่สัญญา) ให้ใช้ "เลขที่จัดซื้อ" (แท็บ 1) แทน
+      final controlOrProcurementNumber =
+          selectedOrder.contractControlNumber?.trim().isNotEmpty ?? false
+              ? selectedOrder.contractControlNumber
+              : selectedOrder.procurementNumber;
+      if (controlOrProcurementNumber?.trim().isNotEmpty ?? false) {
+        _contractNumberCtrl.text = controlOrProcurementNumber!;
       }
       if (selectedOrder.egpProjectId?.trim().isNotEmpty ?? false) {
         _egpNumberCtrl.text = selectedOrder.egpProjectId!;
@@ -664,6 +716,13 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
       if (amount != null) _contractAmountCtrl.text = amount.toStringAsFixed(2);
       if (selectedOrder.dateContractSigned?.trim().isNotEmpty ?? false) {
         _startDate = selectedOrder.dateContractSigned;
+      }
+      // "วันที่สิ้นสุดสัญญา" = "วันครบกำหนดส่งมอบ" ของรายการที่เลือก (ตามที่
+      // ตกลงกันไว้ — วันสุดท้ายที่ผู้ขายต้องส่งมอบตามสัญญา เกินจากนี้ถือว่าผิด
+      // นัด เริ่มคิดค่าปรับรายวัน) ไม่ใช่วันตรวจรับหรือวันส่งมอบจริง เพราะสอง
+      // วันนั้นเป็นเหตุการณ์ที่เกิดขึ้นจริงภายหลัง ไม่ใช่เงื่อนไขที่ตกลงไว้ในสัญญา
+      if (selectedOrder.dateDeadline?.trim().isNotEmpty ?? false) {
+        _endDate = selectedOrder.dateDeadline;
       }
     });
   }
@@ -760,7 +819,7 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                         context,
                         label: 'รายการจัดซื้อจัดจ้างที่เกี่ยวข้อง',
                         helper:
-                            'เลือกแล้วระบบจะดึงเลขที่คุมสัญญา/e-GP/ผู้ขาย/วงเงินจากรายการนี้มาเติมให้อัตโนมัติทันที (ทับข้อมูลเดิมในช่องนั้นถ้ามี)',
+                            'เลือกแล้วระบบจะดึงเลขที่คุมสัญญา/e-GP/ผู้ขาย/วงเงิน/วันที่เริ่ม-สิ้นสุดสัญญาจากรายการนี้มาเติมให้อัตโนมัติทันที (ทับข้อมูลเดิมในช่องนั้นถ้ามี)',
                       ).copyWith(
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         suffixIcon: hovering && _orderId != null
@@ -850,7 +909,8 @@ class _ContractFormDialogState extends State<_ContractFormDialog> {
                           borderRadius: BorderRadius.circular(RadiusSize.md),
                           child: InputDecorator(
                             decoration: _dialogFieldDecoration(context,
-                                    label: 'วันที่สิ้นสุดสัญญา')
+                                    label: 'วันที่สิ้นสุดสัญญา',
+                                    helper: 'คือวันครบกำหนดส่งมอบ')
                                 .copyWith(
                                     floatingLabelBehavior:
                                         FloatingLabelBehavior.auto),

@@ -285,7 +285,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       controller: _schoolNameCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('ชื่อโรงเรียน',
-                          hint: 'เช่น โรงเรียนบ้านป่าเลา'),
+                          hint: 'เช่น โรงเรียนบ้านตัวอย่าง'),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(
@@ -293,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('ส่วนราชการ (ต้นสังกัด)',
                           hint:
-                              'เช่น สำนักงานเขตพื้นที่การศึกษาประถมศึกษาลำพูน เขต 1'),
+                              'เช่น สำนักงานเขตพื้นที่การศึกษาประถมศึกษาสุโขทัย เขต 1'),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(
@@ -319,7 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                             controller: _schoolAmphoeCtrl,
                             style: const TextStyle(fontSize: 17),
                             decoration: _inputDecoration('อำเภอ/เขต',
-                                hint: 'เช่น เมืองลำพูน'),
+                                hint: 'เช่น เมืองสุโขทัย'),
                           ),
                         ),
                       ],
@@ -329,14 +329,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                       controller: _schoolChangwatCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration:
-                          _inputDecoration('จังหวัด', hint: 'เช่น ลำพูน'),
+                          _inputDecoration('จังหวัด', hint: 'เช่น สุโขทัย'),
                     ),
                     const SizedBox(height: 16),
                     ClearableTextField(
                       controller: _schoolPhoneCtrl,
                       style: const TextStyle(fontSize: 17),
                       decoration: _inputDecoration('เบอร์โทรโรงเรียน',
-                          hint: 'เช่น 053-511111'),
+                          hint: 'เช่น 055-123456'),
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 28),

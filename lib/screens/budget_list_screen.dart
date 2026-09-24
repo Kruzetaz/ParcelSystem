@@ -24,7 +24,9 @@ import '../widgets/column_visibility_menu.dart';
 import '../theme/design_tokens.dart';
 import '../widgets/design_system/data_table_shell.dart'
     show DsCheckbox, DsActionIconButtons, DsRowAction;
+import '../widgets/design_system/gap_filter_banner.dart';
 import '../widgets/design_system/kpi_card.dart';
+import '../widgets/design_system/status_badge.dart' show DSFilterChip;
 import '../widgets/design_system/clearable_text_field.dart';
 
 /// คอลัมน์ที่ซ่อน/แสดงได้ในมุมมองตาราง — "ฝ่าย/ปีงบ/โครงการ/คงเหลือ" แสดงเสมอ
@@ -48,8 +50,12 @@ class BudgetListScreen extends StatefulWidget {
   // สลับหน้าออกไประหว่างรอ (สลับหน้า = ทำลาย state หน้านี้ทิ้ง ผลลัพธ์ที่ AI
   // กำลังจะได้จะหายไปเงียบๆ)
   final ValueChanged<bool>? onAiBusyChanged;
+  // เปิดมาจากลิงก์ "ดูรายการที่ขาด" ในเช็คลิสต์ สตง. (หน้ารายงาน) — กรองเฉพาะ
+  // แผนงบที่ยังไม่ระบุวงเงินจัดสรรไว้ให้อัตโนมัติตอนเปิดหน้า
+  final bool initialOnlyMissingAmount;
 
-  const BudgetListScreen({super.key, this.onAiBusyChanged});
+  const BudgetListScreen(
+      {super.key, this.onAiBusyChanged, this.initialOnlyMissingAmount = false});
   @override
   State<BudgetListScreen> createState() => _BudgetListScreenState();
 }
@@ -78,6 +84,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   bool _loading = true;
   bool _importing = false;
   bool _exporting = false;
+  late bool _onlyMissingAmount = widget.initialOnlyMissingAmount;
 
   _BudgetViewMode _viewMode = UiSessionState.instance
       .read('budget_list_view_mode', _BudgetViewMode.card);
@@ -701,6 +708,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     ..sort();
 
   List<Budget> get _filteredBudgets => _budgets.where((b) {
+        if (_onlyMissingAmount && b.allocatedAmount != null) return false;
         if (!_matchesDepartmentFilter(b)) return false;
         if (_selectedProject != null && b.projectName != _selectedProject)
           return false;
@@ -866,6 +874,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (_onlyMissingAmount)
+                      GapFilterBanner(
+                        message: 'แสดงเฉพาะแผนงบที่ยังไม่ระบุวงเงินจัดสรร',
+                        onClear: () =>
+                            setState(() => _onlyMissingAmount = false),
+                      ),
                     if (!FiscalYearController
                         .instance.isViewingCurrentYear) ...[
                       _buildOldYearNotice(colors),
@@ -887,6 +901,16 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               _buildViewToggle(colors),
+                              // ตัวกรอง "เฉพาะที่ยังไม่ระบุวงเงิน" ยังอยู่ให้กดสลับ
+                              // เปิด/ปิดเองได้ตลอด ไม่ใช่แค่ตอนกดลิงก์ "ดูรายการที่
+                              // ขาด" จากหน้ารายงาน สตง. เท่านั้น
+                              DSFilterChip(
+                                label: 'เฉพาะที่ยังไม่ระบุวงเงิน',
+                                icon: Icons.filter_alt_outlined,
+                                isSelected: _onlyMissingAmount,
+                                onTap: () => setState(() =>
+                                    _onlyMissingAmount = !_onlyMissingAmount),
+                              ),
                               _actionButton(
                                 colors: colors,
                                 onPressed: _importing ? null : _importFromFile,

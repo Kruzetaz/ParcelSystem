@@ -171,12 +171,14 @@ class DSFilterChip extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.isDanger = false,
+    this.icon,
   });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
   final bool isDanger;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -212,13 +214,22 @@ class DSFilterChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(RadiusSize.md),
           border: Border.all(color: border),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: AppTypography.caption,
-            fontWeight: AppTypography.weightBold,
-            color: text,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 13, color: text),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: AppTypography.caption,
+                fontWeight: AppTypography.weightBold,
+                color: text,
+              ),
+            ),
+          ],
         ),
       ),
     );
